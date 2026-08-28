@@ -81,8 +81,8 @@
     /* Clean Bubble Typography */
     .prose p { 
       margin-top: 0;
-      margin-bottom: 0.5rem; 
-      line-height: 1.55; 
+      margin-bottom: 0.6rem; 
+      line-height: 1.6; 
     }
     .prose p:last-child { 
       margin-bottom: 0 !important; 
@@ -93,7 +93,7 @@
     .prose > :last-child {
       margin-bottom: 0 !important;
     }
-    .prose em { color: #94a3b8; font-style: italic; }
+    .prose em { color: #94a3b8; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
     .prose strong { color: #f8fafc; }
     textarea, input, select { -webkit-appearance: none; }
 
@@ -590,7 +590,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v33';
+          const CACHE_NAME = 'zetaforge-v35';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -881,6 +881,26 @@
       }
     }
 
+    // Auto-inserts line breaks between actions (*...*) and spoken dialogue (strictly idempotently)
+    function formatDialogueSpacing(text) {
+      if (!text) return '';
+      let formatted = text.trim();
+
+      // Ensure a line break between closing asterisk and opening quote
+      formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
+
+      // Ensure a line break between closing quote and opening asterisk
+      formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
+
+      // Ensure a line break between closing asterisk and plain speech
+      formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
+
+      // Ensure a line break between plain speech sentence end and opening asterisk
+      formatted = formatted.replace(/([.!?])([^\S\r\n]+)\*/g, '$1\n*');
+
+      return formatted;
+    }
+
     // AI Reply Generator producing 3 distinct responses
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
@@ -898,7 +918,7 @@
       const list = document.getElementById('replySuggestionsList');
 
       btn.disabled = true;
-      btn.innerHTML = `<span>⏳</span> <span>Generating...</span>`;
+      btn.innerHTML = `<span>⏳</span> <span>Suggest</span>`;
 
       try {
         const recentDialogue = active.messages
@@ -922,13 +942,13 @@ ${recentDialogue}
 
 CRITICAL RULES:
 1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
-2. Format each choice with actions in asterisks and dialogue in quotes (e.g. *I lean back with a smirk* "Are you sure about that?").
+2. FORMATTING: Separate actions in asterisks from spoken dialogue with a newline (e.g. *I lean back with a smirk*\\n\\"Are you sure about that?\\").
 3. Keep each choice between 10 and 25 words.
 4. Output STRICTLY a JSON array of 3 strings:
 [
-  "*Action* \\"Dialogue option 1\\"",
-  "*Action* \\"Dialogue option 2\\"",
-  "*Action* \\"Dialogue option 3\\""
+  "*Action*\\n\\"Dialogue option 1\\"",
+  "*Action*\\n\\"Dialogue option 2\\"",
+  "*Action*\\n\\"Dialogue option 3\\""
 ]`
             }]
           }],
@@ -952,15 +972,18 @@ CRITICAL RULES:
         const choices = JSON.parse(rawJson.trim());
 
         if (Array.isArray(choices) && choices.length > 0) {
-          list.innerHTML = choices.map((choice, idx) => `
-            <button onclick="applySuggestedReply('${escapeJsString(choice)}')" class="p-2.5 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 min-w-[220px] max-w-[280px] shrink-0 transition active:scale-95 shadow-sm space-y-1 group">
-              <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold">
-                <span>Option ${idx + 1}</span>
-                <span class="opacity-0 group-hover:opacity-100 transition text-[9px] text-slate-400">Tap to send ↵</span>
-              </div>
-              <p class="line-clamp-3 leading-relaxed text-slate-300 font-normal italic">${escapeHtml(choice)}</p>
-            </button>
-          `).join('');
+          list.innerHTML = choices.map((choice, idx) => {
+            const formattedChoice = formatDialogueSpacing(choice);
+            return `
+              <button onclick="applySuggestedReply('${escapeJsString(formattedChoice)}')" class="p-2.5 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 min-w-[220px] max-w-[280px] shrink-0 transition active:scale-95 shadow-sm space-y-1 group">
+                <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold">
+                  <span>Option ${idx + 1}</span>
+                  <span class="opacity-0 group-hover:opacity-100 transition text-[9px] text-slate-400">Tap to send ↵</span>
+                </div>
+                <p class="line-clamp-3 leading-relaxed text-slate-300 font-normal italic">${escapeHtml(formattedChoice).replace(/\n/g, '<br>')}</p>
+              </button>
+            `;
+          }).join('');
 
           container.classList.remove('hidden');
         }
@@ -1672,7 +1695,7 @@ JSON FORMAT:
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
-        const cleanContent = (m.text || '').trim();
+        const cleanContent = formatDialogueSpacing((m.text || '').trim());
         const renderedHtml = marked.parse(cleanContent);
 
         return `
@@ -1714,7 +1737,7 @@ JSON FORMAT:
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
-        const fullText = (block.text || '').trim();
+        const fullText = formatDialogueSpacing((block.text || '').trim());
 
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
@@ -1800,11 +1823,16 @@ ${pastChaptersStr}
 [CRITICAL OUTPUT RULES]:
 1. NEVER speak or act for {{user}} (${active.userPersona.name}).
 2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker". Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
-3. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker" and "text" keys:
+3. DIALOGUE FORMATTING: Always place character actions enclosed in asterisks (*...*) on their own line, separated from spoken dialogue in quotes by a line break.
+Example:
+*Sensory action or expression.*
+"Spoken dialogue in quotes."
+
+4. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker" and "text" keys:
 [
   {
     "speaker": "CharacterName or Narrator",
-    "text": "*Actions in asterisks* \\"Dialogue in quotes.\\""
+    "text": "*Action in asterisks*\\n\\"Dialogue in quotes.\\""
   }
 ]`;
     }
@@ -2194,7 +2222,7 @@ REQUIREMENTS:
           active.messages.push({
             role: 'user',
             speakerName: active.userPersona.name,
-            text: seg,
+            text: formatDialogueSpacing(seg),
             timestamp: timeStr
           });
         }
@@ -2307,7 +2335,7 @@ REQUIREMENTS:
         parsedMessages.push({
           role: isUser ? 'user' : 'model',
           speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
-          text: b.text,
+          text: formatDialogueSpacing(b.text),
           timestamp: 'Imported'
         });
       }
