@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
-  <!-- Native iOS Meta (Fixed Clean Translucent Header) -->
+  <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
@@ -65,6 +65,14 @@
       touch-action: pan-y;
     }
 
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
     /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0f1117; }
@@ -105,7 +113,7 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <!-- Streamlined Top Header (Clean, High-Z Solid Header) -->
+  <!-- Streamlined Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
     <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
       <!-- Left: Cast Button + Logo + Title & Scenario Subtitle -->
@@ -206,6 +214,7 @@
           </div>
         </div>
 
+        <!-- Live Payload & Tokens In Chapter Drawer -->
         <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
@@ -217,7 +226,7 @@
           </div>
           <div class="flex items-center justify-between text-slate-400">
             <span>Current Raw Payload:</span>
-            <span id="statActiveTokens" class="font-semibold text-indigo-400">0k tokens</span>
+            <span id="statActiveTokens" class="font-semibold text-indigo-400">0k / 120k tokens</span>
           </div>
         </div>
       </div>
@@ -227,7 +236,7 @@
       </div>
     </div>
 
-    <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu (Zeta Style) -->
+    <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu -->
     <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
         <div class="flex items-center justify-between">
@@ -297,24 +306,38 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar with Live Raw Token Monitor -->
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
-        <div class="max-w-4xl mx-auto space-y-2">
-          <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
-            <div class="flex items-center gap-2">
-              <button onclick="generateSceneImage()" id="genImageBtn" class="hover:text-indigo-300 text-indigo-400 font-medium flex items-center gap-1 transition active:scale-95">
-                🖼️ <span>Visualize Scene</span>
+        <div class="max-w-4xl mx-auto space-y-2.5">
+          
+          <!-- Unified Header-Matched Button Bar -->
+          <div class="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+                <span>🖼️</span> <span>Visualize</span>
               </button>
-              <span class="text-[10px] text-slate-500 hidden sm:inline">• Start with <code class="text-amber-300 bg-slate-800 px-1 py-0.5 rounded">@:</code> to narrate</span>
+              <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800/90 hover:bg-slate-700 text-indigo-300 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-indigo-700/50 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+                <span>💡</span> <span>Suggest Options</span>
+              </button>
             </div>
-            <div class="flex items-center gap-2">
-              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 120k tokens (Raw)</span>
-              <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
-                ⏩ <span>Continue scene</span>
-              </button>
+            
+            <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>⏩</span> <span>Continue Scene</span>
+            </button>
+          </div>
+
+          <!-- Dynamic Reply Suggestions Carousel (Appears when triggered) -->
+          <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
+            <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
+              <span class="font-semibold text-indigo-300">💡 Choose a response path:</span>
+              <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
+            </div>
+            <div id="replySuggestionsList" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <!-- Suggestion bubbles injected here -->
             </div>
           </div>
 
+          <!-- Message Textarea & Send Button -->
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
@@ -571,7 +594,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v29';
+          const CACHE_NAME = 'zetaforge-v30';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -862,6 +885,108 @@
       }
     }
 
+    // AI Reply Generator producing 3 distinct responses
+    async function generateReplySuggestions() {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        return;
+      }
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
+        alert("Start a story first before generating reply choices.");
+        return;
+      }
+
+      const btn = document.getElementById('suggestRepliesBtn');
+      const container = document.getElementById('replySuggestionsContainer');
+      const list = document.getElementById('replySuggestionsList');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳</span> <span>Generating...</span>`;
+
+      try {
+        const recentDialogue = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-8)
+          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+          .join('\n');
+
+        const promptPayload = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `TASK: Generate exactly 3 completely distinct dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
+
+USER DETAILS & PERSONALITY:
+- Name: ${active.userPersona.name}
+- Persona/Role: ${active.userPersona.role || 'Protagonist'} - ${active.userPersona.desc || 'Observant and quick-witted'}
+
+RECENT TURNS:
+${recentDialogue}
+
+CRITICAL RULES:
+1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
+2. Format each choice with actions in asterisks and dialogue in quotes (e.g. *I lean back with a smirk* "Are you sure about that?").
+3. Keep each choice between 10 and 25 words.
+4. Output STRICTLY a JSON array of 3 strings:
+[
+  "*Action* \\"Dialogue option 1\\"",
+  "*Action* \\"Dialogue option 2\\"",
+  "*Action* \\"Dialogue option 3\\""
+]`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.85,
+            maxOutputTokens: 350,
+            responseMimeType: "application/json"
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptPayload)
+        });
+
+        if (!res.ok) throw new Error("Failed to generate suggestion paths.");
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        const choices = JSON.parse(rawJson.trim());
+
+        if (Array.isArray(choices) && choices.length > 0) {
+          list.innerHTML = choices.map((choice, idx) => `
+            <button onclick="applySuggestedReply('${escapeJsString(choice)}')" class="p-2.5 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 min-w-[220px] max-w-[280px] shrink-0 transition active:scale-95 shadow-sm space-y-1 group">
+              <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold">
+                <span>Option ${idx + 1}</span>
+                <span class="opacity-0 group-hover:opacity-100 transition text-[9px] text-slate-400">Tap to send ↵</span>
+              </div>
+              <p class="line-clamp-3 leading-relaxed text-slate-300 font-normal italic">${escapeHtml(choice)}</p>
+            </button>
+          `).join('');
+
+          container.classList.remove('hidden');
+        }
+      } catch (err) {
+        alert("Reply Suggestion Notice: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>💡</span> <span>Suggest Options</span>`;
+      }
+    }
+
+    function applySuggestedReply(text) {
+      const inputEl = document.getElementById('userInput');
+      inputEl.value = text;
+      hideReplySuggestions();
+      handleUserSubmit();
+    }
+
+    function hideReplySuggestions() {
+      document.getElementById('replySuggestionsContainer').classList.add('hidden');
+    }
+
     // Interactive Character Spotlight Dossier Functions
     function openCharacterSpotlight(characterName) {
       if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
@@ -947,7 +1072,6 @@
       document.getElementById('characterSpotlightModal').classList.add('hidden');
     }
 
-    // Windowed Full-Screen Photo Preview Handlers
     function openCharacterPhotoModal(imageSrc, charName) {
       if (!imageSrc) return;
       const modal = document.getElementById('characterPhotoModal');
@@ -1077,7 +1201,8 @@
       const activeRawCount = active.messages.filter(m => !m.isImage && !m.isChapterDivider).length;
       document.getElementById('statActiveTurns').innerText = `${activeRawCount} turns`;
       const currentRawTokens = getActiveRawTokens();
-      document.getElementById('statActiveTokens').innerText = `${(currentRawTokens/1000).toFixed(1)}k tokens`;
+      const limit = (appState.tokenThreshold || 120000);
+      document.getElementById('statActiveTokens').innerText = `${(currentRawTokens/1000).toFixed(1)}k / ${(limit/1000).toFixed(0)}k tokens`;
 
       select.innerHTML = '';
 
@@ -1411,7 +1536,6 @@ JSON FORMAT:
       }
     }
 
-    // Robust Avatar Renderer with Clean Event Delegation
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -1498,12 +1622,7 @@ JSON FORMAT:
     function renderMessages() {
       const container = document.getElementById('messagesContainer');
       const active = getActiveScenario();
-      const currentRawTokens = getActiveRawTokens();
-      const limit = (appState.tokenThreshold || 120000);
-      const displayTokens = (currentRawTokens / 1000).toFixed(1);
-      const displayLimit = (limit / 1000).toFixed(0);
 
-      document.getElementById('tokenCounter').innerText = `${displayTokens}k / ${displayLimit}k tokens (Raw)`;
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
 
       if (active.messages.length === 0) {
@@ -2043,6 +2162,7 @@ REQUIREMENTS:
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       skipTypewriter();
+      hideReplySuggestions();
 
       const inputEl = document.getElementById('userInput');
       const rawText = inputEl.value.trim();
@@ -2086,6 +2206,7 @@ REQUIREMENTS:
 
     async function triggerContinue() {
       skipTypewriter();
+      hideReplySuggestions();
       const active = getActiveScenario();
       if (active.messages.length === 0 && active.setting) {
         generateOpeningScene();
@@ -2134,6 +2255,7 @@ REQUIREMENTS:
     async function regenerateTurn(index) {
       if (index <= 0) return;
       skipTypewriter();
+      hideReplySuggestions();
       showLoading(true, "Regenerating turn...");
       const active = getActiveScenario();
       try {
@@ -2290,6 +2412,7 @@ REQUIREMENTS:
       const sendBtn = document.getElementById('sendBtn');
       const continueBtn = document.getElementById('continueBtn');
       const genImageBtn = document.getElementById('genImageBtn');
+      const suggestRepliesBtn = document.getElementById('suggestRepliesBtn');
 
       if (show) {
         textEl.innerText = message;
@@ -2297,11 +2420,13 @@ REQUIREMENTS:
         sendBtn.disabled = true;
         continueBtn.disabled = true;
         if (genImageBtn) genImageBtn.disabled = true;
+        if (suggestRepliesBtn) suggestRepliesBtn.disabled = true;
       } else {
         indicator.classList.add('hidden');
         sendBtn.disabled = false;
         continueBtn.disabled = false;
         if (genImageBtn) genImageBtn.disabled = false;
+        if (suggestRepliesBtn) suggestRepliesBtn.disabled = false;
       }
     }
 
