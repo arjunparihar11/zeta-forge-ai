@@ -521,7 +521,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v24';
+          const CACHE_NAME = 'zetaforge-v25';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -774,7 +774,6 @@
         drawer.classList.remove('translate-x-full');
         document.getElementById('mobileBackdrop').classList.remove('hidden');
         
-        // Auto-synthesize character summaries if not yet cached
         const active = getActiveScenario();
         const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
         if (!active.activeChapterArcs && activeTurns.length > 2 && appState.apiKey) {
@@ -936,7 +935,7 @@
       renderSelectedChapterSummary('active');
     }
 
-    // Render Gemini-Synthesized 3-4 Sentence Narrative Paragraph for Selected Chapter
+    // Render Cleanly Stacked Per-Character Cards in Chapter Chronicle (Tags Below Name)
     function renderSelectedChapterSummary(selectedVal) {
       const generalBox = document.getElementById('chapterGeneralSummary');
       const arcsContainer = document.getElementById('chapterCharacterArcsList');
@@ -972,16 +971,22 @@
           }
 
           return `
-            <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
-              ${avatarHtml}
-              <div class="overflow-hidden flex-1 space-y-1.5">
-                <div class="flex items-center justify-between gap-1">
-                  <span class="font-bold text-xs sm:text-sm text-white truncate">${escapeHtml(member.name)}</span>
-                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(member.role)}</span>
+            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl space-y-2 shadow-sm">
+              <div class="flex items-start gap-2.5">
+                ${avatarHtml}
+                <div class="overflow-hidden flex-1 flex flex-col gap-1">
+                  <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight">${escapeHtml(member.name)}</span>
+                  ${member.role ? `
+                    <div class="flex flex-wrap gap-1">
+                      <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
+                        ${escapeHtml(member.role)}
+                      </span>
+                    </div>
+                  ` : ''}
                 </div>
-                <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-                  ${marked.parse(summary)}
-                </div>
+              </div>
+              <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none pt-0.5">
+                ${marked.parse(summary)}
               </div>
             </div>
           `;
@@ -1006,16 +1011,22 @@
           const summary = charArcsObj[member.name] || `Active participant throughout Chapter ${chapterNum}'s events with continuous story progression.`;
 
           return `
-            <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
-              ${avatarHtml}
-              <div class="overflow-hidden flex-1 space-y-1.5">
-                <div class="flex items-center justify-between gap-1">
-                  <span class="font-bold text-xs sm:text-sm text-white truncate">${escapeHtml(member.name)}</span>
-                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(member.role)}</span>
+            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl space-y-2 shadow-sm">
+              <div class="flex items-start gap-2.5">
+                ${avatarHtml}
+                <div class="overflow-hidden flex-1 flex flex-col gap-1">
+                  <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight">${escapeHtml(member.name)}</span>
+                  ${member.role ? `
+                    <div class="flex flex-wrap gap-1">
+                      <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
+                        ${escapeHtml(member.role)}
+                      </span>
+                    </div>
+                  ` : ''}
                 </div>
-                <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-                  ${marked.parse(summary)}
-                </div>
+              </div>
+              <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none pt-0.5">
+                ${marked.parse(summary)}
               </div>
             </div>
           `;
