@@ -202,6 +202,7 @@
               <button onclick="generateSceneImage()" id="genImageBtn" class="hover:text-indigo-300 text-indigo-400 font-medium flex items-center gap-1 transition active:scale-95">
                 🖼️ <span>Visualize Scene</span>
               </button>
+              <span class="text-[10px] text-slate-500 hidden sm:inline">• Start with <code class="text-amber-300 bg-slate-800 px-1 py-0.5 rounded">@:</code> to narrate</span>
             </div>
             <div class="flex items-center gap-2">
               <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 120k tokens (Raw)</span>
@@ -215,7 +216,7 @@
             <textarea
               id="userInput"
               rows="2"
-              placeholder="Describe your action or speak (*I lean back* &quot;What now?&quot;)..."
+              placeholder="Describe action, speak, or use @: to narrate scene..."
               class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none max-h-40 overflow-y-auto leading-relaxed"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
@@ -404,7 +405,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v17';
+          const CACHE_NAME = 'zetaforge-v18';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1096,7 +1097,6 @@ TASK: Create a comprehensive structured summary preserving exact character conti
       }
     }
 
-    // Multimodal Scene Visualizer leveraging Character Profiles and Base64 Avatars
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1116,17 +1116,14 @@ TASK: Create a comprehensive structured summary preserving exact character conti
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
-        // Extract detailed visual descriptions
         const castVisualProfiles = appState.characters.map(c => `
 - ${c.name}:
   Role: ${c.role || 'Companion'}
   Visual & Attire: ${c.personality || 'Standard appearance'}`
         ).join('\n');
 
-        // Assemble multimodal parts with profile pictures if available
         const promptParts = [];
 
-        // Include user avatar image if base64
         if (appState.userPersona.avatar && appState.userPersona.avatar.startsWith('data:image')) {
           const mime = appState.userPersona.avatar.split(';')[0].split(':')[1];
           const data = appState.userPersona.avatar.split(',')[1];
@@ -1135,7 +1132,6 @@ TASK: Create a comprehensive structured summary preserving exact character conti
           });
         }
 
-        // Include character avatar images
         appState.characters.forEach(c => {
           if (c.avatar && c.avatar.startsWith('data:image')) {
             const mime = c.avatar.split(';')[0].split(':')[1];
@@ -1280,20 +1276,41 @@ REQUIREMENTS:
       }));
     }
 
+    // Handles submissions with "@:" user narration prefix & multi-bubble splitting
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       skipTypewriter();
 
       const inputEl = document.getElementById('userInput');
-      const text = inputEl.value.trim();
-      if (!text) return;
+      const rawText = inputEl.value.trim();
+      if (!rawText) return;
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      appState.messages.push({
-        role: 'user',
-        speakerName: appState.userPersona.name,
-        text: text,
-        timestamp: timeStr
+
+      // Split paragraphs by one or more blank lines (or multiple newlines)
+      const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+
+      segments.forEach(seg => {
+        if (seg.startsWith('@:')) {
+          // User narration block
+          const cleanNarration = seg.replace(/^@:\s*/, '').trim();
+          if (cleanNarration) {
+            appState.messages.push({
+              role: 'user',
+              speakerName: 'Narrator',
+              text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
+              timestamp: timeStr
+            });
+          }
+        } else {
+          // Standard user dialogue/action turn
+          appState.messages.push({
+            role: 'user',
+            speakerName: appState.userPersona.name,
+            text: seg,
+            timestamp: timeStr
+          });
+        }
       });
 
       inputEl.value = '';
