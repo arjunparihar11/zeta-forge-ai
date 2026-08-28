@@ -73,12 +73,10 @@
       scrollbar-width: none;
     }
 
-    /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
     
-    /* Clean Bubble Typography */
     .prose p { 
       margin-top: 0;
       margin-bottom: 0.6rem; 
@@ -97,7 +95,6 @@
     .prose strong { color: #f8fafc; }
     textarea, input, select { -webkit-appearance: none; }
 
-    /* Typing cursor pulse */
     .typing-cursor::after {
       content: '▋';
       display: inline-block;
@@ -113,10 +110,9 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <!-- Streamlined Top Header -->
+  <!-- Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
     <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
-      <!-- Left: Cast Button + Logo + Title & Scenario Subtitle -->
       <div class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
         <button onclick="toggleMobileSidebar()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Dramatis Personae">
           👥
@@ -130,16 +126,13 @@
         </div>
       </div>
 
-      <!-- Right: Chapter Chronicle Badge + Responsive Desktop Utilities / Mobile Menu Button -->
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
-        <!-- Desktop Expanded Utilities (Hidden on Mobile) -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -158,7 +151,6 @@
           </button>
         </div>
 
-        <!-- Mobile Menu Button (Hidden on Desktop) -->
         <button onclick="toggleMenuDrawer(true)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
           ☰
         </button>
@@ -169,10 +161,9 @@
   <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
-    <!-- Universal Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel (Dramatis Personae) -->
+    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -182,10 +173,7 @@
         <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-3 space-y-3 scroll-touch" id="sidebarCharacterList">
-        <div class="text-xs text-slate-500 text-center py-8">
-          No characters configured.<br>Tap <strong>Setup</strong> above to add cast.
-        </div>
+      <div class="flex-1 overflow-y-auto p-3 space-y-4 scroll-touch" id="sidebarCharacterList">
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
@@ -235,7 +223,6 @@
           </div>
         </div>
 
-        <!-- Live Payload & Tokens In Chapter Drawer -->
         <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
@@ -331,7 +318,6 @@
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
-          <!-- Unified Left-Aligned Action Pill Group -->
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
@@ -354,7 +340,6 @@
             </div>
           </div>
 
-          <!-- Single-Line Initial Textarea & Balanced Send Button -->
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
@@ -378,7 +363,7 @@
   </div>
 
   <!-- Center Screen: Character Spotlight Dossier Modal -->
-  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
         &times;
@@ -389,12 +374,29 @@
           <div id="spotlightAvatarBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-800 border-2 border-indigo-500/50 shadow-xl shrink-0 flex items-center justify-center text-4xl font-bold text-indigo-300 cursor-pointer active:scale-95 transition group relative" title="Tap for windowed full preview">
           </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
-            <h3 id="spotlightName" class="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">Character Name</h3>
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <h3 id="spotlightName" class="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">Character Name</h3>
+              <span id="spotlightCastTierBadge" class="text-[9px] px-2 py-0.5 rounded font-semibold"></span>
+            </div>
             <div id="spotlightRoleTags" class="flex flex-wrap gap-1 justify-center sm:justify-start">
             </div>
             <div id="spotlightRelationshipBox" class="text-[11px] text-indigo-400 font-medium flex items-center justify-center sm:justify-start gap-1 pt-0.5">
             </div>
           </div>
+        </div>
+
+        <!-- Promote Side Character to Main Cast Action (Appears for side characters only) -->
+        <div id="spotlightPromoteContainer" class="hidden p-3 bg-indigo-950/40 border border-indigo-700/60 rounded-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-indigo-300">Side Character Detected</span>
+            <span class="text-[10px] text-slate-400">Temporary Cast</span>
+          </div>
+          <p class="text-[11px] text-slate-300">
+            Promote this character to permanent Main Cast. AI will auto-synthesize their full personality, appearance, archetypes, and dynamic relationship from all story logs.
+          </p>
+          <button onclick="promoteSideCharacterToMain()" id="promoteBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-2 rounded-xl transition shadow active:scale-95 flex items-center justify-center gap-1.5">
+            ✨ <span>Add to Main Cast</span>
+          </button>
         </div>
 
         <div class="space-y-1.5">
@@ -431,7 +433,7 @@
     </div>
   </div>
 
-  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal -->
+  <!-- Fullscreen Photo Modal -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
@@ -441,7 +443,7 @@
       </div>
       <div class="text-center space-y-2 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
+        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
       </div>
     </div>
   </div>
@@ -530,7 +532,7 @@
 
         <hr class="border-slate-800" />
 
-        <!-- Complete JSON Backup & Restore -->
+        <!-- JSON Backup -->
         <div class="space-y-2.5 p-3.5 bg-slate-900/80 rounded-xl border border-slate-800">
           <h3 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
           <p class="text-[11px] text-slate-400">
@@ -631,7 +633,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v43';
+          const CACHE_NAME = 'zetaforge-v44';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -645,7 +647,7 @@
       }
     })();
 
-    // IndexedDB Storage Layer
+    // IndexedDB Layer
     const DB_NAME = 'zetaforge_db';
     const DB_STORE = 'app_state_store';
 
@@ -718,7 +720,8 @@
             role: 'tsundere, confident, arrogant',
             avatar: '',
             personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
-            relationship: 'Companion'
+            relationship: 'Companion',
+            relationships: {}
           }
         ],
         messages: [],
@@ -745,6 +748,7 @@
 
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
+    let currentSpotlightCharName = '';
 
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
@@ -938,7 +942,6 @@
       return formatted;
     }
 
-    // Lightbox & Cover Assignment
     function openLightbox(src, caption) {
       currentLightboxImgSrc = src;
       document.getElementById('lightboxImg').src = src;
@@ -958,6 +961,32 @@
       renderScenariosList();
       alert(`🖼️ Set this image as the scenario preview cover!`);
       closeLightbox();
+    }
+
+    // Dynamic Side Characters Detector (Unloads automatically when not in recent raw turns)
+    function getDynamicSideCharacters() {
+      const active = getActiveScenario();
+      const mainNamesLower = new Set([
+        (active.userPersona.name || 'User').toLowerCase(),
+        'you', 'user', 'narrator', 'scene', 'system',
+        ...active.characters.map(c => (c.name || '').toLowerCase())
+      ]);
+
+      // Scan last 20 messages for active side characters
+      const recentMessages = active.messages
+        .filter(m => !m.isImage && !m.isChapterDivider && m.speakerName)
+        .slice(-20);
+
+      const sideMap = new Map();
+      recentMessages.forEach(m => {
+        const name = m.speakerName.trim();
+        const lower = name.toLowerCase();
+        if (!mainNamesLower.has(lower) && name.length > 1 && !sideMap.has(lower)) {
+          sideMap.set(lower, name);
+        }
+      });
+
+      return Array.from(sideMap.values());
     }
 
     // AI Reply Generator
@@ -1067,37 +1096,66 @@ CRITICAL RULES:
       document.getElementById('replySuggestionsContainer').classList.add('hidden');
     }
 
-    // Interactive Character Spotlight Dossier Functions
+    // Character Spotlight & Cast Promotion Engine
     async function openCharacterSpotlight(characterName) {
-      if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
+      if (!characterName || characterName === 'Narrator' || characterName === 'Scene' || characterName === 'System') return;
 
+      currentSpotlightCharName = characterName;
       const active = getActiveScenario();
       const isUser = (characterName.toLowerCase() === active.userPersona.name.toLowerCase()) || (characterName.toLowerCase() === 'you');
       
+      let isMainCast = false;
       let charObj;
+
       if (isUser) {
         charObj = {
           name: active.userPersona.name,
           role: active.userPersona.role || 'Protagonist',
           avatar: active.userPersona.avatar,
           personality: active.userPersona.desc || 'Protagonist of the scenario.',
-          relationshipToUser: 'Self'
+          relationship: 'Self',
+          relationships: {}
         };
       } else {
-        charObj = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
-        if (!charObj) {
+        const found = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
+        if (found) {
+          isMainCast = true;
+          charObj = found;
+        } else {
+          isMainCast = false;
           charObj = {
             name: characterName,
-            role: 'Secondary Character',
+            role: 'Side Character',
             avatar: '',
-            personality: 'Engaged in current scenario events.',
-            relationshipToUser: 'Participant'
+            personality: 'Currently active in the ongoing scene.',
+            relationship: 'Story Participant',
+            relationships: {}
           };
         }
       }
 
       document.getElementById('spotlightName').innerText = charObj.name;
       
+      const badgeEl = document.getElementById('spotlightCastTierBadge');
+      if (isUser) {
+        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-indigo-950 text-indigo-300 border border-indigo-700/60";
+        badgeEl.innerText = "Protagonist";
+      } else if (isMainCast) {
+        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60";
+        badgeEl.innerText = "Main Cast";
+      } else {
+        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-amber-950 text-amber-300 border border-amber-700/60";
+        badgeEl.innerText = "Side Character";
+      }
+
+      // Show promote option only for side characters
+      const promoteContainer = document.getElementById('spotlightPromoteContainer');
+      if (!isUser && !isMainCast) {
+        promoteContainer.classList.remove('hidden');
+      } else {
+        promoteContainer.classList.add('hidden');
+      }
+
       const avatarBox = document.getElementById('spotlightAvatarBox');
       if (charObj.avatar) {
         avatarBox.innerHTML = `
@@ -1106,7 +1164,7 @@ CRITICAL RULES:
         `;
         avatarBox.onclick = () => openCharacterPhotoModal(charObj.avatar, charObj.name);
       } else {
-        const bg = isUser ? 'bg-indigo-600' : 'bg-emerald-700';
+        const bg = isUser ? 'bg-indigo-600' : (isMainCast ? 'bg-emerald-700' : 'bg-slate-700 text-amber-300');
         avatarBox.innerHTML = `<div class="w-full h-full ${bg} flex items-center justify-center text-4xl font-bold text-white shadow">${(charObj.name[0] || '?').toUpperCase()}</div>`;
         avatarBox.onclick = null;
       }
@@ -1124,8 +1182,9 @@ CRITICAL RULES:
       }
 
       const relBox = document.getElementById('spotlightRelationshipBox');
-      if (charObj.relationshipToUser && !isUser) {
-        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona.name)}:</span> <span class="text-indigo-300">${escapeHtml(charObj.relationshipToUser)}</span>`;
+      const relToUser = charObj.relationship || 'Active Participant';
+      if (!isUser) {
+        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona.name)}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
         relBox.classList.remove('hidden');
       } else {
         relBox.classList.add('hidden');
@@ -1146,7 +1205,7 @@ CRITICAL RULES:
         if (!charObj.relationships) charObj.relationships = {};
 
         interGrid.innerHTML = otherCast.map(other => {
-          const dyn = charObj.relationships[other.name] || (other.isUser ? (charObj.relationshipToUser || 'Neutral') : 'Acquaintance / Neutral');
+          const dyn = charObj.relationships[other.name] || (other.isUser ? (charObj.relationship || 'Neutral') : 'Acquaintance / Neutral');
           return `
             <div class="flex items-center justify-between p-2 bg-slate-900/60 rounded-lg border border-slate-800 text-[11px]">
               <span class="font-semibold text-indigo-200 flex items-center gap-1.5">👤 ${escapeHtml(other.name)}</span>
@@ -1174,6 +1233,93 @@ CRITICAL RULES:
       document.getElementById('characterSpotlightModal').classList.add('hidden');
     }
 
+    // AI Promotion: Analyzes dialogue logs to construct full profile and promote to Main Cast
+    async function promoteSideCharacterToMain() {
+      const active = getActiveScenario();
+      const targetName = currentSpotlightCharName;
+      if (!targetName || !appState.apiKey) {
+        if (!appState.apiKey) openModal('setupModal');
+        return;
+      }
+
+      const promoteBtn = document.getElementById('promoteBtn');
+      promoteBtn.disabled = true;
+      promoteBtn.innerHTML = `<span>⏳</span> <span>Synthesizing Profile...</span>`;
+
+      try {
+        const turnsText = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-30)
+          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+          .join('\n');
+
+        const promptPayload = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `TASK: Based on the dialogue logs below, generate a comprehensive Main Cast character profile for "${targetName}".
+
+SCENARIO: ${active.title} - ${active.setting || ''}
+USER: ${active.userPersona.name} (${active.userPersona.role || 'Protagonist'})
+
+DIALOGUE LOGS:
+${turnsText}
+
+OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
+{
+  "role": "2-4 archetype tags (e.g. witty, loyal companion, cautious)",
+  "personality": "Detailed 2-3 sentence paragraph capturing their visual appearance (hair, eyes, clothing) and behavioral personality.",
+  "relationship": "Dynamic relationship label toward {{user}} (${active.userPersona.name}) (e.g. Close ally, Playful rival, Romantic interest)",
+  "relationships": {
+    "${active.userPersona.name}": "Dynamic relationship label toward ${active.userPersona.name}"
+  }
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 600,
+            responseMimeType: "application/json"
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptPayload)
+        });
+
+        if (!res.ok) throw new Error("Failed to generate profile.");
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const parsed = JSON.parse(rawJson.trim());
+
+        const newChar = {
+          id: 'char_' + Date.now(),
+          name: targetName,
+          role: parsed.role || 'Companion',
+          avatar: '',
+          personality: parsed.personality || 'Active member of the main cast.',
+          relationship: parsed.relationship || parsed.relationships?.[active.userPersona.name] || 'Companion',
+          relationships: parsed.relationships || {}
+        };
+
+        active.characters.push(newChar);
+        await saveState();
+        renderAllUi();
+        syncModalForm();
+
+        alert(`✨ ${targetName} has been promoted to Main Cast!`);
+        openCharacterSpotlight(targetName);
+      } catch (err) {
+        alert("Promotion Notice: " + err.message);
+      } finally {
+        promoteBtn.disabled = false;
+        promoteBtn.innerHTML = `✨ <span>Add to Main Cast</span>`;
+      }
+    }
+
     async function updateInterCharacterRelationships() {
       const active = getActiveScenario();
       if (!appState.apiKey || active.characters.length === 0) return;
@@ -1189,7 +1335,7 @@ CRITICAL RULES:
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Analyze the current story interactions and update the dynamic relationship labels between all characters.
+              text: `TASK: Analyze current story interactions and update dynamic relationship labels between all characters.
 
 CAST MEMBERS:
 ${castList.join(', ')}
@@ -1199,8 +1345,8 @@ ${dialogueText}
 
 RULES:
 1. For each character in the cast, define their dynamic relationship label toward EVERY OTHER character in the cast.
-2. Labels must be purely descriptive (e.g. "Close confidant", "Playful rivalry", "Lingering tension", "Protective sibling", "Dating"). No numerical values.
-3. Return STRICTLY a JSON object mapping each character's name to an object of relationships with others:
+2. Labels must be purely descriptive (e.g. "Close confidant", "Playful rivalry", "Lingering tension", "Protective sibling"). No numerical values.
+3. Return STRICTLY a JSON object:
 {
   "CharacterName": {
     "OtherCharacterName": "Relationship Label"
@@ -1239,7 +1385,7 @@ RULES:
           renderSidebar();
         }
       } catch (e) {
-        console.warn("Inter-character relationship sync notice:", e);
+        console.warn("Relationship sync notice:", e);
       }
     }
 
@@ -1630,7 +1776,7 @@ JSON FORMAT:
         card.className = 'p-3.5 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative';
         card.innerHTML = `
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-indigo-300">Character #${index + 1}</span>
+            <span class="text-[11px] font-bold text-indigo-300">Main Character #${index + 1}</span>
             <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1697,7 +1843,7 @@ JSON FORMAT:
       }
     }
 
-    // Robust Avatar Renderer with Clean Event Delegation
+    // Avatar Renderer with side-cast styling
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -1713,7 +1859,7 @@ JSON FORMAT:
         }
       }
 
-      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene';
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
       const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
 
@@ -1721,14 +1867,17 @@ JSON FORMAT:
         return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
       }
 
-      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
+      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
     function handleAvatarError(imgEl, speakerName, isUser, size) {
+      const active = getActiveScenario();
       const initial = (speakerName || '?')[0].toUpperCase();
-      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
-      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene';
+      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
 
       const div = document.createElement('div');
       div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60`;
@@ -1743,42 +1892,88 @@ JSON FORMAT:
       imgEl.replaceWith(div);
     }
 
+    // Sidebar rendering separating Main Cast and Temporary Side Cast
     function renderSidebar() {
       const active = getActiveScenario();
       document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
       document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
       document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
-      document.getElementById('charCount').innerText = `${active.characters.length} active`;
+
+      const sideCharacters = getDynamicSideCharacters();
+      document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
 
       const userAvatarContainer = document.getElementById('sidebarUserAvatar');
       userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
 
       const list = document.getElementById('sidebarCharacterList');
-      if (active.characters.length === 0) {
+      if (active.characters.length === 0 && sideCharacters.length === 0) {
         list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.<br>Tap <strong>Setup</strong> above to add cast.</div>`;
         return;
       }
 
-      list.innerHTML = active.characters.map(c => `
-        <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
-          <div class="flex items-start gap-2.5">
-            ${getAvatarHtml(c.name, false, 'w-10 h-10')}
-            <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
-              <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
-              ${c.role ? `
-                <div class="flex flex-wrap gap-1">
-                  <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
-                    ${escapeHtml(c.role)}
-                  </span>
+      let html = '';
+
+      // Main Cast Section
+      if (active.characters.length > 0) {
+        html += `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Cast</span>
+              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${active.characters.length}</span>
+            </div>
+            <div class="space-y-2.5">
+              ${active.characters.map(c => `
+                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
+                  <div class="flex items-start gap-2.5">
+                    ${getAvatarHtml(c.name, false, 'w-10 h-10')}
+                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                      <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
+                      ${c.role ? `
+                        <div class="flex flex-wrap gap-1">
+                          <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
+                            ${escapeHtml(c.role)}
+                          </span>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                  ${c.personality ? `<p class="text-[11px] text-slate-300 leading-relaxed pt-0.5">${escapeHtml(c.personality)}</p>` : ''}
+                  ${c.relationship ? `<div class="text-[10px] text-indigo-400/90 pt-1.5 border-t border-slate-800/80 flex items-center gap-1">🔗 <span class="truncate">${escapeHtml(c.relationship)}</span></div>` : ''}
                 </div>
-              ` : ''}
+              `).join('')}
             </div>
           </div>
-          ${c.personality ? `<p class="text-[11px] text-slate-300 leading-relaxed pt-0.5">${escapeHtml(c.personality)}</p>` : ''}
-          ${c.relationship ? `<div class="text-[10px] text-indigo-400/90 pt-1.5 border-t border-slate-800/80 flex items-center gap-1">🔗 <span class="truncate">${escapeHtml(c.relationship)}</span></div>` : ''}
-        </div>
-      `).join('');
+        `;
+      }
+
+      // Temporary Side Cast Section
+      if (sideCharacters.length > 0) {
+        html += `
+          <div class="space-y-2 pt-1 border-t border-slate-800/80">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Side Characters (Present)</span>
+              <span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 py-0.2 rounded">${sideCharacters.length}</span>
+            </div>
+            <div class="space-y-2">
+              ${sideCharacters.map(name => `
+                <div class="p-2.5 bg-slate-900/80 rounded-xl border border-dashed border-slate-700/80 hover:border-indigo-500/60 transition flex items-center justify-between gap-2.5 cursor-pointer group" onclick="openCharacterSpotlight('${escapeJsString(name)}')">
+                  <div class="flex items-center gap-2.5 overflow-hidden min-w-0">
+                    ${getAvatarHtml(name, false, 'w-8 h-8')}
+                    <div class="overflow-hidden">
+                      <div class="font-bold text-xs text-amber-200 truncate group-hover:underline">${escapeHtml(name)}</div>
+                      <div class="text-[10px] text-slate-400 truncate">Tap to promote to Main Cast</div>
+                    </div>
+                  </div>
+                  <span class="text-xs text-indigo-400 opacity-0 group-hover:opacity-100 transition shrink-0 pr-1">✨</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      list.innerHTML = html;
     }
 
     function renderMessages() {
@@ -1933,6 +2128,7 @@ JSON FORMAT:
       active.activeChapterArcs = null;
       await saveState();
       renderMessages();
+      renderSidebar();
       renderScenariosList();
       updateInterCharacterRelationships();
     }
@@ -2375,6 +2571,7 @@ REQUIREMENTS:
       inputEl.style.height = '42px';
       await saveState();
       renderMessages();
+      renderSidebar();
       renderScenariosList();
 
       await triggerAiResponse();
@@ -2456,6 +2653,7 @@ REQUIREMENTS:
         active.messages.splice(index, 1);
         await saveState();
         renderMessages();
+        renderSidebar();
         renderScenariosList();
       }
     }
