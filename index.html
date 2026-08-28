@@ -88,6 +88,19 @@
     .prose em { color: #94a3b8; font-style: italic; }
     .prose strong { color: #f8fafc; }
     textarea, input, select { -webkit-appearance: none; }
+
+    /* Typing cursor pulse */
+    .typing-cursor::after {
+      content: '▋';
+      display: inline-block;
+      margin-left: 2px;
+      color: #818cf8;
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
   </style>
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
@@ -159,7 +172,7 @@
     </aside>
 
     <!-- Center Chat Canvas -->
-    <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0">
+    <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0" onclick="skipTypewriter()">
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
           <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
@@ -182,7 +195,7 @@
       </div>
 
       <!-- Bottom Chat Bar with Live Raw Token Monitor -->
-      <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0">
+      <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
             <div class="flex items-center gap-2">
@@ -391,7 +404,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v15';
+          const CACHE_NAME = 'zetaforge-v16';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -488,6 +501,18 @@
       ],
       messages: []
     };
+
+    // Sequential Typewriter State
+    let activeTypewriter = {
+      isTyping: false,
+      skipFlag: false
+    };
+
+    function skipTypewriter() {
+      if (activeTypewriter.isTyping) {
+        activeTypewriter.skipFlag = true;
+      }
+    }
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
@@ -795,14 +820,14 @@
         const renderedHtml = marked.parse(cleanContent);
 
         return `
-          <div class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
+          <div id="msg-${index}" class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
             ${!isUser ? avatarHtml : ''}
             <div class="max-w-[88%] sm:max-w-[80%]">
               <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
                 <span class="text-[11px] sm:text-xs font-semibold ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
-              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+              <div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
                 ${renderedHtml}
               </div>
               <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
@@ -816,6 +841,79 @@
       }).join('');
 
       container.scrollTop = container.scrollHeight;
+    }
+
+    // Sequential Animated Typewriter Engine
+    async function playSequentialTypewriter(replyBlocks) {
+      activeTypewriter.isTyping = true;
+      activeTypewriter.skipFlag = false;
+
+      const container = document.getElementById('messagesContainer');
+      const emptyState = document.getElementById('emptyState');
+      if (emptyState) emptyState.remove();
+
+      for (let block of replyBlocks) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const speaker = block.speaker || 'Narrator';
+        const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
+        const avatarHtml = getAvatarHtml(speaker, false);
+        const fullText = (block.text || '').trim();
+
+        // 1. Create and append the turn container to DOM
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
+        wrapper.innerHTML = `
+          ${avatarHtml}
+          <div class="max-w-[88%] sm:max-w-[80%]">
+            <div class="flex items-center gap-2 mb-1 justify-start">
+              <span class="text-[11px] sm:text-xs font-semibold ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
+              <span class="text-[9px] sm:text-[10px] text-slate-500">${timeStr}</span>
+            </div>
+            <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm">
+            </div>
+          </div>
+        `;
+        container.appendChild(wrapper);
+        container.scrollTop = container.scrollHeight;
+
+        const bubbleBody = wrapper.querySelector('.bubble-body');
+
+        // 2. Stream type text into bubble (or instant skip if clicked)
+        let visibleChars = 0;
+        const totalChars = fullText.length;
+        const step = 3; // Chars per tick for smooth natural speed
+
+        while (visibleChars < totalChars) {
+          if (activeTypewriter.skipFlag) {
+            visibleChars = totalChars;
+          } else {
+            visibleChars = Math.min(visibleChars + step, totalChars);
+            await new Promise(r => setTimeout(r, 16));
+          }
+
+          bubbleBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
+          container.scrollTop = container.scrollHeight;
+        }
+
+        bubbleBody.classList.remove('typing-cursor');
+
+        // 3. Commit turn to state array
+        appState.messages.push({
+          role: 'model',
+          speakerName: speaker,
+          text: fullText,
+          timestamp: timeStr
+        });
+
+        // Slight pause before next character speaks
+        if (!activeTypewriter.skipFlag) {
+          await new Promise(r => setTimeout(r, 220));
+        }
+      }
+
+      activeTypewriter.isTyping = false;
+      await saveState();
+      renderMessages();
     }
 
     function buildSystemInstruction() {
@@ -911,11 +1009,9 @@ ${pastChaptersStr}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // Upgraded boundary parser splitting inline names glued together
     function parsePlainTextIntoBlocks(text) {
       if (!text) return [{ speaker: 'Narrator', text: '' }];
 
-      // Build regex pattern of known cast names + Narrator
       const knownNames = ['Narrator', 'Scene', ...(appState.characters || []).map(c => c.name).filter(Boolean)];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
       
@@ -1152,6 +1248,8 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
 
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
+      skipTypewriter();
+
       const inputEl = document.getElementById('userInput');
       const text = inputEl.value.trim();
       if (!text) return;
@@ -1174,6 +1272,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
     }
 
     async function triggerContinue() {
+      skipTypewriter();
       if (appState.messages.length === 0 && appState.scenario.setting) {
         generateOpeningScene();
         return;
@@ -1197,21 +1296,11 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           parts: [{ text: `[System directive: Begin the story. Introduce setting and opening dialogue/actions for characters present as individual character blocks.]` }]
         }];
         const replyBlocks = await callGeminiApi(contents);
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        appState.messages = replyBlocks.map(b => ({
-          role: 'model',
-          speakerName: b.speaker || 'Narrator',
-          text: b.text || '',
-          timestamp: timeStr
-        }));
-
-        await saveState();
-        renderMessages();
-      } catch (err) {
-        alert("Error: " + err.message);
-      } finally {
         showLoading(false);
+        await playSequentialTypewriter(replyBlocks);
+      } catch (err) {
+        showLoading(false);
+        alert("Error: " + err.message);
       }
     }
 
@@ -1220,28 +1309,17 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       try {
         const contents = buildApiContents();
         const replyBlocks = await callGeminiApi(contents);
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        replyBlocks.forEach(b => {
-          appState.messages.push({
-            role: 'model',
-            speakerName: b.speaker || 'Narrator',
-            text: b.text || '',
-            timestamp: timeStr
-          });
-        });
-
-        await saveState();
-        renderMessages();
-      } catch (err) {
-        alert("Gemini API Error: " + err.message);
-      } finally {
         showLoading(false);
+        await playSequentialTypewriter(replyBlocks);
+      } catch (err) {
+        showLoading(false);
+        alert("Gemini API Error: " + err.message);
       }
     }
 
     async function regenerateTurn(index) {
       if (index <= 0) return;
+      skipTypewriter();
       showLoading(true, "Regenerating turn...");
       try {
         const sliced = appState.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
@@ -1251,23 +1329,15 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
         }));
 
         const replyBlocks = await callGeminiApi(contents);
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (edited)';
+        showLoading(false);
 
         if (replyBlocks.length > 0) {
-          appState.messages.splice(index, 1, ...replyBlocks.map(b => ({
-            role: 'model',
-            speakerName: b.speaker || 'Narrator',
-            text: b.text || '',
-            timestamp: timeStr
-          })));
+          appState.messages.splice(index);
+          await playSequentialTypewriter(replyBlocks);
         }
-
-        await saveState();
-        renderMessages();
       } catch (err) {
-        alert("Retry error: " + err.message);
-      } finally {
         showLoading(false);
+        alert("Retry error: " + err.message);
       }
     }
 
@@ -1287,7 +1357,6 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       const userName = (appState.userPersona.name || 'Me').toLowerCase();
       const parsedMessages = [];
 
-      // Use the improved name boundary parser
       const blocks = parsePlainTextIntoBlocks(rawText);
 
       for (let b of blocks) {
