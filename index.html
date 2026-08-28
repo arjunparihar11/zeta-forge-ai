@@ -306,27 +306,27 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar -->
+      <!-- Bottom Chat Bar (Refined & Tightened) -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
-        <div class="max-w-4xl mx-auto space-y-2.5">
+        <div class="max-w-4xl mx-auto space-y-2">
           
-          <!-- Unified Header-Matched Button Bar -->
-          <div class="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <!-- Unified Single-Word Action Bar -->
+          <div class="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
             <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+              <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
                 <span>🖼️</span> <span>Visualize</span>
               </button>
-              <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800/90 hover:bg-slate-700 text-indigo-300 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-indigo-700/50 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
-                <span>💡</span> <span>Suggest Options</span>
+              <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+                <span>💡</span> <span>Suggest</span>
               </button>
             </div>
             
-            <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
-              <span>⏩</span> <span>Continue Scene</span>
+            <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>⏩</span> <span>Continue</span>
             </button>
           </div>
 
-          <!-- Dynamic Reply Suggestions Carousel (Appears when triggered) -->
+          <!-- Dynamic Reply Suggestions Carousel -->
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
             <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
               <span class="font-semibold text-indigo-300">💡 Choose a response path:</span>
@@ -336,20 +336,20 @@
             </div>
           </div>
 
-          <!-- Message Textarea & Send Button -->
+          <!-- Single-Line Initial Textarea & Balanced Send Button -->
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
-              rows="2"
+              rows="1"
               placeholder="Describe action, speak, or use @: to narrate scene..."
-              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none max-h-40 overflow-y-auto leading-relaxed"
+              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
             ></textarea>
             <button
               type="submit"
               id="sendBtn"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 shrink-0 h-[42px]"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 shrink-0 h-[42px] min-w-[64px]"
             >
               Send
             </button>
@@ -593,7 +593,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v31';
+          const CACHE_NAME = 'zetaforge-v32';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -801,8 +801,8 @@
     }
 
     function autoExpandTextarea(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+      el.style.height = '42px';
+      el.style.height = Math.max(42, Math.min(el.scrollHeight, 144)) + 'px';
     }
 
     function handleInputKeydown(event) {
@@ -971,7 +971,7 @@ CRITICAL RULES:
         alert("Reply Suggestion Notice: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>💡</span> <span>Suggest Options</span>`;
+        btn.innerHTML = `<span>💡</span> <span>Suggest</span>`;
       }
     }
 
@@ -2056,7 +2056,7 @@ REQUIREMENTS:
         });
 
         const promptData = await promptRes.json().catch(() => ({}));
-        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         if (!visualPrompt || visualPrompt.length < 15) {
           visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${active.characters.map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
@@ -2158,7 +2158,6 @@ REQUIREMENTS:
         parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
       }));
 
-      // Append background system instruction seamlessly without logging as a chat bubble
       if (extraDirective) {
         contents.push({
           role: 'user',
@@ -2205,7 +2204,7 @@ REQUIREMENTS:
       });
 
       inputEl.value = '';
-      inputEl.style.height = 'auto';
+      inputEl.style.height = '42px';
       await saveState();
       renderMessages();
       renderScenariosList();
@@ -2214,7 +2213,6 @@ REQUIREMENTS:
       await checkAndTriggerChapterArchival();
     }
 
-    // Silent background continue without creating a System chat bubble
     async function triggerContinue() {
       skipTypewriter();
       hideReplySuggestions();
@@ -2224,7 +2222,6 @@ REQUIREMENTS:
         return;
       }
 
-      // Invisible directive passed directly to API
       const backgroundDirective = `[System directive: Continue the scene naturally. Present characters react, dialogue continues, or environmental events unfold in individual character turns.]`;
       await triggerAiResponse(backgroundDirective);
       await checkAndTriggerChapterArchival();
