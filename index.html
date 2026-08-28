@@ -577,7 +577,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v26';
+          const CACHE_NAME = 'zetaforge-v27';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -867,92 +867,6 @@
       }
     }
 
-    // Interactive Character Spotlight Dossier Functions
-    function openCharacterSpotlight(characterName) {
-      if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
-
-      const active = getActiveScenario();
-      const isUser = (characterName.toLowerCase() === active.userPersona.name.toLowerCase()) || (characterName.toLowerCase() === 'you');
-      
-      let charObj;
-      if (isUser) {
-        charObj = {
-          name: active.userPersona.name,
-          role: active.userPersona.role || 'Protagonist',
-          avatar: active.userPersona.avatar,
-          personality: active.userPersona.desc || 'Protagonist of the scenario.',
-          relationship: 'Main Character'
-        };
-      } else {
-        charObj = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
-        if (!charObj) {
-          charObj = {
-            name: characterName,
-            role: 'Secondary Character',
-            avatar: '',
-            personality: 'Engaged in the current scenario events.',
-            relationship: 'Story Participant'
-          };
-        }
-      }
-
-      // Populate Modal Content
-      document.getElementById('spotlightName').innerText = charObj.name;
-      
-      // Avatar Box
-      const avatarBox = document.getElementById('spotlightAvatarBox');
-      if (charObj.avatar) {
-        avatarBox.innerHTML = `<img src="${charObj.avatar}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-cover shadow" />`;
-      } else {
-        const bg = isUser ? 'bg-indigo-600' : 'bg-emerald-700';
-        avatarBox.innerHTML = `<div class="w-full h-full ${bg} flex items-center justify-center text-4xl font-bold text-white shadow">${(charObj.name[0] || '?').toUpperCase()}</div>`;
-      }
-
-      // Role Tags
-      const roleTagsBox = document.getElementById('spotlightRoleTags');
-      if (charObj.role) {
-        const tags = charObj.role.split(',').map(t => t.trim()).filter(Boolean);
-        roleTagsBox.innerHTML = tags.map(t => `
-          <span class="text-[10px] bg-slate-800 text-indigo-300 border border-slate-700/80 px-2 py-0.5 rounded-md font-medium">
-            ${escapeHtml(t)}
-          </span>
-        `).join('');
-      } else {
-        roleTagsBox.innerHTML = `<span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Character</span>`;
-      }
-
-      // Relationship Dynamic
-      const relBox = document.getElementById('spotlightRelationshipBox');
-      if (charObj.relationship && !isUser) {
-        relBox.innerHTML = `<span>🔗</span> <span>${escapeHtml(charObj.relationship)}</span>`;
-        relBox.classList.remove('hidden');
-      } else {
-        relBox.classList.add('hidden');
-      }
-
-      // Persona & Appearance
-      const personaBox = document.getElementById('spotlightPersonaText');
-      personaBox.innerHTML = marked.parse(charObj.personality || 'No specific traits recorded.');
-
-      // Current Chapter Arc
-      document.getElementById('spotlightChapterBadge').innerText = `Ch. ${active.currentChapter || 1}`;
-      const arcBox = document.getElementById('spotlightArcText');
-      
-      const cachedArc = (active.activeChapterArcs || {})[charObj.name];
-      if (cachedArc) {
-        arcBox.innerHTML = marked.parse(cachedArc);
-      } else {
-        arcBox.innerHTML = `<p class="italic text-slate-400">Action summary not yet analyzed for Chapter ${active.currentChapter || 1}. Open Chapter Chronicle to synthesize full story arcs.</p>`;
-      }
-
-      document.getElementById('characterSpotlightModal').classList.remove('hidden');
-    }
-
-    function closeCharacterSpotlight(event) {
-      if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
-      document.getElementById('characterSpotlightModal').classList.add('hidden');
-    }
-
     function renderScenariosList() {
       const container = document.getElementById('scenariosListContainer');
       const badge = document.getElementById('scenariosCountBadge');
@@ -1105,7 +1019,7 @@
 
         const cachedArcs = active.activeChapterArcs || {};
         arcsContainer.innerHTML = allCast.map(member => {
-          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10', `openCharacterSpotlight('${escapeHtml(member.name)}')`);
+          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
           let summary = cachedArcs[member.name];
 
           if (!summary) {
@@ -1116,7 +1030,7 @@
             <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl space-y-2.5 shadow-sm">
               <div class="flex items-start gap-3">
                 ${avatarHtml}
-                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeHtml(member.name)}')">
+                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -1149,14 +1063,14 @@
         generalBox.innerHTML = rawSummaryText ? marked.parse(rawSummaryText) : `<p class="text-slate-500 italic">No milestone data recorded for Chapter ${chapterNum}.</p>`;
 
         arcsContainer.innerHTML = allCast.map(member => {
-          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10', `openCharacterSpotlight('${escapeHtml(member.name)}')`);
+          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
           const summary = charArcsObj[member.name] || `Active participant throughout Chapter ${chapterNum}'s events with continuous story progression.`;
 
           return `
             <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl space-y-2.5 shadow-sm">
               <div class="flex items-start gap-3">
                 ${avatarHtml}
-                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeHtml(member.name)}')">
+                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -1254,6 +1168,86 @@ JSON FORMAT:
       } finally {
         if (btnText) btnText.innerText = "Re-Analyze";
       }
+    }
+
+    // Interactive Character Spotlight Dossier Functions
+    function openCharacterSpotlight(characterName) {
+      if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
+
+      const active = getActiveScenario();
+      const isUser = (characterName.toLowerCase() === active.userPersona.name.toLowerCase()) || (characterName.toLowerCase() === 'you');
+      
+      let charObj;
+      if (isUser) {
+        charObj = {
+          name: active.userPersona.name,
+          role: active.userPersona.role || 'Protagonist',
+          avatar: active.userPersona.avatar,
+          personality: active.userPersona.desc || 'Protagonist of the scenario.',
+          relationship: 'Main Character'
+        };
+      } else {
+        charObj = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
+        if (!charObj) {
+          charObj = {
+            name: characterName,
+            role: 'Secondary Character',
+            avatar: '',
+            personality: 'Engaged in the current scenario events.',
+            relationship: 'Story Participant'
+          };
+        }
+      }
+
+      document.getElementById('spotlightName').innerText = charObj.name;
+      
+      const avatarBox = document.getElementById('spotlightAvatarBox');
+      if (charObj.avatar) {
+        avatarBox.innerHTML = `<img src="${charObj.avatar}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-cover shadow" />`;
+      } else {
+        const bg = isUser ? 'bg-indigo-600' : 'bg-emerald-700';
+        avatarBox.innerHTML = `<div class="w-full h-full ${bg} flex items-center justify-center text-4xl font-bold text-white shadow">${(charObj.name[0] || '?').toUpperCase()}</div>`;
+      }
+
+      const roleTagsBox = document.getElementById('spotlightRoleTags');
+      if (charObj.role) {
+        const tags = charObj.role.split(',').map(t => t.trim()).filter(Boolean);
+        roleTagsBox.innerHTML = tags.map(t => `
+          <span class="text-[10px] bg-slate-800 text-indigo-300 border border-slate-700/80 px-2 py-0.5 rounded-md font-medium">
+            ${escapeHtml(t)}
+          </span>
+        `).join('');
+      } else {
+        roleTagsBox.innerHTML = `<span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Character</span>`;
+      }
+
+      const relBox = document.getElementById('spotlightRelationshipBox');
+      if (charObj.relationship && !isUser) {
+        relBox.innerHTML = `<span>🔗</span> <span>${escapeHtml(charObj.relationship)}</span>`;
+        relBox.classList.remove('hidden');
+      } else {
+        relBox.classList.add('hidden');
+      }
+
+      const personaBox = document.getElementById('spotlightPersonaText');
+      personaBox.innerHTML = marked.parse(charObj.personality || 'No specific traits recorded.');
+
+      document.getElementById('spotlightChapterBadge').innerText = `Ch. ${active.currentChapter || 1}`;
+      const arcBox = document.getElementById('spotlightArcText');
+      
+      const cachedArc = (active.activeChapterArcs || {})[charObj.name];
+      if (cachedArc) {
+        arcBox.innerHTML = marked.parse(cachedArc);
+      } else {
+        arcBox.innerHTML = `<p class="italic text-slate-400">Action summary not yet analyzed for Chapter ${active.currentChapter || 1}. Open Chapter Chronicle to synthesize full story arcs.</p>`;
+      }
+
+      document.getElementById('characterSpotlightModal').classList.remove('hidden');
+    }
+
+    function closeCharacterSpotlight(event) {
+      if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
+      document.getElementById('characterSpotlightModal').classList.add('hidden');
     }
 
     function openModal(id) {
@@ -1394,29 +1388,51 @@ JSON FORMAT:
       }
     }
 
-    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10', onClickAttr = null) {
+    // Robust Avatar Renderer with Clean Event Delegation
+    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
-      let initial = (speakerName || '?')[0].toUpperCase();
+      const safeName = escapeHtml(speakerName || '?');
+      const initial = (speakerName || '?')[0].toUpperCase();
 
-      if (isUser && active.userPersona.avatar) {
+      if (isUser && active.userPersona?.avatar) {
         avatarSrc = active.userPersona.avatar;
-      } else {
+      } else if (active.characters) {
         const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
         if (found && found.avatar) {
           avatarSrc = found.avatar;
         }
       }
 
-      const clickHandler = onClickAttr ? `onclick="${onClickAttr}"` : `onclick="openCharacterSpotlight('${escapeHtml(speakerName)}')"` ;
-      const cursorClass = (speakerName !== 'Narrator' && speakerName !== 'Scene') ? 'cursor-pointer active:scale-95 transition' : '';
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene';
+      const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
+      const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
 
       if (avatarSrc) {
-        return `<img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" ${clickHandler} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="this.outerHTML='<div ${clickHandler} class=\\'${size} ${cursorClass} rounded-xl bg-slate-800 text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0 border border-slate-700\\'>${initial}</div>'" />`;
+        return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
       }
 
       const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
-      return `<div ${clickHandler} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
+      return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
+    }
+
+    // Handles broken image URLs without corrupting HTML
+    function handleAvatarError(imgEl, speakerName, isUser, size) {
+      const initial = (speakerName || '?')[0].toUpperCase();
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene';
+
+      const div = document.createElement('div');
+      div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60`;
+      div.innerText = initial;
+
+      if (isInteractive) {
+        div.onclick = (e) => {
+          e.stopPropagation();
+          openCharacterSpotlight(speakerName);
+        };
+      }
+      imgEl.replaceWith(div);
     }
 
     function renderSidebar() {
@@ -1428,7 +1444,7 @@ JSON FORMAT:
       document.getElementById('charCount').innerText = `${active.characters.length} active`;
 
       const userAvatarContainer = document.getElementById('sidebarUserAvatar');
-      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full', `openCharacterSpotlight('${escapeHtml(active.userPersona.name)}')`);
+      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
 
       const list = document.getElementById('sidebarCharacterList');
       if (active.characters.length === 0) {
@@ -1439,8 +1455,8 @@ JSON FORMAT:
       list.innerHTML = active.characters.map(c => `
         <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
           <div class="flex items-start gap-2.5">
-            ${getAvatarHtml(c.name, false, 'w-10 h-10', `openCharacterSpotlight('${escapeHtml(c.name)}')`)}
-            <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeHtml(c.name)}')">
+            ${getAvatarHtml(c.name, false, 'w-10 h-10')}
+            <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
               <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
               ${c.role ? `
                 <div class="flex flex-wrap gap-1">
@@ -1516,7 +1532,7 @@ JSON FORMAT:
         const isUser = m.role === 'user';
         const speaker = m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Narrator');
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9', `openCharacterSpotlight('${escapeHtml(speaker)}')`);
+        const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = (m.text || '').trim();
         const renderedHtml = marked.parse(cleanContent);
@@ -1526,7 +1542,7 @@ JSON FORMAT:
             ${!isUser ? avatarHtml : ''}
             <div class="max-w-[88%] sm:max-w-[80%]">
               <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
-                <span onclick="openCharacterSpotlight('${escapeHtml(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
+                <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
               <div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
@@ -1559,7 +1575,7 @@ JSON FORMAT:
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9', `openCharacterSpotlight('${escapeHtml(speaker)}')`);
+        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
         const fullText = (block.text || '').trim();
 
         const wrapper = document.createElement('div');
@@ -1568,7 +1584,7 @@ JSON FORMAT:
           ${avatarHtml}
           <div class="max-w-[88%] sm:max-w-[80%]">
             <div class="flex items-center gap-2 mb-1 justify-start">
-              <span onclick="openCharacterSpotlight('${escapeHtml(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
+              <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
               <span class="text-[9px] sm:text-[10px] text-slate-500">${timeStr}</span>
             </div>
             <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm">
@@ -2271,6 +2287,11 @@ REQUIREMENTS:
     function escapeHtml(string) {
       if (!string) return '';
       return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeJsString(str) {
+      if (!str) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
   </script>
 </body>
