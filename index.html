@@ -594,12 +594,16 @@
       <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[75vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
+      <div class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+        <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[72vh] w-auto h-auto object-contain" />
+      </div>
       <div class="text-center space-y-2 w-full">
         <p id="lightboxCaption" class="text-xs text-slate-300 italic max-w-xl mx-auto"></p>
-        <button onclick="setCurrentImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
-          <span>🖼️</span> <span>Set as Scenario Cover</span>
-        </button>
+        <div class="flex items-center justify-center gap-2 pt-1">
+          <button onclick="setCurrentImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
+            <span>🖼️</span> <span>Set as Scenario Cover</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -627,7 +631,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v42';
+          const CACHE_NAME = 'zetaforge-v43';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -740,6 +744,7 @@
     };
 
     let activeSuggestedReplies = [];
+    let currentLightboxImgSrc = '';
 
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
@@ -920,15 +925,11 @@
       }
     }
 
-    // Clean formatting: Converts escaped literal \n into real newlines and adds clean line breaks between actions and dialogue
     function formatDialogueSpacing(text) {
       if (!text) return '';
       let formatted = text.trim();
 
-      // Unescape any visible literal \n characters into real newlines
       formatted = formatted.replace(/\\n/g, '\n');
-
-      // Ensure a line break between closing asterisk and opening quote/speech
       formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
       formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
       formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
@@ -937,7 +938,29 @@
       return formatted;
     }
 
-    // AI Reply Generator with Direct Array Index Binding & Unquoted Dialogue Flow
+    // Lightbox & Cover Assignment
+    function openLightbox(src, caption) {
+      currentLightboxImgSrc = src;
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightboxCaption').innerText = caption || 'Scene Visual';
+      document.getElementById('imageLightbox').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('imageLightbox').classList.add('hidden');
+    }
+
+    async function setCurrentImageAsScenarioCover() {
+      if (!currentLightboxImgSrc) return;
+      const active = getActiveScenario();
+      active.cover = currentLightboxImgSrc;
+      await saveState();
+      renderScenariosList();
+      alert(`🖼️ Set this image as the scenario preview cover!`);
+      closeLightbox();
+    }
+
+    // AI Reply Generator
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1030,7 +1053,6 @@ CRITICAL RULES:
       }
     }
 
-    // Drops suggestion text into user's textbox and dismisses suggestion container
     function applySuggestedReply(index) {
       if (activeSuggestedReplies && activeSuggestedReplies[index] !== undefined) {
         const inputEl = document.getElementById('userInput');
@@ -1557,16 +1579,6 @@ JSON FORMAT:
       document.getElementById(id).classList.add('hidden');
     }
 
-    async function setCurrentImageAsScenarioCover() {
-      if (!currentLightboxImgSrc) return;
-      const active = getActiveScenario();
-      active.cover = currentLightboxImgSrc;
-      await saveState();
-      renderScenariosList();
-      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
-      closeLightbox();
-    }
-
     function handleImageUpload(event, target, charIndex = null) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1808,7 +1820,7 @@ JSON FORMAT:
                   <span class="flex items-center gap-1.5">🎬 Scene Visual Snapshot</span>
                   <span class="text-[10px] text-slate-500 font-normal">${m.timestamp || ''}</span>
                 </div>
-                <div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${m.imageUrl}', '${escapeHtml(m.text || m.prompt || '')}')">
+                <div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl)}', '${escapeJsString(m.text || m.prompt || '')}')">
                   <img src="${m.imageUrl}" alt="Visualized Scene" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 ${m.text ? `<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>` : ''}
