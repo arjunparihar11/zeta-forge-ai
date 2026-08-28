@@ -170,7 +170,7 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Summaries -->
+    <!-- Right Drawer 1: Chapter Chronicle & Per-Character Summaries -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -181,22 +181,38 @@
       </div>
 
       <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs scroll-touch">
+        <!-- Chapter Dropdown Selector -->
         <div>
           <label class="block text-[11px] font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Select Chapter Arc</label>
           <select id="chapterSelectDropdown" onchange="renderSelectedChapterSummary(this.value)" class="w-full bg-zetaInput border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
           </select>
         </div>
 
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Current Chapter (Active)</span>
+        <!-- Chapter Status & Action Header -->
+        <div class="flex items-center justify-between pt-1">
+          <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Chapter 1 Breakdown</span>
+          <div class="flex items-center gap-1.5">
             <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
-          </div>
-
-          <div id="chapterSummaryContent" class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl text-slate-300 leading-relaxed prose prose-invert text-xs max-w-none">
+            <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
+              ✨ <span>Analyze</span>
+            </button>
           </div>
         </div>
 
+        <!-- Overall Chapter Plot Milestone Summary -->
+        <div id="chapterGeneralSummary" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-slate-300 leading-relaxed text-xs">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Per-Character What Happened Breakdown -->
+        <div class="space-y-2">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Character Journeys & Arcs</h3>
+          <div id="chapterCharacterArcsList" class="space-y-2.5">
+            <!-- Dynamic Character Cards populated here -->
+          </div>
+        </div>
+
+        <!-- Quick Progression Stats -->
         <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
@@ -505,7 +521,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v21';
+          const CACHE_NAME = 'zetaforge-v22';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -573,7 +589,6 @@
       }
     }
 
-    // Default template generator for new scenarios
     function createScenarioTemplate(title = 'New Scenario') {
       return {
         id: 'scen_' + Date.now(),
@@ -597,8 +612,9 @@
           }
         ],
         messages: [],
-        archivedRecaps: [],
+        archivedRecaps: [], // Array of structured objects: { chapterNum, milestoneSummary, characterArcs: [{ name, summary }] }
         currentChapter: 1,
+        activeChapterArcs: null, // Cached character arcs for current chapter
         updatedAt: Date.now()
       };
     }
@@ -623,7 +639,6 @@
       }
     }
 
-    // Returns the currently active scenario object
     function getActiveScenario() {
       if (!appState.scenarios || appState.scenarios.length === 0) {
         const initial = createScenarioTemplate('Sleepover Dare');
@@ -657,7 +672,6 @@
         if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
           saved.model = 'gemini-3.6-flash';
         }
-        // Migration support for legacy single-scenario states
         if (!saved.scenarios || saved.scenarios.length === 0) {
           const legacy = {
             id: 'scen_legacy',
@@ -669,6 +683,7 @@
             messages: saved.messages || [],
             archivedRecaps: saved.archivedRecaps || [],
             currentChapter: saved.currentChapter || 1,
+            activeChapterArcs: null,
             updatedAt: Date.now()
           };
           appState = {
@@ -790,7 +805,6 @@
       }
     }
 
-    // Render Zeta-style Scenarios List in Menu Drawer
     function renderScenariosList() {
       const container = document.getElementById('scenariosListContainer');
       const badge = document.getElementById('scenariosCountBadge');
@@ -804,7 +818,6 @@
         return;
       }
 
-      // Sort by last active timestamp descending
       const sorted = [...scenarios].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       container.innerHTML = sorted.map(s => {
@@ -812,7 +825,6 @@
         const lastMsg = (s.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-1)[0];
         const previewSnippet = lastMsg ? `${lastMsg.speakerName ? lastMsg.speakerName + ': ' : ''}${lastMsg.text}` : (s.setting || 'No messages recorded yet...');
         
-        // Find suitable cover image or character avatar
         let coverImg = s.cover;
         if (!coverImg && s.characters && s.characters[0] && s.characters[0].avatar) {
           coverImg = s.characters[0].avatar;
@@ -888,6 +900,7 @@
       }
     }
 
+    // Populate Chapter Chronicle Selector Dropdown & Stats
     function populateChapterChronicle() {
       const select = document.getElementById('chapterSelectDropdown');
       const active = getActiveScenario();
@@ -917,44 +930,166 @@
       renderSelectedChapterSummary('active');
     }
 
+    // Render Detailed Per-Character What-Happened Breakdown for Selected Chapter
     function renderSelectedChapterSummary(selectedVal) {
-      const container = document.getElementById('chapterSummaryContent');
+      const generalBox = document.getElementById('chapterGeneralSummary');
+      const arcsContainer = document.getElementById('chapterCharacterArcsList');
       const titleEl = document.getElementById('summaryChapterTitle');
       const badgeEl = document.getElementById('summaryStatusBadge');
+      const refreshBtn = document.getElementById('refreshArcsBtn');
       const active = getActiveScenario();
       const totalChapters = active.currentChapter || 1;
 
+      // Compile all characters list including protagonist
+      const allCast = [
+        { name: active.userPersona.name, role: active.userPersona.role || 'Protagonist', isUser: true },
+        ...active.characters.map(c => ({ name: c.name, role: c.role || 'Companion', isUser: false }))
+      ];
+
       if (selectedVal === 'active') {
-        titleEl.innerText = `Chapter ${totalChapters} (Current Active Scene)`;
+        titleEl.innerText = `Chapter ${totalChapters} (Current Scene)`;
         badgeEl.className = "text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded";
         badgeEl.innerText = "In Progress";
+        refreshBtn.classList.remove('hidden');
 
-        const recentDialogue = active.messages
-          .filter(m => !m.isImage && !m.isChapterDivider)
-          .slice(-8)
-          .map(m => `**${m.speakerName}**: ${m.text.length > 90 ? m.text.slice(0, 90) + '...' : m.text}`)
-          .join('\n\n');
+        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        generalBox.innerHTML = activeTurns.length > 0 
+          ? `<p class="text-slate-300 italic"><span class="text-indigo-300 font-semibold">Active Scene Status:</span> ${activeTurns.length} ongoing dialogue turns in progress.</p>`
+          : `<p class="text-slate-500 italic">No turns in Chapter ${totalChapters} yet.</p>`;
 
-        if (recentDialogue) {
-          container.innerHTML = `
-            <p class="text-slate-400 italic mb-2">Ongoing dialogue in current chapter:</p>
-            ${marked.parse(recentDialogue)}
+        // Render Character Cards with cached arcs or default snippet
+        const cachedArcs = active.activeChapterArcs || {};
+        arcsContainer.innerHTML = allCast.map(member => {
+          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
+          let summary = cachedArcs[member.name];
+
+          if (!summary) {
+            // Find recent lines from this member
+            const memberTurns = activeTurns.filter(m => (m.speakerName || '').toLowerCase() === member.name.toLowerCase());
+            if (memberTurns.length > 0) {
+              const lastLine = memberTurns[memberTurns.length - 1].text;
+              summary = `*Recent action/dialogue:* ${lastLine.length > 120 ? lastLine.slice(0, 120) + '...' : lastLine}`;
+            } else {
+              summary = `Present in the scene. Awaiting direct focus or reaction.`;
+            }
+          }
+
+          return `
+            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
+              ${avatarHtml}
+              <div class="overflow-hidden flex-1 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-xs text-white">${escapeHtml(member.name)}</span>
+                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.2 rounded">${escapeHtml(member.role)}</span>
+                </div>
+                <div class="text-[11px] text-slate-300 leading-snug prose prose-invert max-w-none">
+                  ${marked.parse(summary)}
+                </div>
+              </div>
+            </div>
           `;
-        } else {
-          container.innerHTML = `<p class="text-slate-500 italic">No turns recorded in the current chapter yet.</p>`;
-        }
+        }).join('');
+
       } else {
         const index = parseInt(selectedVal);
-        const recap = (active.archivedRecaps || [])[index];
-        titleEl.innerText = `Chapter ${index + 1} Milestone Archive`;
+        const chapterNum = index + 1;
+        const recapData = (active.archivedRecaps || [])[index];
+        titleEl.innerText = `Chapter ${chapterNum} Archive`;
         badgeEl.className = "text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-1.5 py-0.5 rounded";
         badgeEl.innerText = "Archived";
+        refreshBtn.classList.add('hidden');
 
-        if (recap) {
-          container.innerHTML = marked.parse(recap);
-        } else {
-          container.innerHTML = `<p class="text-slate-500 italic">Summary data unavailable for this chapter.</p>`;
-        }
+        let rawSummaryText = typeof recapData === 'string' ? recapData : (recapData?.milestoneSummary || '');
+        let charArcsObj = typeof recapData === 'object' ? (recapData.characterArcs || {}) : {};
+
+        generalBox.innerHTML = rawSummaryText ? marked.parse(rawSummaryText) : `<p class="text-slate-500 italic">No milestone data recorded for Chapter ${chapterNum}.</p>`;
+
+        arcsContainer.innerHTML = allCast.map(member => {
+          const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
+          const summary = charArcsObj[member.name] || `Engaged throughout Chapter ${chapterNum}'s events.`;
+
+          return `
+            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
+              ${avatarHtml}
+              <div class="overflow-hidden flex-1 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-xs text-white">${escapeHtml(member.name)}</span>
+                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.2 rounded">${escapeHtml(member.role)}</span>
+                </div>
+                <div class="text-[11px] text-slate-300 leading-snug prose prose-invert max-w-none">
+                  ${marked.parse(summary)}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // AI Synthesizer for Character-by-Character Breakdown in Current Active Chapter
+    async function refreshActiveChapterCharacterArcs() {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        return;
+      }
+      const active = getActiveScenario();
+      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+
+      if (activeTurns.length === 0) {
+        alert("Start a conversation first before synthesizing character arcs.");
+        return;
+      }
+
+      showLoading(true, "Synthesizing individual character journeys...");
+
+      try {
+        const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const dialogueText = activeTurns.map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
+
+        const promptPayload = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `TASK: For each character in the list below, write a 1-2 sentence summary of what happened to them, their reactions, and their emotional shifts during the current chapter:
+
+CHARACTERS:
+${castNames.join(', ')}
+
+DIALOGUE TURNS IN CURRENT CHAPTER:
+${dialogueText}
+
+OUTPUT FORMAT: Return strictly a valid JSON object mapping each character's exact name to their concise summary:
+{
+  "${active.userPersona.name}": "Brief summary...",
+  "${active.characters[0]?.name || 'Companion'}": "Brief summary..."
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 600,
+            responseMimeType: "application/json"
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptPayload)
+        });
+
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const parsedArcs = JSON.parse(rawJson.trim());
+
+        active.activeChapterArcs = parsedArcs;
+        await saveState();
+        renderSelectedChapterSummary('active');
+      } catch (err) {
+        alert("Arc Analysis Notice: " + err.message);
+      } finally {
+        showLoading(false);
       }
     }
 
@@ -1005,7 +1140,8 @@
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
 
-      document.getElementById('chapterRecapsText').value = (active.archivedRecaps || []).join('\n\n');
+      const recapsStrings = (active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || ''));
+      document.getElementById('chapterRecapsText').value = recapsStrings.join('\n\n');
 
       document.getElementById('userPersonaName').value = active.userPersona.name || '';
       document.getElementById('userPersonaRole').value = active.userPersona.role || '';
@@ -1066,7 +1202,13 @@
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
-      active.archivedRecaps = rawRecap ? rawRecap.split('\n\n').filter(Boolean) : [];
+      if (rawRecap) {
+        active.archivedRecaps = rawRecap.split('\n\n').filter(Boolean).map((text, idx) => ({
+          chapterNum: idx + 1,
+          milestoneSummary: text,
+          characterArcs: {}
+        }));
+      }
 
       active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
@@ -1318,7 +1460,7 @@
 `).join('\n');
 
       const pastChaptersStr = (active.archivedRecaps || []).length > 0 
-        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.join('\n\n')}\n` 
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).join('\n\n')}\n` 
         : '';
 
       return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
@@ -1433,6 +1575,7 @@ ${pastChaptersStr}
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
+    // Dynamic Token Archival with Per-Character Arc Extraction
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
@@ -1445,6 +1588,7 @@ ${pastChaptersStr}
           const dialogueText = activeRawTurns
             .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
             .join('\n');
+          const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
 
           const summaryReqPayload = {
             contents: [{
@@ -1456,14 +1600,16 @@ ${pastChaptersStr}
 [DIALOGUE TURNS]:
 ${dialogueText}
 
-TASK: Create a comprehensive structured summary preserving exact character continuity:
-### Chapter ${active.currentChapter || 1} Milestone Summary
-- **Key Plot Events**: (Concise chronological recap of major events)
-- **Relationship Shifts & Shared Secrets**: (Any emotional progression between ${active.userPersona.name} and companions)
-- **Unresolved Hooks & Current Objectives**: (Immediate ongoing tensions)`
+TASK: Return a JSON object with:
+1. "milestoneSummary": A 2-3 sentence overview of major plot and relationship shifts.
+2. "characterArcs": An object mapping each character (${castNames.join(', ')}) to a 1-2 sentence breakdown of what happened to them.`
               }]
             }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 450 }
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 750,
+              responseMimeType: "application/json"
+            }
           };
 
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -1474,10 +1620,18 @@ TASK: Create a comprehensive structured summary preserving exact character conti
           });
 
           const summaryData = await summaryRes.json();
-          const chapterRecap = summaryData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Chapter ${active.currentChapter} concluded.`;
+          const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          let parsed = {};
+          try { parsed = JSON.parse(rawJson.trim()); } catch(e){}
 
           if (!active.archivedRecaps) active.archivedRecaps = [];
-          active.archivedRecaps.push(chapterRecap);
+          active.archivedRecaps.push({
+            chapterNum: active.currentChapter,
+            milestoneSummary: parsed.milestoneSummary || `Chapter ${active.currentChapter} concluded.`,
+            characterArcs: parsed.characterArcs || active.activeChapterArcs || {}
+          });
+
+          active.activeChapterArcs = null;
 
           active.messages.push({
             isChapterDivider: true,
@@ -1644,7 +1798,6 @@ REQUIREMENTS:
           timestamp: timeStr
         });
 
-        // Set as scenario cover if none exists
         if (!active.cover) active.cover = fullDataUrl;
 
         await saveState();
@@ -1850,7 +2003,21 @@ REQUIREMENTS:
       markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
 
       if ((active.archivedRecaps || []).length > 0) {
-        markdown += `## Archived Story Recaps\n\n${active.archivedRecaps.join('\n\n')}\n\n---\n\n`;
+        markdown += `## Archived Story Recaps\n\n`;
+        active.archivedRecaps.forEach(r => {
+          if (typeof r === 'string') {
+            markdown += `${r}\n\n`;
+          } else {
+            markdown += `### Chapter ${r.chapterNum}\n${r.milestoneSummary}\n\n`;
+            if (r.characterArcs) {
+              for (let [name, arc] of Object.entries(r.characterArcs)) {
+                markdown += `- **${name}**: ${arc}\n`;
+              }
+              markdown += `\n`;
+            }
+          }
+        });
+        markdown += `---\n\n`;
       }
 
       active.messages.forEach(m => {
