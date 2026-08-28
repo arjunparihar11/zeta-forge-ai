@@ -333,7 +333,6 @@
               <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
             </div>
             <div id="replySuggestionsList" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              <!-- Suggestion bubbles injected here -->
             </div>
           </div>
 
@@ -594,7 +593,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v30';
+          const CACHE_NAME = 'zetaforge-v31';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1536,6 +1535,7 @@ JSON FORMAT:
       }
     }
 
+    // Robust Avatar Renderer with Clean Event Delegation
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -2133,7 +2133,7 @@ REQUIREMENTS:
       }
     }
 
-    function buildApiContents() {
+    function buildApiContents(extraDirective = null) {
       const active = getActiveScenario();
       let lastDividerIdx = -1;
       for (let i = active.messages.length - 1; i >= 0; i--) {
@@ -2153,10 +2153,20 @@ REQUIREMENTS:
         activeSlice = overlap.concat(currentTurns);
       }
 
-      return activeSlice.map(m => ({
+      const contents = activeSlice.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
       }));
+
+      // Append background system instruction seamlessly without logging as a chat bubble
+      if (extraDirective) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: extraDirective }]
+        });
+      }
+
+      return contents;
     }
 
     async function handleUserSubmit(e) {
@@ -2204,6 +2214,7 @@ REQUIREMENTS:
       await checkAndTriggerChapterArchival();
     }
 
+    // Silent background continue without creating a System chat bubble
     async function triggerContinue() {
       skipTypewriter();
       hideReplySuggestions();
@@ -2212,14 +2223,10 @@ REQUIREMENTS:
         generateOpeningScene();
         return;
       }
-      active.messages.push({
-        role: 'user',
-        speakerName: 'System',
-        text: `[Story directive: Continue the scene naturally. Characters react in individual turns.]`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-      renderMessages();
-      await triggerAiResponse();
+
+      // Invisible directive passed directly to API
+      const backgroundDirective = `[System directive: Continue the scene naturally. Present characters react, dialogue continues, or environmental events unfold in individual character turns.]`;
+      await triggerAiResponse(backgroundDirective);
       await checkAndTriggerChapterArchival();
     }
 
@@ -2239,10 +2246,10 @@ REQUIREMENTS:
       }
     }
 
-    async function triggerAiResponse() {
+    async function triggerAiResponse(extraDirective = null) {
       showLoading(true);
       try {
-        const contents = buildApiContents();
+        const contents = buildApiContents(extraDirective);
         const replyBlocks = await callGeminiApi(contents);
         showLoading(false);
         await playSequentialTypewriter(replyBlocks);
