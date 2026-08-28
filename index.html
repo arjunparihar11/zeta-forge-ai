@@ -306,7 +306,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar (Grouped Left Action Pills) -->
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
@@ -590,7 +590,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v35';
+          const CACHE_NAME = 'zetaforge-v36';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -886,16 +886,9 @@
       if (!text) return '';
       let formatted = text.trim();
 
-      // Ensure a line break between closing asterisk and opening quote
       formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
-
-      // Ensure a line break between closing quote and opening asterisk
       formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
-
-      // Ensure a line break between closing asterisk and plain speech
       formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
-
-      // Ensure a line break between plain speech sentence end and opening asterisk
       formatted = formatted.replace(/([.!?])([^\S\r\n]+)\*/g, '$1\n*');
 
       return formatted;
@@ -2000,6 +1993,7 @@ TASK: Return a JSON object with:
       }
     }
 
+    // Fixed Visualizer function referencing active.userPersona & active.characters
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -2020,7 +2014,7 @@ TASK: Return a JSON object with:
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
-        const castVisualProfiles = active.characters.map(c => `
+        const castVisualProfiles = (active.characters || []).map(c => `
 - ${c.name}:
   Role & Archetypes: ${c.role || 'Companion'}
   Visual & Attire: ${c.personality || 'Standard appearance'}`
@@ -2028,15 +2022,15 @@ TASK: Return a JSON object with:
 
         const promptParts = [];
 
-        if (appState.userPersona.avatar && appState.userPersona.avatar.startsWith('data:image')) {
-          const mime = appState.userPersona.avatar.split(';')[0].split(':')[1];
-          const data = appState.userPersona.avatar.split(',')[1];
+        if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
+          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = active.userPersona.avatar.split(',')[1];
           promptParts.push({
             inlineData: { mimeType: mime, data: data }
           });
         }
 
-        active.characters.forEach(c => {
+        (active.characters || []).forEach(c => {
           if (c.avatar && c.avatar.startsWith('data:image')) {
             const mime = c.avatar.split(';')[0].split(':')[1];
             const data = c.avatar.split(',')[1];
@@ -2084,7 +2078,7 @@ REQUIREMENTS:
         let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         if (!visualPrompt || visualPrompt.length < 15) {
-          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${active.characters.map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
         }
 
         showLoading(true, "Rendering character-consistent visual snapshot...");
