@@ -284,7 +284,7 @@
             <input type="text" id="userPersonaAvatar" placeholder="Avatar Image URL (or upload right)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'user')" class="text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea id="userPersonaDesc" rows="2" placeholder="Persona visual appearance, clothing style, tone..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+          <textarea id="userPersonaDesc" rows="2" placeholder="Persona visual appearance, hair, clothing style, tone..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
         </div>
 
         <hr class="border-slate-800" />
@@ -404,7 +404,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v16';
+          const CACHE_NAME = 'zetaforge-v17';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -502,7 +502,6 @@
       messages: []
     };
 
-    // Sequential Typewriter State
     let activeTypewriter = {
       isTyping: false,
       skipFlag: false
@@ -655,7 +654,7 @@
             <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="appState.characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea placeholder="Visual description & personality..." oninput="appState.characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="appState.characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
           <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="appState.characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
@@ -859,7 +858,6 @@
         const avatarHtml = getAvatarHtml(speaker, false);
         const fullText = (block.text || '').trim();
 
-        // 1. Create and append the turn container to DOM
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
         wrapper.innerHTML = `
@@ -878,10 +876,9 @@
 
         const bubbleBody = wrapper.querySelector('.bubble-body');
 
-        // 2. Stream type text into bubble (or instant skip if clicked)
         let visibleChars = 0;
         const totalChars = fullText.length;
-        const step = 3; // Chars per tick for smooth natural speed
+        const step = 3;
 
         while (visibleChars < totalChars) {
           if (activeTypewriter.skipFlag) {
@@ -897,7 +894,6 @@
 
         bubbleBody.classList.remove('typing-cursor');
 
-        // 3. Commit turn to state array
         appState.messages.push({
           role: 'model',
           speakerName: speaker,
@@ -905,7 +901,6 @@
           timestamp: timeStr
         });
 
-        // Slight pause before next character speaks
         if (!activeTypewriter.skipFlag) {
           await new Promise(r => setTimeout(r, 220));
         }
@@ -920,7 +915,7 @@
       const charListStr = appState.characters.map(c => `
 - Name: ${c.name}
   Role: ${c.role}
-  Personality: ${c.personality}
+  Appearance & Personality: ${c.personality}
   Relationship to ${appState.userPersona.name}: ${c.relationship}
 `).join('\n');
 
@@ -933,7 +928,7 @@
 [USER PERSONA]:
 - Name: ${appState.userPersona.name}
 - Role: ${appState.userPersona.role || 'Protagonist'}
-- Details: ${appState.userPersona.desc || 'Main character'}
+- Details & Appearance: ${appState.userPersona.desc || 'Main character'}
 
 [MAIN CAST]:
 ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
@@ -1039,7 +1034,6 @@ ${pastChaptersStr}
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
-    // Dynamic Token-Based Chapter Archival Trigger with 16-Turn Buffer Hand-off
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
@@ -1102,6 +1096,7 @@ TASK: Create a comprehensive structured summary preserving exact character conti
       }
     }
 
+    // Multimodal Scene Visualizer leveraging Character Profiles and Base64 Avatars
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1112,31 +1107,70 @@ TASK: Create a comprehensive structured summary preserving exact character conti
         return;
       }
 
-      showLoading(true, "Synthesizing scene description...");
+      showLoading(true, "Analyzing cast appearances and scene layout...");
 
       try {
         const recentDialogue = appState.messages
           .filter(m => !m.isImage && !m.isChapterDivider)
-          .slice(-6)
+          .slice(-8)
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
+
+        // Extract detailed visual descriptions
+        const castVisualProfiles = appState.characters.map(c => `
+- ${c.name}:
+  Role: ${c.role || 'Companion'}
+  Visual & Attire: ${c.personality || 'Standard appearance'}`
+        ).join('\n');
+
+        // Assemble multimodal parts with profile pictures if available
+        const promptParts = [];
+
+        // Include user avatar image if base64
+        if (appState.userPersona.avatar && appState.userPersona.avatar.startsWith('data:image')) {
+          const mime = appState.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = appState.userPersona.avatar.split(',')[1];
+          promptParts.push({
+            inlineData: { mimeType: mime, data: data }
+          });
+        }
+
+        // Include character avatar images
+        appState.characters.forEach(c => {
+          if (c.avatar && c.avatar.startsWith('data:image')) {
+            const mime = c.avatar.split(';')[0].split(':')[1];
+            const data = c.avatar.split(',')[1];
+            promptParts.push({
+              inlineData: { mimeType: mime, data: data }
+            });
+          }
+        });
+
+        const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
+
+[SETTING & AESTHETIC]: ${appState.scenario.title} - ${appState.scenario.setting || 'Dramatic narrative environment'}
+[USER PERSONA]: ${appState.userPersona.name} (${appState.userPersona.desc || 'Protagonist'})
+[CAST VISUAL DESCRIPTIONS]:
+${castVisualProfiles}
+
+[RECENT SCENE EVENTS & POSES]:
+${recentDialogue}
+
+REQUIREMENTS:
+1. Reference the exact hair, facial features, attire, and expressions of the focal characters currently in the scene.
+2. Specify exact physical positioning (e.g. who is sitting on the couch, leaning on the doorframe, holding a mug, etc.).
+3. Include cinematic lighting, atmospheric color palette, and depth of field.
+4. Keep the output prompt concise (35-50 words), high quality, anime/cinematic illustration style.
+5. Output ONLY the descriptive prompt text.`;
+
+        promptParts.push({ text: promptText });
 
         const promptReqPayload = {
           contents: [{
             role: 'user',
-            parts: [{
-              text: `STORY CONTEXT:
-Scenario: ${appState.scenario.title} - ${appState.scenario.setting || 'Dramatic narrative scene'}
-User: ${appState.userPersona.name} (${appState.userPersona.desc || 'Protagonist'})
-Cast: ${appState.characters.map(c => c.name + ': ' + c.personality).join(', ')}
-
-RECENT TURNS:
-${recentDialogue}
-
-TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive words for an anime/cinematic illustration. Mention character poses, expressions, atmosphere, and lighting. Do NOT write single words. Output ONLY the descriptive prompt text.`
-            }]
+            parts: promptParts
           }],
-          generationConfig: { temperature: 0.65, maxOutputTokens: 120 }
+          generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
         };
 
         const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -1149,17 +1183,17 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
         const promptData = await promptRes.json().catch(() => ({}));
         let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
-        if (!visualPrompt || visualPrompt.length < 10) {
-          visualPrompt = `Cinematic anime illustration of ${appState.userPersona.name} with companions in ${appState.scenario.title}, detailed, dramatic lighting, masterpiece`;
+        if (!visualPrompt || visualPrompt.length < 15) {
+          visualPrompt = `Cinematic anime illustration of ${appState.userPersona.name} with ${appState.characters.map(c => c.name).join(', ')} in ${appState.scenario.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
         }
 
-        showLoading(true, "Rendering and encoding visual snapshot...");
+        showLoading(true, "Rendering character-consistent visual snapshot...");
 
         let fullDataUrl = null;
         try {
           const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const imagePayload = {
-            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed lighting" }] }],
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, masterpiece" }] }],
             generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
           };
 
@@ -1184,7 +1218,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
         }
 
         if (!fullDataUrl) {
-          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic aesthetic, detailed lighting, 16:9 aspect ratio");
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed lighting, 16:9 aspect ratio");
           const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
           
           const imgBlobRes = await fetch(renderUrl);
