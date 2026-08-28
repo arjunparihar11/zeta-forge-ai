@@ -376,6 +376,7 @@
           </div>
         </div>
 
+        <!-- Section 1: Dramatis Personae Visual & Personality Profile -->
         <div class="space-y-1.5">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span>🎭</span> Persona & Visual Profile
@@ -384,6 +385,17 @@
           </div>
         </div>
 
+        <!-- Section 2: Dynamic Inter-Character Relationships Grid -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+            <span>🔗</span> Inter-Character Relationships
+          </span>
+          <div id="spotlightInterCharacterGrid" class="space-y-2">
+            <!-- Dynamically populated relationship list to all other cast members -->
+          </div>
+        </div>
+
+        <!-- Section 3: Current Chapter Story Arc & Actions -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -402,22 +414,17 @@
     </div>
   </div>
 
-  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal (With Set as Scenario Cover button) -->
+  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+      <div id="characterPhotoContainer" class="w-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
       </div>
-      <div class="text-center space-y-2 w-full">
+      <div class="text-center">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
-          <button onclick="setCurrentImageAsScenarioCover()" id="setCoverBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 flex items-center gap-1.5">
-            <span>🖼️</span> <span>Set as Scenario Cover</span>
-          </button>
-        </div>
-        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
       </div>
     </div>
   </div>
@@ -564,19 +571,11 @@
     </div>
   </div>
 
-  <!-- Image Lightbox Modal (For Chat Feed Visual Snapshots) -->
+  <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-md">
-    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
-      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
-        &times;
-      </button>
-      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[75vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
-      <div class="text-center space-y-2 w-full">
-        <p id="lightboxCaption" class="text-xs text-slate-300 italic max-w-xl mx-auto"></p>
-        <button onclick="setLightboxImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
-          <span>🖼️</span> <span>Set as Scenario Cover</span>
-        </button>
-      </div>
+    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
+      <p id="lightboxCaption" class="mt-3 text-xs text-slate-300 italic text-center max-w-xl"></p>
     </div>
   </div>
 
@@ -603,7 +602,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v37';
+          const CACHE_NAME = 'zetaforge-v38';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -690,7 +689,7 @@
             role: 'tsundere, confident, arrogant',
             avatar: '',
             personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
-            relationship: 'Companion'
+            relationships: {} // Dynamic relationship labels to other characters
           }
         ],
         messages: [],
@@ -894,27 +893,17 @@
       }
     }
 
-    // Set current lightbox image as scenario cover
-    let currentLightboxImgSrc = '';
-    function openLightbox(src, caption) {
-      currentLightboxImgSrc = src;
-      document.getElementById('lightboxImg').src = src;
-      document.getElementById('lightboxCaption').innerText = caption || 'Scene Visual';
-      document.getElementById('imageLightbox').classList.remove('hidden');
-    }
+    // Auto-inserts line breaks between actions (*...*) and spoken dialogue idempotently
+    function formatDialogueSpacing(text) {
+      if (!text) return '';
+      let formatted = text.trim();
 
-    function closeLightbox() {
-      document.getElementById('imageLightbox').classList.add('hidden');
-    }
+      formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
+      formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
+      formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
+      formatted = formatted.replace(/([.!?])([^\S\r\n]+)\*/g, '$1\n*');
 
-    async function setCurrentImageAsScenarioCover() {
-      if (!currentLightboxImgSrc) return;
-      const active = getActiveScenario();
-      active.cover = currentLightboxImgSrc;
-      await saveState();
-      renderScenariosList();
-      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
-      closeLightbox();
+      return formatted;
     }
 
     // AI Reply Generator producing 3 distinct responses
@@ -1022,8 +1011,8 @@ CRITICAL RULES:
       document.getElementById('replySuggestionsContainer').classList.add('hidden');
     }
 
-    // Interactive Character Spotlight Dossier Functions
-    function openCharacterSpotlight(characterName) {
+    // Dynamic Relationship Extractor & Character Spotlight Dossier
+    async function openCharacterSpotlight(characterName) {
       if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
 
       const active = getActiveScenario();
@@ -1036,7 +1025,7 @@ CRITICAL RULES:
           role: active.userPersona.role || 'Protagonist',
           avatar: active.userPersona.avatar,
           personality: active.userPersona.desc || 'Protagonist of the scenario.',
-          relationship: 'Main Character'
+          relationshipToUser: 'Self'
         };
       } else {
         charObj = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
@@ -1045,8 +1034,8 @@ CRITICAL RULES:
             name: characterName,
             role: 'Secondary Character',
             avatar: '',
-            personality: 'Engaged in the current scenario events.',
-            relationship: 'Story Participant'
+            personality: 'Engaged in current scenario events.',
+            relationshipToUser: 'Participant'
           };
         }
       }
@@ -1079,8 +1068,8 @@ CRITICAL RULES:
       }
 
       const relBox = document.getElementById('spotlightRelationshipBox');
-      if (charObj.relationship && !isUser) {
-        relBox.innerHTML = `<span>🔗</span> <span>${escapeHtml(charObj.relationship)}</span>`;
+      if (charObj.relationshipToUser && !isUser) {
+        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona.name)}:</span> <span class="text-indigo-300">${escapeHtml(charObj.relationshipToUser)}</span>`;
         relBox.classList.remove('hidden');
       } else {
         relBox.classList.add('hidden');
@@ -1088,6 +1077,29 @@ CRITICAL RULES:
 
       const personaBox = document.getElementById('spotlightPersonaText');
       personaBox.innerHTML = marked.parse(charObj.personality || 'No specific traits recorded.');
+
+      // Render Inter-Character Relationships Grid (Dynamic to all other cast members)
+      const interGrid = document.getElementById('spotlightInterCharacterGrid');
+      if (isUser) {
+        interGrid.innerHTML = `<p class="text-slate-400 italic text-[11px]">Protagonist perspective. View individual cast profiles for inter-character dynamics.</p>`;
+      } else {
+        const otherCast = [
+          { name: active.userPersona.name, isUser: true },
+          ...active.characters.filter(c => c.name.toLowerCase() !== charObj.name.toLowerCase()).map(c => ({ name: c.name, isUser: false }))
+        ];
+
+        if (!charObj.relationships) charObj.relationships = {};
+
+        interGrid.innerHTML = otherCast.map(other => {
+          const dyn = charObj.relationships[other.name] || (other.isUser ? (charObj.relationshipToUser || 'Neutral') : 'Acquaintance / Neutral');
+          return `
+            <div class="flex items-center justify-between p-2 bg-slate-900/60 rounded-lg border border-slate-800 text-[11px]">
+              <span class="font-semibold text-indigo-200 flex items-center gap-1.5">👤 ${escapeHtml(other.name)}</span>
+              <span class="text-slate-300 italic px-2 py-0.5 bg-slate-800 rounded border border-slate-700/50">${escapeHtml(dyn)}</span>
+            </div>
+          `;
+        }).join('');
+      }
 
       document.getElementById('spotlightChapterBadge').innerText = `Ch. ${active.currentChapter || 1}`;
       const arcBox = document.getElementById('spotlightArcText');
@@ -1105,6 +1117,77 @@ CRITICAL RULES:
     function closeCharacterSpotlight(event) {
       if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
       document.getElementById('characterSpotlightModal').classList.add('hidden');
+    }
+
+    // AI Synthesizer for Dynamic Inter-Character Relationships during Chapter Archival / Refreshes
+    async function updateInterCharacterRelationships() {
+      const active = getActiveScenario();
+      if (!appState.apiKey || active.characters.length === 0) return;
+
+      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      if (activeTurns.length < 3) return;
+
+      try {
+        const castList = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const dialogueText = activeTurns.slice(-15).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
+
+        const promptPayload = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `TASK: Analyze the current story interactions and update the dynamic relationship labels between all characters.
+
+CAST MEMBERS:
+${castList.join(', ')}
+
+RECENT DIALOGUE:
+${dialogueText}
+
+RULES:
+1. For each character in the cast, define their dynamic relationship label toward EVERY OTHER character in the cast.
+2. Labels must be purely descriptive (e.g. "Close confidant", "Playful rivalry", "Lingering tension", "Protective sibling", "Dating"). No numerical values.
+3. Return STRICTLY a JSON object mapping each character's name to an object of relationships with others:
+{
+  "CharacterName": {
+    "OtherCharacterName": "Relationship Label"
+  }
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 800,
+            responseMimeType: "application/json"
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptPayload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const parsedMap = JSON.parse(rawJson.trim());
+
+          // Update main user relationship on character object, and inter-character map
+          for (let c of active.characters) {
+            if (parsedMap[c.name]) {
+              if (parsedMap[c.name][active.userPersona.name]) {
+                c.relationship = parsedMap[c.name][active.userPersona.name];
+              }
+              c.relationships = parsedMap[c.name];
+            }
+          }
+          await saveState();
+          renderSidebar();
+        }
+      } catch (e) {
+        console.warn("Inter-character relationship sync notice:", e);
+      }
     }
 
     function openCharacterPhotoModal(imageSrc, charName) {
@@ -1443,16 +1526,6 @@ JSON FORMAT:
       document.getElementById(id).classList.add('hidden');
     }
 
-    async function setLightboxImageAsScenarioCover() {
-      if (!currentLightboxImgSrc) return;
-      const active = getActiveScenario();
-      active.cover = currentLightboxImgSrc;
-      await saveState();
-      renderScenariosList();
-      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
-      closeLightbox();
-    }
-
     function handleImageUpload(event, target, charIndex = null) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1516,7 +1589,7 @@ JSON FORMAT:
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
           <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
-          <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+          <input type="text" placeholder="Relationship to User..." value="${escapeHtml(char.relationship || '')}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
       });
@@ -1524,7 +1597,7 @@ JSON FORMAT:
 
     function addCharacterRow() {
       const active = getActiveScenario();
-      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '' });
+      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '', relationships: {} });
       renderCharacterCardsSetup();
     }
 
@@ -1808,6 +1881,7 @@ JSON FORMAT:
       await saveState();
       renderMessages();
       renderScenariosList();
+      updateInterCharacterRelationships();
     }
 
     function buildSystemInstruction() {
