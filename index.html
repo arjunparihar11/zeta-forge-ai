@@ -105,37 +105,33 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <!-- Fixed Top Header -->
+  <!-- Streamlined Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
-    <div class="px-3 sm:px-4 py-2.5 flex items-center justify-between">
-      <div class="flex items-center gap-2 sm:gap-3">
-        <button onclick="toggleMobileSidebar()" class="md:hidden w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 border border-slate-700 active:scale-95 transition">
+    <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
+      <!-- Left: Cast Button + Logo + Title & Scenario Subtitle -->
+      <div class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
+        <button onclick="toggleMobileSidebar()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm" title="Dramatis Personae">
           👥
         </button>
-        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30 shrink-0">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30 shrink-0">
           ⚡
         </div>
-        <div class="overflow-hidden">
-          <div class="flex items-center gap-1.5">
-            <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate">ZetaForge AI</h1>
-            <span id="chapterBadge" class="bg-indigo-950 text-indigo-300 border border-indigo-700/60 text-[10px] px-1.5 py-0.2 rounded font-mono">Ch. 1</span>
-          </div>
-          <p class="text-[10px] sm:text-xs text-slate-400 truncate" id="headerScenarioTitle">Uninitialized Scenario</p>
+        <div class="overflow-hidden flex-1 min-w-0 pr-1">
+          <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
+          <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition active:scale-95">
-          📥 <span class="hidden sm:inline">Import</span>
+      <!-- Right: Clickable Chapter Chronicle Badge + Dedicated More Menu Button -->
+      <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
+          <span>📖</span>
+          <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
+          <span class="text-[10px] text-indigo-400">▾</span>
         </button>
-        <button onclick="openModal('setupModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shadow transition active:scale-95">
-          ⚙️ <span class="hidden sm:inline">Setup</span>
-        </button>
-        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition active:scale-95" title="Export Markdown">
-          💾
-        </button>
-        <button onclick="clearStory()" class="bg-red-950/50 hover:bg-red-900/60 text-red-300 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-red-800/50 transition active:scale-95" title="Reset">
-          🗑️
+
+        <button onclick="toggleMenuDrawer(true)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm" title="Scenarios & Utilities">
+          ☰
         </button>
       </div>
     </div>
@@ -144,19 +140,22 @@
   <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
-    <!-- Mobile Drawer Backdrop -->
-    <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
+    <!-- Universal Drawer Backdrop -->
+    <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Sidebar Cast Panel -->
+    <!-- Left Sidebar: Cast Panel (Dramatis Personae) -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
-        <span class="text-[11px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
+        <div class="flex items-center gap-1.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Dramatis Personae</h2>
+          <span class="text-[10px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
+        </div>
+        <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 space-y-3 scroll-touch" id="sidebarCharacterList">
         <div class="text-xs text-slate-500 text-center py-8">
-          No characters configured.<br>Tap <strong>Setup</strong> to add your cast.
+          No characters configured.<br>Tap <strong>☰ Menu &gt; Setup</strong> to add cast.
         </div>
       </div>
 
@@ -170,6 +169,105 @@
         </div>
       </div>
     </aside>
+
+    <!-- Right Drawer 1: Chapter Chronicle & Summaries -->
+    <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-base">📖</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-white">Chapter Chronicle</h2>
+        </div>
+        <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs scroll-touch">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Select Chapter Arc</label>
+          <select id="chapterSelectDropdown" onchange="renderSelectedChapterSummary(this.value)" class="w-full bg-zetaInput border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Current Chapter (Active)</span>
+            <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
+          </div>
+
+          <div id="chapterSummaryContent" class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl text-slate-300 leading-relaxed prose prose-invert text-xs max-w-none">
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Total Chapters:</span>
+            <span id="statTotalChapters" class="font-semibold text-white">1</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Active Chapter Turns:</span>
+            <span id="statActiveTurns" class="font-semibold text-white">0 turns</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Current Raw Payload:</span>
+            <span id="statActiveTokens" class="font-semibold text-indigo-400">0k tokens</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="toggleChapterDrawer(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition">Close Chronicle</button>
+      </div>
+    </div>
+
+    <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu (Zeta Style) -->
+    <div id="menuDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+      <!-- Static Drawer Header & Utilities Bar -->
+      <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">💬</span>
+            <h2 class="text-sm font-bold text-white tracking-wide">Story Scenarios</h2>
+          </div>
+          <button onclick="toggleMenuDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+
+        <!-- Static Quick Actions Grid -->
+        <div class="grid grid-cols-4 gap-1.5 pt-1">
+          <button onclick="createNewScenarioFlow()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium shadow transition active:scale-95">
+            <span class="text-base leading-none mb-1">➕</span>
+            <span>New</span>
+          </button>
+          <button onclick="openModal('setupModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+            <span class="text-base leading-none mb-1">⚙️</span>
+            <span>Setup</span>
+          </button>
+          <button onclick="openModal('importModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+            <span class="text-base leading-none mb-1">📥</span>
+            <span>Import</span>
+          </button>
+          <button onclick="exportStory()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+            <span class="text-base leading-none mb-1">💾</span>
+            <span>Export</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Saved Scenarios List -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-2.5 scroll-touch">
+        <div class="flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <span>Saved Scenarios</span>
+          <span id="scenariosCountBadge" class="text-indigo-400">0 Total</span>
+        </div>
+
+        <div id="scenariosListContainer" class="space-y-2">
+          <!-- Dynamically populated scenario items -->
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-zetaCard/40 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <button onclick="exportJsonBackup()" class="text-indigo-400 hover:text-indigo-300 font-medium">📦 Full JSON Backup</button>
+        <button onclick="toggleMenuDrawer(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg">Close</button>
+      </div>
+    </div>
 
     <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0" onclick="skipTypewriter()">
@@ -301,12 +399,6 @@
 
         <hr class="border-slate-800" />
 
-        <!-- Archived Chapter Recaps -->
-        <div class="space-y-2.5">
-          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
-          <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs"></textarea>
-        </div>
-
         <!-- Setting -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
@@ -316,11 +408,19 @@
 
         <hr class="border-slate-800" />
 
+        <!-- Archived Chapter Recaps -->
+        <div class="space-y-2.5">
+          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
+          <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs"></textarea>
+        </div>
+
+        <hr class="border-slate-800" />
+
         <!-- Complete JSON Backup & Restore -->
         <div class="space-y-2.5 p-3.5 bg-slate-900/80 rounded-xl border border-slate-800">
           <h3 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
           <p class="text-[11px] text-slate-400">
-            Export or restore a complete uncompressed JSON backfile containing your entire raw message archive, chapter milestones, and avatars.
+            Export or restore a complete uncompressed JSON backfile containing your entire raw message archive, all scenarios, chapter milestones, and avatars.
           </p>
           <div class="flex flex-wrap gap-2 pt-1">
             <button type="button" onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-2 rounded-lg transition active:scale-95">
@@ -405,7 +505,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v19';
+          const CACHE_NAME = 'zetaforge-v21';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -473,34 +573,43 @@
       }
     }
 
+    // Default template generator for new scenarios
+    function createScenarioTemplate(title = 'New Scenario') {
+      return {
+        id: 'scen_' + Date.now(),
+        title: title,
+        setting: '',
+        cover: '',
+        userPersona: {
+          name: 'Rapid',
+          role: 'Protagonist',
+          avatar: '',
+          desc: 'Quick-witted, observant, and direct.'
+        },
+        characters: [
+          {
+            id: 'char_1',
+            name: 'Rena',
+            role: 'tsundere, confident, arrogant',
+            avatar: '',
+            personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
+            relationship: 'Companion'
+          }
+        ],
+        messages: [],
+        archivedRecaps: [],
+        currentChapter: 1,
+        updatedAt: Date.now()
+      };
+    }
+
     let appState = {
       apiKey: '',
       model: 'gemini-3.6-flash',
       temperature: 0.85,
       tokenThreshold: 120000,
-      currentChapter: 1,
-      archivedRecaps: [],
-      userPersona: {
-        name: 'Rapid',
-        role: 'Protagonist',
-        avatar: '',
-        desc: 'Quick-witted, observant, and direct.'
-      },
-      scenario: {
-        title: 'Story Rendezvous',
-        setting: ''
-      },
-      characters: [
-        {
-          id: 'char_1',
-          name: 'Rena',
-          role: 'tsundere, confident, arrogant, bisexual',
-          avatar: '',
-          personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture. Competitive energy with a flirtatious edge.',
-          relationship: "Marrisa's Friend"
-        }
-      ],
-      messages: []
+      activeScenarioId: 'default_scen',
+      scenarios: []
     };
 
     let activeTypewriter = {
@@ -514,14 +623,31 @@
       }
     }
 
+    // Returns the currently active scenario object
+    function getActiveScenario() {
+      if (!appState.scenarios || appState.scenarios.length === 0) {
+        const initial = createScenarioTemplate('Sleepover Dare');
+        appState.scenarios = [initial];
+        appState.activeScenarioId = initial.id;
+        return initial;
+      }
+      let found = appState.scenarios.find(s => s.id === appState.activeScenarioId);
+      if (!found) {
+        found = appState.scenarios[0];
+        appState.activeScenarioId = found.id;
+      }
+      return found;
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
-      renderSidebar();
-      renderMessages();
+      renderAllUi();
       syncModalForm();
     });
 
     async function saveState() {
+      const active = getActiveScenario();
+      if (active) active.updatedAt = Date.now();
       await saveStateDb(appState);
     }
 
@@ -531,8 +657,43 @@
         if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
           saved.model = 'gemini-3.6-flash';
         }
-        appState = { ...appState, ...saved };
+        // Migration support for legacy single-scenario states
+        if (!saved.scenarios || saved.scenarios.length === 0) {
+          const legacy = {
+            id: 'scen_legacy',
+            title: saved.scenario?.title || 'Interactive Story',
+            setting: saved.scenario?.setting || '',
+            cover: '',
+            userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', desc: '' },
+            characters: saved.characters || [],
+            messages: saved.messages || [],
+            archivedRecaps: saved.archivedRecaps || [],
+            currentChapter: saved.currentChapter || 1,
+            updatedAt: Date.now()
+          };
+          appState = {
+            apiKey: saved.apiKey || '',
+            model: saved.model || 'gemini-3.6-flash',
+            temperature: saved.temperature || 0.85,
+            tokenThreshold: saved.tokenThreshold || 120000,
+            activeScenarioId: legacy.id,
+            scenarios: [legacy]
+          };
+        } else {
+          appState = { ...appState, ...saved };
+        }
+      } else {
+        const defaultScen = createScenarioTemplate('Sleepover Dare');
+        appState.scenarios = [defaultScen];
+        appState.activeScenarioId = defaultScen.id;
       }
+    }
+
+    function renderAllUi() {
+      renderSidebar();
+      renderMessages();
+      populateChapterChronicle();
+      renderScenariosList();
     }
 
     function estimateTokens(text) {
@@ -541,8 +702,9 @@
     }
 
     function getActiveRawTokens() {
+      const active = getActiveScenario();
       let totalChars = 0;
-      appState.messages
+      active.messages
         .filter(m => !m.isImage && !m.isChapterDivider)
         .forEach(m => {
           totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
@@ -562,6 +724,12 @@
       }
     }
 
+    function closeAllDrawers() {
+      toggleMobileSidebar(false);
+      toggleChapterDrawer(false);
+      toggleMenuDrawer(false);
+    }
+
     function toggleMobileSidebar(force) {
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('mobileBackdrop');
@@ -569,18 +737,231 @@
       const shouldOpen = force !== undefined ? force : isHidden;
 
       if (shouldOpen) {
+        toggleChapterDrawer(false);
+        toggleMenuDrawer(false);
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('hidden');
       } else {
         sidebar.classList.add('-translate-x-full');
-        backdrop.classList.add('hidden');
+        checkBackdrop();
+      }
+    }
+
+    function toggleChapterDrawer(force) {
+      const drawer = document.getElementById('chapterDrawer');
+      const isClosed = drawer.classList.contains('translate-x-full');
+      const shouldOpen = force !== undefined ? force : isClosed;
+
+      if (shouldOpen) {
+        toggleMobileSidebar(false);
+        toggleMenuDrawer(false);
+        populateChapterChronicle();
+        drawer.classList.remove('translate-x-full');
+        document.getElementById('mobileBackdrop').classList.remove('hidden');
+      } else {
+        drawer.classList.add('translate-x-full');
+        checkBackdrop();
+      }
+    }
+
+    function toggleMenuDrawer(force) {
+      const drawer = document.getElementById('menuDrawer');
+      const isClosed = drawer.classList.contains('translate-x-full');
+      const shouldOpen = force !== undefined ? force : isClosed;
+
+      if (shouldOpen) {
+        toggleMobileSidebar(false);
+        toggleChapterDrawer(false);
+        renderScenariosList();
+        drawer.classList.remove('translate-x-full');
+        document.getElementById('mobileBackdrop').classList.remove('hidden');
+      } else {
+        drawer.classList.add('translate-x-full');
+        checkBackdrop();
+      }
+    }
+
+    function checkBackdrop() {
+      const sidebarClosed = document.getElementById('sidebar').classList.contains('-translate-x-full');
+      const chapterClosed = document.getElementById('chapterDrawer').classList.contains('translate-x-full');
+      const menuClosed = document.getElementById('menuDrawer').classList.contains('translate-x-full');
+      if (sidebarClosed && chapterClosed && menuClosed) {
+        document.getElementById('mobileBackdrop').classList.add('hidden');
+      }
+    }
+
+    // Render Zeta-style Scenarios List in Menu Drawer
+    function renderScenariosList() {
+      const container = document.getElementById('scenariosListContainer');
+      const badge = document.getElementById('scenariosCountBadge');
+      if (!container) return;
+
+      const scenarios = appState.scenarios || [];
+      badge.innerText = `${scenarios.length} Total`;
+
+      if (scenarios.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">No saved scenarios. Tap <strong>+ New</strong> above to create one.</div>`;
+        return;
+      }
+
+      // Sort by last active timestamp descending
+      const sorted = [...scenarios].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      container.innerHTML = sorted.map(s => {
+        const isActive = s.id === appState.activeScenarioId;
+        const lastMsg = (s.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-1)[0];
+        const previewSnippet = lastMsg ? `${lastMsg.speakerName ? lastMsg.speakerName + ': ' : ''}${lastMsg.text}` : (s.setting || 'No messages recorded yet...');
+        
+        // Find suitable cover image or character avatar
+        let coverImg = s.cover;
+        if (!coverImg && s.characters && s.characters[0] && s.characters[0].avatar) {
+          coverImg = s.characters[0].avatar;
+        }
+
+        const coverHtml = coverImg 
+          ? `<img src="${coverImg}" class="w-12 h-14 rounded-xl object-cover border border-slate-700 shrink-0 shadow" onerror="this.outerHTML='<div class=\\'w-12 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shrink-0\\'>📖</div>'" />`
+          : `<div class="w-12 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg shrink-0 shadow">📖</div>`;
+
+        return `
+          <div onclick="switchScenario('${s.id}')" class="p-2.5 rounded-2xl border transition flex items-center gap-3 cursor-pointer group ${isActive ? 'bg-indigo-950/60 border-indigo-500/80 shadow-md ring-1 ring-indigo-500/50' : 'bg-zetaCard border-slate-800 hover:border-slate-700'}">
+            ${coverHtml}
+            <div class="overflow-hidden flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-1 mb-0.5">
+                <span class="font-bold text-xs sm:text-sm text-white truncate ${isActive ? 'text-indigo-300' : ''}">${escapeHtml(s.title || 'Untitled Scenario')}</span>
+                <span class="text-[9px] bg-slate-900 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded font-mono shrink-0">Ch. ${s.currentChapter || 1}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 line-clamp-2 leading-tight pr-1 italic">${escapeHtml(previewSnippet)}</p>
+            </div>
+            <button onclick="event.stopPropagation(); deleteScenario('${s.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition active:scale-95 shrink-0" title="Delete Scenario">
+              🗑️
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function switchScenario(id) {
+      if (id === appState.activeScenarioId) {
+        toggleMenuDrawer(false);
+        return;
+      }
+      appState.activeScenarioId = id;
+      await saveState();
+      renderAllUi();
+      syncModalForm();
+      toggleMenuDrawer(false);
+    }
+
+    async function createNewScenarioFlow() {
+      const name = prompt("Enter a title for the new scenario:", `Scenario #${appState.scenarios.length + 1}`);
+      if (!name) return;
+
+      const newScen = createScenarioTemplate(name.trim());
+      appState.scenarios.unshift(newScen);
+      appState.activeScenarioId = newScen.id;
+
+      await saveState();
+      renderAllUi();
+      syncModalForm();
+      toggleMenuDrawer(false);
+      openModal('setupModal');
+    }
+
+    async function deleteScenario(id) {
+      const target = appState.scenarios.find(s => s.id === id);
+      if (!target) return;
+
+      if (confirm(`Permanently delete "${target.title || 'this scenario'}" and all its logs from your device?`)) {
+        appState.scenarios = appState.scenarios.filter(s => s.id !== id);
+
+        if (appState.scenarios.length === 0) {
+          const fresh = createScenarioTemplate('New Scenario');
+          appState.scenarios = [fresh];
+          appState.activeScenarioId = fresh.id;
+        } else if (appState.activeScenarioId === id) {
+          appState.activeScenarioId = appState.scenarios[0].id;
+        }
+
+        await saveState();
+        renderAllUi();
+        syncModalForm();
+      }
+    }
+
+    function populateChapterChronicle() {
+      const select = document.getElementById('chapterSelectDropdown');
+      const active = getActiveScenario();
+      const totalChapters = active.currentChapter || 1;
+      const recaps = active.archivedRecaps || [];
+
+      document.getElementById('statTotalChapters').innerText = totalChapters;
+      const activeRawCount = active.messages.filter(m => !m.isImage && !m.isChapterDivider).length;
+      document.getElementById('statActiveTurns').innerText = `${activeRawCount} turns`;
+      const currentRawTokens = getActiveRawTokens();
+      document.getElementById('statActiveTokens').innerText = `${(currentRawTokens/1000).toFixed(1)}k tokens`;
+
+      select.innerHTML = '';
+
+      const activeOption = document.createElement('option');
+      activeOption.value = 'active';
+      activeOption.innerText = `Chapter ${totalChapters} (Active Scene)`;
+      select.appendChild(activeOption);
+
+      for (let i = recaps.length - 1; i >= 0; i--) {
+        const opt = document.createElement('option');
+        opt.value = i.toString();
+        opt.innerText = `Chapter ${i + 1} (Archived Arc)`;
+        select.appendChild(opt);
+      }
+
+      renderSelectedChapterSummary('active');
+    }
+
+    function renderSelectedChapterSummary(selectedVal) {
+      const container = document.getElementById('chapterSummaryContent');
+      const titleEl = document.getElementById('summaryChapterTitle');
+      const badgeEl = document.getElementById('summaryStatusBadge');
+      const active = getActiveScenario();
+      const totalChapters = active.currentChapter || 1;
+
+      if (selectedVal === 'active') {
+        titleEl.innerText = `Chapter ${totalChapters} (Current Active Scene)`;
+        badgeEl.className = "text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded";
+        badgeEl.innerText = "In Progress";
+
+        const recentDialogue = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-8)
+          .map(m => `**${m.speakerName}**: ${m.text.length > 90 ? m.text.slice(0, 90) + '...' : m.text}`)
+          .join('\n\n');
+
+        if (recentDialogue) {
+          container.innerHTML = `
+            <p class="text-slate-400 italic mb-2">Ongoing dialogue in current chapter:</p>
+            ${marked.parse(recentDialogue)}
+          `;
+        } else {
+          container.innerHTML = `<p class="text-slate-500 italic">No turns recorded in the current chapter yet.</p>`;
+        }
+      } else {
+        const index = parseInt(selectedVal);
+        const recap = (active.archivedRecaps || [])[index];
+        titleEl.innerText = `Chapter ${index + 1} Milestone Archive`;
+        badgeEl.className = "text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-1.5 py-0.5 rounded";
+        badgeEl.innerText = "Archived";
+
+        if (recap) {
+          container.innerHTML = marked.parse(recap);
+        } else {
+          container.innerHTML = `<p class="text-slate-500 italic">Summary data unavailable for this chapter.</p>`;
+        }
       }
     }
 
     function openModal(id) {
       if (id === 'setupModal') syncModalForm();
+      closeAllDrawers();
       document.getElementById(id).classList.remove('hidden');
-      toggleMobileSidebar(false);
     }
 
     function closeModal(id) {
@@ -601,14 +982,15 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      const active = getActiveScenario();
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target.result;
         if (target === 'user') {
-          appState.userPersona.avatar = base64;
+          active.userPersona.avatar = base64;
           document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
         } else if (target === 'char' && charIndex !== null) {
-          appState.characters[charIndex].avatar = base64;
+          active.characters[charIndex].avatar = base64;
           renderCharacterCardsSetup();
         }
       };
@@ -616,21 +998,22 @@
     }
 
     function syncModalForm() {
+      const active = getActiveScenario();
       document.getElementById('apiKeyInput').value = appState.apiKey || '';
       document.getElementById('modelSelect').value = appState.model || 'gemini-3.6-flash';
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
 
-      document.getElementById('chapterRecapsText').value = (appState.archivedRecaps || []).join('\n\n');
+      document.getElementById('chapterRecapsText').value = (active.archivedRecaps || []).join('\n\n');
 
-      document.getElementById('userPersonaName').value = appState.userPersona.name || '';
-      document.getElementById('userPersonaRole').value = appState.userPersona.role || '';
-      document.getElementById('userPersonaAvatar').value = appState.userPersona.avatar || '';
-      document.getElementById('userPersonaDesc').value = appState.userPersona.desc || '';
+      document.getElementById('userPersonaName').value = active.userPersona.name || '';
+      document.getElementById('userPersonaRole').value = active.userPersona.role || '';
+      document.getElementById('userPersonaAvatar').value = active.userPersona.avatar || '';
+      document.getElementById('userPersonaDesc').value = active.userPersona.desc || '';
 
-      document.getElementById('scenarioTitle').value = appState.scenario.title || '';
-      document.getElementById('scenarioSetting').value = appState.scenario.setting || '';
+      document.getElementById('scenarioTitle').value = active.title || '';
+      document.getElementById('scenarioSetting').value = active.setting || '';
 
       renderCharacterCardsSetup();
     }
@@ -638,8 +1021,9 @@
     function renderCharacterCardsSetup() {
       const container = document.getElementById('characterCardsContainer');
       container.innerHTML = '';
+      const active = getActiveScenario();
 
-      appState.characters.forEach((char, index) => {
+      active.characters.forEach((char, index) => {
         const card = document.createElement('div');
         card.className = 'p-3.5 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative';
         card.innerHTML = `
@@ -648,68 +1032,72 @@
             <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="appState.characters[${index}].name = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="appState.characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="getActiveScenario().characters[${index}].name = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
-            <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="appState.characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="getActiveScenario().characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="appState.characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
-          <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="appState.characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
       });
     }
 
     function addCharacterRow() {
-      appState.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '' });
+      const active = getActiveScenario();
+      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '' });
       renderCharacterCardsSetup();
     }
 
     function removeCharacterRow(index) {
-      appState.characters.splice(index, 1);
+      const active = getActiveScenario();
+      active.characters.splice(index, 1);
       renderCharacterCardsSetup();
     }
 
     async function saveSetupAndInit() {
+      const active = getActiveScenario();
       appState.apiKey = document.getElementById('apiKeyInput').value.trim();
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
-      appState.archivedRecaps = rawRecap ? rawRecap.split('\n\n').filter(Boolean) : [];
+      active.archivedRecaps = rawRecap ? rawRecap.split('\n\n').filter(Boolean) : [];
 
-      appState.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
-      appState.userPersona.role = document.getElementById('userPersonaRole').value.trim();
+      active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
+      active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
       
       const avatarInputVal = document.getElementById('userPersonaAvatar').value.trim();
       if (!avatarInputVal.includes('(Uploaded)')) {
-        appState.userPersona.avatar = avatarInputVal;
+        active.userPersona.avatar = avatarInputVal;
       }
-      appState.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
+      active.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
 
-      appState.scenario.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
-      appState.scenario.setting = document.getElementById('scenarioSetting').value.trim();
+      active.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
+      active.setting = document.getElementById('scenarioSetting').value.trim();
 
       await saveState();
-      renderSidebar();
+      renderAllUi();
       closeModal('setupModal');
 
-      if (appState.messages.length === 0 && appState.scenario.setting && appState.apiKey) {
+      if (active.messages.length === 0 && active.setting && appState.apiKey) {
         generateOpeningScene();
       }
     }
 
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
+      const active = getActiveScenario();
       let avatarSrc = '';
       let initial = (speakerName || '?')[0].toUpperCase();
 
-      if (isUser && appState.userPersona.avatar) {
-        avatarSrc = appState.userPersona.avatar;
+      if (isUser && active.userPersona.avatar) {
+        avatarSrc = active.userPersona.avatar;
       } else {
-        const found = appState.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
+        const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
         if (found && found.avatar) {
           avatarSrc = found.avatar;
         }
@@ -723,24 +1111,24 @@
       return `<div class="${size} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
-    // Upgraded Dramatis Personae Sidebar Card Layout
     function renderSidebar() {
-      document.getElementById('headerScenarioTitle').innerText = appState.scenario.title || 'Interactive Story';
-      document.getElementById('chapterBadge').innerText = `Ch. ${appState.currentChapter || 1}`;
-      document.getElementById('sidebarUserName').innerText = appState.userPersona.name || 'User';
-      document.getElementById('sidebarUserDesc').innerText = appState.userPersona.role ? `${appState.userPersona.role} - ${appState.userPersona.desc}` : (appState.userPersona.desc || 'Protagonist');
-      document.getElementById('charCount').innerText = `${appState.characters.length} active`;
+      const active = getActiveScenario();
+      document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
+      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
+      document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
+      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
+      document.getElementById('charCount').innerText = `${active.characters.length} active`;
 
       const userAvatarContainer = document.getElementById('sidebarUserAvatar');
-      userAvatarContainer.innerHTML = getAvatarHtml(appState.userPersona.name, true, 'w-full h-full');
+      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
 
       const list = document.getElementById('sidebarCharacterList');
-      if (appState.characters.length === 0) {
-        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.</div>`;
+      if (active.characters.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.<br>Tap <strong>☰ Menu &gt; Setup</strong> to add cast.</div>`;
         return;
       }
 
-      list.innerHTML = appState.characters.map(c => `
+      list.innerHTML = active.characters.map(c => `
         <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
           <div class="flex items-start gap-2.5">
             ${getAvatarHtml(c.name, false, 'w-10 h-10')}
@@ -763,15 +1151,16 @@
 
     function renderMessages() {
       const container = document.getElementById('messagesContainer');
+      const active = getActiveScenario();
       const currentRawTokens = getActiveRawTokens();
       const limit = (appState.tokenThreshold || 120000);
       const displayTokens = (currentRawTokens / 1000).toFixed(1);
       const displayLimit = (limit / 1000).toFixed(0);
 
       document.getElementById('tokenCounter').innerText = `${displayTokens}k / ${displayLimit}k tokens (Raw)`;
-      document.getElementById('chapterBadge').innerText = `Ch. ${appState.currentChapter || 1}`;
+      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
 
-      if (appState.messages.length === 0) {
+      if (active.messages.length === 0) {
         container.innerHTML = `
           <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
             <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
@@ -783,7 +1172,7 @@
         return;
       }
 
-      container.innerHTML = appState.messages.map((m, index) => {
+      container.innerHTML = active.messages.map((m, index) => {
         if (m.isChapterDivider) {
           return `
             <div class="my-6 flex items-center gap-3">
@@ -817,7 +1206,7 @@
         }
 
         const isUser = m.role === 'user';
-        const speaker = m.speakerName || (isUser ? (appState.userPersona.name || 'You') : 'Narrator');
+        const speaker = m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Narrator');
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const avatarHtml = getAvatarHtml(speaker, isUser);
         
@@ -855,6 +1244,8 @@
       const container = document.getElementById('messagesContainer');
       const emptyState = document.getElementById('emptyState');
       if (emptyState) emptyState.remove();
+
+      const active = getActiveScenario();
 
       for (let block of replyBlocks) {
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -899,7 +1290,7 @@
 
         bubbleBody.classList.remove('typing-cursor');
 
-        appState.messages.push({
+        active.messages.push({
           role: 'model',
           speakerName: speaker,
           text: fullText,
@@ -914,35 +1305,37 @@
       activeTypewriter.isTyping = false;
       await saveState();
       renderMessages();
+      renderScenariosList();
     }
 
     function buildSystemInstruction() {
-      const charListStr = appState.characters.map(c => `
+      const active = getActiveScenario();
+      const charListStr = active.characters.map(c => `
 - Name: ${c.name}
   Role: ${c.role}
   Appearance & Personality: ${c.personality}
-  Relationship to ${appState.userPersona.name}: ${c.relationship}
+  Relationship to ${active.userPersona.name}: ${c.relationship}
 `).join('\n');
 
-      const pastChaptersStr = (appState.archivedRecaps || []).length > 0 
-        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${appState.archivedRecaps.join('\n\n')}\n` 
+      const pastChaptersStr = (active.archivedRecaps || []).length > 0 
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.join('\n\n')}\n` 
         : '';
 
       return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
 
 [USER PERSONA]:
-- Name: ${appState.userPersona.name}
-- Role: ${appState.userPersona.role || 'Protagonist'}
-- Details & Appearance: ${appState.userPersona.desc || 'Main character'}
+- Name: ${active.userPersona.name}
+- Role: ${active.userPersona.role || 'Protagonist'}
+- Details & Appearance: ${active.userPersona.desc || 'Main character'}
 
 [MAIN CAST]:
 ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
 
 [WORLD & SCENARIO]:
-${appState.scenario.setting || 'An open roleplay world.'}
+${active.setting || 'An open roleplay world.'}
 ${pastChaptersStr}
 [CRITICAL OUTPUT RULES]:
-1. NEVER speak or act for {{user}} (${appState.userPersona.name}).
+1. NEVER speak or act for {{user}} (${active.userPersona.name}).
 2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker". Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
 3. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker" and "text" keys:
 [
@@ -1011,8 +1404,9 @@ ${pastChaptersStr}
 
     function parsePlainTextIntoBlocks(text) {
       if (!text) return [{ speaker: 'Narrator', text: '' }];
+      const active = getActiveScenario();
 
-      const knownNames = ['Narrator', 'Scene', ...(appState.characters || []).map(c => c.name).filter(Boolean)];
+      const knownNames = ['Narrator', 'Scene', ...(active.characters || []).map(c => c.name).filter(Boolean)];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
       
       const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))(${namesPattern}):`, 'g');
@@ -1042,11 +1436,12 @@ ${pastChaptersStr}
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
+      const active = getActiveScenario();
 
       if (currentTokens >= threshold) {
-        showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${appState.currentChapter}...`);
+        showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${active.currentChapter}...`);
         try {
-          const activeRawTurns = appState.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          const activeRawTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
           const dialogueText = activeRawTurns
             .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
             .join('\n');
@@ -1055,16 +1450,16 @@ ${pastChaptersStr}
             contents: [{
               role: 'user',
               parts: [{
-                text: `Summarize the following entire roleplay chapter for Chapter ${appState.currentChapter || 1}:
+                text: `Summarize the following entire roleplay chapter for Chapter ${active.currentChapter || 1}:
 
-[SCENARIO]: ${appState.scenario.title}
+[SCENARIO]: ${active.title}
 [DIALOGUE TURNS]:
 ${dialogueText}
 
 TASK: Create a comprehensive structured summary preserving exact character continuity:
-### Chapter ${appState.currentChapter || 1} Milestone Summary
+### Chapter ${active.currentChapter || 1} Milestone Summary
 - **Key Plot Events**: (Concise chronological recap of major events)
-- **Relationship Shifts & Shared Secrets**: (Any emotional progression between ${appState.userPersona.name} and companions)
+- **Relationship Shifts & Shared Secrets**: (Any emotional progression between ${active.userPersona.name} and companions)
 - **Unresolved Hooks & Current Objectives**: (Immediate ongoing tensions)`
               }]
             }],
@@ -1079,20 +1474,22 @@ TASK: Create a comprehensive structured summary preserving exact character conti
           });
 
           const summaryData = await summaryRes.json();
-          const chapterRecap = summaryData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Chapter ${appState.currentChapter} concluded.`;
+          const chapterRecap = summaryData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Chapter ${active.currentChapter} concluded.`;
 
-          if (!appState.archivedRecaps) appState.archivedRecaps = [];
-          appState.archivedRecaps.push(chapterRecap);
+          if (!active.archivedRecaps) active.archivedRecaps = [];
+          active.archivedRecaps.push(chapterRecap);
 
-          appState.messages.push({
+          active.messages.push({
             isChapterDivider: true,
-            text: `Chapter ${appState.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${appState.currentChapter + 1}`,
+            text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           });
 
-          appState.currentChapter = (appState.currentChapter || 1) + 1;
+          active.currentChapter = (active.currentChapter || 1) + 1;
           await saveState();
           renderMessages();
+          populateChapterChronicle();
+          renderScenariosList();
         } catch (e) {
           console.warn("Dynamic token archival skipped:", e.message);
         } finally {
@@ -1106,7 +1503,8 @@ TASK: Create a comprehensive structured summary preserving exact character conti
         openModal('setupModal');
         return;
       }
-      if (appState.messages.length === 0) {
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
         alert("Start a story or send a message before generating a visual.");
         return;
       }
@@ -1114,13 +1512,13 @@ TASK: Create a comprehensive structured summary preserving exact character conti
       showLoading(true, "Analyzing cast appearances and scene layout...");
 
       try {
-        const recentDialogue = appState.messages
+        const recentDialogue = active.messages
           .filter(m => !m.isImage && !m.isChapterDivider)
           .slice(-8)
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
-        const castVisualProfiles = appState.characters.map(c => `
+        const castVisualProfiles = active.characters.map(c => `
 - ${c.name}:
   Role & Archetypes: ${c.role || 'Companion'}
   Visual & Attire: ${c.personality || 'Standard appearance'}`
@@ -1128,15 +1526,15 @@ TASK: Create a comprehensive structured summary preserving exact character conti
 
         const promptParts = [];
 
-        if (appState.userPersona.avatar && appState.userPersona.avatar.startsWith('data:image')) {
-          const mime = appState.userPersona.avatar.split(';')[0].split(':')[1];
-          const data = appState.userPersona.avatar.split(',')[1];
+        if (active.userPersona.avatar && active.userPersona.avatar.startsWith('data:image')) {
+          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = active.userPersona.avatar.split(',')[1];
           promptParts.push({
             inlineData: { mimeType: mime, data: data }
           });
         }
 
-        appState.characters.forEach(c => {
+        active.characters.forEach(c => {
           if (c.avatar && c.avatar.startsWith('data:image')) {
             const mime = c.avatar.split(';')[0].split(':')[1];
             const data = c.avatar.split(',')[1];
@@ -1148,8 +1546,8 @@ TASK: Create a comprehensive structured summary preserving exact character conti
 
         const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
 
-[SETTING & AESTHETIC]: ${appState.scenario.title} - ${appState.scenario.setting || 'Dramatic narrative environment'}
-[USER PERSONA]: ${appState.userPersona.name} (${appState.userPersona.desc || 'Protagonist'})
+[SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
+[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
 [CAST VISUAL DESCRIPTIONS]:
 ${castVisualProfiles}
 
@@ -1184,7 +1582,7 @@ REQUIREMENTS:
         let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
         if (!visualPrompt || visualPrompt.length < 15) {
-          visualPrompt = `Cinematic anime illustration of ${appState.userPersona.name} with ${appState.characters.map(c => c.name).join(', ')} in ${appState.scenario.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${active.characters.map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
         }
 
         showLoading(true, "Rendering character-consistent visual snapshot...");
@@ -1237,7 +1635,7 @@ REQUIREMENTS:
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        appState.messages.push({
+        active.messages.push({
           role: 'model',
           isImage: true,
           imageUrl: fullDataUrl,
@@ -1246,8 +1644,12 @@ REQUIREMENTS:
           timestamp: timeStr
         });
 
+        // Set as scenario cover if none exists
+        if (!active.cover) active.cover = fullDataUrl;
+
         await saveState();
         renderMessages();
+        renderScenariosList();
       } catch (err) {
         alert("Visualizer Notice: " + err.message);
       } finally {
@@ -1256,9 +1658,10 @@ REQUIREMENTS:
     }
 
     function buildApiContents() {
+      const active = getActiveScenario();
       let lastDividerIdx = -1;
-      for (let i = appState.messages.length - 1; i >= 0; i--) {
-        if (appState.messages[i].isChapterDivider) {
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) {
           lastDividerIdx = i;
           break;
         }
@@ -1266,11 +1669,11 @@ REQUIREMENTS:
 
       let activeSlice;
       if (lastDividerIdx === -1) {
-        activeSlice = appState.messages.filter(m => !m.isImage);
+        activeSlice = active.messages.filter(m => !m.isImage);
       } else {
-        const priorTurns = appState.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
         const overlap = priorTurns.slice(-16);
-        const currentTurns = appState.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
         activeSlice = overlap.concat(currentTurns);
       }
 
@@ -1288,6 +1691,7 @@ REQUIREMENTS:
       const rawText = inputEl.value.trim();
       if (!rawText) return;
 
+      const active = getActiveScenario();
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
@@ -1296,7 +1700,7 @@ REQUIREMENTS:
         if (seg.startsWith('@:')) {
           const cleanNarration = seg.replace(/^@:\s*/, '').trim();
           if (cleanNarration) {
-            appState.messages.push({
+            active.messages.push({
               role: 'user',
               speakerName: 'Narrator',
               text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
@@ -1304,9 +1708,9 @@ REQUIREMENTS:
             });
           }
         } else {
-          appState.messages.push({
+          active.messages.push({
             role: 'user',
-            speakerName: appState.userPersona.name,
+            speakerName: active.userPersona.name,
             text: seg,
             timestamp: timeStr
           });
@@ -1317,6 +1721,7 @@ REQUIREMENTS:
       inputEl.style.height = 'auto';
       await saveState();
       renderMessages();
+      renderScenariosList();
 
       await triggerAiResponse();
       await checkAndTriggerChapterArchival();
@@ -1324,11 +1729,12 @@ REQUIREMENTS:
 
     async function triggerContinue() {
       skipTypewriter();
-      if (appState.messages.length === 0 && appState.scenario.setting) {
+      const active = getActiveScenario();
+      if (active.messages.length === 0 && active.setting) {
         generateOpeningScene();
         return;
       }
-      appState.messages.push({
+      active.messages.push({
         role: 'user',
         speakerName: 'System',
         text: `[Story directive: Continue the scene naturally. Characters react in individual turns.]`,
@@ -1372,8 +1778,9 @@ REQUIREMENTS:
       if (index <= 0) return;
       skipTypewriter();
       showLoading(true, "Regenerating turn...");
+      const active = getActiveScenario();
       try {
-        const sliced = appState.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
+        const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
         const contents = sliced.map(m => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: `${m.speakerName}: ${m.text}` }]
@@ -1383,7 +1790,7 @@ REQUIREMENTS:
         showLoading(false);
 
         if (replyBlocks.length > 0) {
-          appState.messages.splice(index);
+          active.messages.splice(index);
           await playSequentialTypewriter(replyBlocks);
         }
       } catch (err) {
@@ -1394,9 +1801,11 @@ REQUIREMENTS:
 
     async function deleteMessage(index) {
       if (confirm("Delete this entry?")) {
-        appState.messages.splice(index, 1);
+        const active = getActiveScenario();
+        active.messages.splice(index, 1);
         await saveState();
         renderMessages();
+        renderScenariosList();
       }
     }
 
@@ -1405,7 +1814,8 @@ REQUIREMENTS:
       const append = document.getElementById('appendTranscriptCheck').checked;
       if (!rawText) return;
 
-      const userName = (appState.userPersona.name || 'Me').toLowerCase();
+      const active = getActiveScenario();
+      const userName = (active.userPersona.name || 'Me').toLowerCase();
       const parsedMessages = [];
 
       const blocks = parsePlainTextIntoBlocks(rawText);
@@ -1416,33 +1826,34 @@ REQUIREMENTS:
 
         parsedMessages.push({
           role: isUser ? 'user' : 'model',
-          speakerName: isUser ? (appState.userPersona.name || 'Me') : b.speaker,
+          speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
           text: b.text,
           timestamp: 'Imported'
         });
       }
 
-      appState.messages = append ? appState.messages.concat(parsedMessages) : parsedMessages;
+      active.messages = append ? active.messages.concat(parsedMessages) : parsedMessages;
       saveState();
-      renderMessages();
+      renderAllUi();
       closeModal('importModal');
       document.getElementById('importTranscriptText').value = '';
     }
 
     function exportStory() {
-      if (appState.messages.length === 0) {
-        alert("No story content to export.");
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
+        alert("No story content to export in current scenario.");
         return;
       }
-      let markdown = `# ${appState.scenario.title || 'Interactive Story'}\n\n`;
-      markdown += `**Setting:** ${appState.scenario.setting || 'N/A'}\n\n`;
-      markdown += `**User:** ${appState.userPersona.name} (${appState.userPersona.role})\n\n`;
+      let markdown = `# ${active.title || 'Interactive Story'}\n\n`;
+      markdown += `**Setting:** ${active.setting || 'N/A'}\n\n`;
+      markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
 
-      if ((appState.archivedRecaps || []).length > 0) {
-        markdown += `## Archived Story Recaps\n\n${appState.archivedRecaps.join('\n\n')}\n\n---\n\n`;
+      if ((active.archivedRecaps || []).length > 0) {
+        markdown += `## Archived Story Recaps\n\n${active.archivedRecaps.join('\n\n')}\n\n---\n\n`;
       }
 
-      appState.messages.forEach(m => {
+      active.messages.forEach(m => {
         if (m.isChapterDivider) {
           markdown += `\n## --- ${m.text} ---\n\n`;
         } else if (m.isImage) {
@@ -1456,7 +1867,7 @@ REQUIREMENTS:
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(appState.scenario.title || 'story').toLowerCase().replace(/\s+/g, '_')}_transcript.md`;
+      a.download = `${(active.title || 'story').toLowerCase().replace(/\s+/g, '_')}_transcript.md`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -1467,7 +1878,7 @@ REQUIREMENTS:
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `zetaforge_backup_${(appState.scenario.title || 'story').toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `zetaforge_all_scenarios_backup_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -1480,13 +1891,17 @@ REQUIREMENTS:
       reader.onload = async (e) => {
         try {
           const parsed = JSON.parse(e.target.result);
-          if (parsed && Array.isArray(parsed.messages)) {
-            appState = parsed;
+          if (parsed && (Array.isArray(parsed.scenarios) || Array.isArray(parsed.messages))) {
+            if (Array.isArray(parsed.scenarios)) {
+              appState = parsed;
+            } else {
+              appState.scenarios = [parsed];
+              appState.activeScenarioId = parsed.id || 'imported_' + Date.now();
+            }
             await saveState();
-            renderSidebar();
-            renderMessages();
+            renderAllUi();
             syncModalForm();
-            alert("Backup restored successfully!");
+            alert("All scenarios and backfiles restored successfully!");
             closeModal('setupModal');
           } else {
             alert("Invalid backup file structure.");
@@ -1496,16 +1911,6 @@ REQUIREMENTS:
         }
       };
       reader.readAsText(file);
-    }
-
-    async function clearStory() {
-      if (confirm("Reset current transcript? Cast and settings are kept.")) {
-        appState.messages = [];
-        appState.archivedRecaps = [];
-        appState.currentChapter = 1;
-        await saveState();
-        renderMessages();
-      }
     }
 
     function showLoading(show, message = "Characters are replying...") {
