@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
+  <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
 
+  <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
 
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
@@ -66,8 +70,21 @@
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
     
-    .prose p { margin-bottom: 0.35rem; line-height: 1.55; }
-    .prose p:last-child { margin-bottom: 0; }
+    /* Clean Bubble Typography */
+    .prose p { 
+      margin-top: 0;
+      margin-bottom: 0.5rem; 
+      line-height: 1.55; 
+    }
+    .prose p:last-child { 
+      margin-bottom: 0 !important; 
+    }
+    .prose > :first-child {
+      margin-top: 0 !important;
+    }
+    .prose > :last-child {
+      margin-bottom: 0 !important;
+    }
     .prose em { color: #94a3b8; font-style: italic; }
     .prose strong { color: #f8fafc; }
     textarea, input, select { -webkit-appearance: none; }
@@ -75,6 +92,7 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
+  <!-- Fixed Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
     <div class="px-3 sm:px-4 py-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 sm:gap-3">
@@ -107,10 +125,13 @@
     </div>
   </header>
 
+  <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
+    <!-- Mobile Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
 
+    <!-- Sidebar Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
@@ -134,6 +155,7 @@
       </div>
     </aside>
 
+    <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0">
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -148,6 +170,7 @@
         </div>
       </div>
 
+      <!-- Typing / Generating Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -155,6 +178,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
@@ -190,6 +214,7 @@
     </main>
   </div>
 
+  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -225,7 +250,7 @@
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Arjun)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
+            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Rapid)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -250,7 +275,7 @@
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
           <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
-          <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic (e.g. moody cyberpunk alley with glowing neon signages)..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+          <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
         </div>
       </div>
 
@@ -261,6 +286,7 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -293,6 +319,7 @@
     </div>
   </div>
 
+  <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
       <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
@@ -301,6 +328,14 @@
   </div>
 
   <script>
+    // Setup Marked.js with clean single-break rendering
+    if (typeof marked !== 'undefined') {
+      marked.setOptions({
+        breaks: true,
+        gfm: true
+      });
+    }
+
     // PWA Manifest
     (function initPwa() {
       const manifestData = {
@@ -317,7 +352,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v7';
+          const CACHE_NAME = 'zetaforge-v8';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -336,23 +371,23 @@
       model: 'gemini-3.6-flash',
       temperature: 0.85,
       userPersona: {
-        name: 'Arjun',
+        name: 'Rapid',
         role: 'Protagonist',
         avatar: '',
         desc: 'Quick-witted, observant, and direct.'
       },
       scenario: {
-        title: 'Cyberpunk Syndicate Rendezvous',
-        setting: 'Late night in the lower district. Rain slicking the neon-lit pavement outside a noodle stall.'
+        title: 'Story Rendezvous',
+        setting: ''
       },
       characters: [
         {
           id: 'char_1',
-          name: 'Lyra Vance',
-          role: 'Rogue Netrunner',
+          name: 'Rena',
+          role: 'Companion',
           avatar: '',
-          personality: 'Cynical, razor-sharp sarcastic humor, fiercely loyal.',
-          relationship: 'Longtime uneasy ally; owes user a favor.'
+          personality: 'Playful, observant, teasing.',
+          relationship: 'Close friend'
         }
       ],
       messages: []
@@ -384,13 +419,11 @@
       }
     }
 
-    // Dynamic auto-expanding textarea
     function autoExpandTextarea(el) {
       el.style.height = 'auto';
       el.style.height = Math.min(el.scrollHeight, 160) + 'px';
     }
 
-    // Handles keyboard inputs: Cmd/Ctrl+Enter sends; regular Enter inserts newline
     function handleInputKeydown(event) {
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
@@ -623,7 +656,10 @@
         const speaker = m.speakerName || (isUser ? (appState.userPersona.name || 'You') : 'Narrator');
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const avatarHtml = getAvatarHtml(speaker, isUser);
-        const renderedHtml = marked.parse(m.text || '');
+        
+        // Clean markdown parsing without extra paragraph newlines
+        const cleanContent = (m.text || '').trim();
+        const renderedHtml = marked.parse(cleanContent);
 
         return `
           <div class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
@@ -633,7 +669,7 @@
                 <span class="text-[11px] sm:text-xs font-semibold ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
-              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none whitespace-pre-wrap' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
                 ${renderedHtml}
               </div>
               <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
@@ -877,7 +913,7 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
       });
 
       inputEl.value = '';
-      inputEl.style.height = 'auto'; // Reset expanded height
+      inputEl.style.height = 'auto';
       saveState();
       renderMessages();
 
@@ -1018,10 +1054,7 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
 
       for (let line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) {
-          currentBuffer.push('');
-          continue;
-        }
+        if (!trimmed) continue;
 
         const isUserLine = trimmed.toLowerCase().startsWith('me:') || 
                            trimmed.toLowerCase().startsWith('you:') || 
