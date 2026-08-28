@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <title>ZetaForge AI - Interactive Story Engine</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ZetaForge" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#161922" />
+
+  <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
+
+  <link rel="manifest" id="pwaManifest" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            zetaBg: '#0f1117',
+            zetaSidebar: '#161922',
+            zetaCard: '#1e2230',
+            zetaInput: '#262b3d',
+            zetaAccent: '#6366f1',
+            zetaAccentHover: '#4f46e5',
+            zetaUser: '#312e81'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    header { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+    .bottom-bar { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
+    .prose p { margin-bottom: 0.35rem; line-height: 1.55; }
+    .prose p:last-child { margin-bottom: 0; }
+    .prose em { color: #94a3b8; font-style: italic; }
+    .prose strong { color: #f8fafc; }
+    textarea, input, select { -webkit-appearance: none; }
+  </style>
+</head>
+<body class="bg-zetaBg text-slate-200 h-screen flex flex-col font-sans overflow-hidden select-none sm:select-auto">
+
+  <header class="bg-zetaSidebar border-b border-slate-800 px-3 sm:px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-md">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <button onclick="toggleMobileSidebar()" class="md:hidden w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 border border-slate-700 active:scale-95 transition">
+        👥
+      </button>
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30 shrink-0">
+        ⚡
+      </div>
+      <div class="overflow-hidden">
+        <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate">ZetaForge AI</h1>
+        <p class="text-[10px] sm:text-xs text-slate-400 truncate" id="headerScenarioTitle">Uninitialized Scenario</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition active:scale-95">
+        📥 <span class="hidden sm:inline">Import</span>
+      </button>
+      <button onclick="openModal('setupModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shadow transition active:scale-95">
+        ⚙️ <span class="hidden sm:inline">Setup</span>
+      </button>
+      <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition active:scale-95" title="Export Story">
+        💾
+      </button>
+      <button onclick="clearStory()" class="bg-red-950/50 hover:bg-red-900/60 text-red-300 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-red-800/50 transition active:scale-95" title="Reset Story">
+        🗑️
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
+
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
+        <span class="text-[11px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="sidebarCharacterList">
+        <div class="text-xs text-slate-500 text-center py-8">
+          No characters configured.<br>Tap <strong>Setup</strong> to add your cast.
+        </div>
+      </div>
+
+      <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
+        <div id="sidebarUserAvatar" class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow">
+          U
+        </div>
+        <div class="overflow-hidden">
+          <div class="text-white font-semibold truncate" id="sidebarUserName">User</div>
+          <div class="text-slate-400 text-[10px] truncate" id="sidebarUserDesc">Protagonist</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden">
+      <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full">
+        <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
+          <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
+          <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
+          <p class="text-xs sm:text-sm max-w-md text-slate-400">
+            Set up your Gemini API key and cast in Setup, or import past Zeta logs to begin.
+          </p>
+          <button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/30">
+            Configure & Start
+          </button>
+        </div>
+      </div>
+
+      <div id="typingIndicator" class="hidden px-4 sm:px-6 py-2 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
+        <span class="animate-pulse">●</span>
+        <span class="animate-pulse delay-100">●</span>
+        <span class="animate-pulse delay-200">●</span>
+        <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
+      </div>
+
+      <div class="p-3 sm:p-4 bg-zetaSidebar border-t border-slate-800 bottom-bar shrink-0">
+        <div class="max-w-4xl mx-auto space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span class="hidden sm:inline">Use *actions* and "dialogue"</span>
+            <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
+              ⏩ <span>Continue scene without input</span>
+            </button>
+          </div>
+
+          <form onsubmit="handleUserSubmit(event)" class="flex gap-2">
+            <textarea
+              id="userInput"
+              rows="2"
+              placeholder="Describe your action or speak (*I lean back* &quot;What now?&quot;)..."
+              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+              onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleUserSubmit(event); }"
+            ></textarea>
+            <button
+              type="submit"
+              id="sendBtn"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Cast & API Settings</h2>
+        <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm">
+        <div class="space-y-1.5">
+          <label class="block font-semibold text-slate-200">Google Gemini API Key <span class="text-rose-400">*</span></label>
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-200 mb-1">Model</label>
+            <select id="modelSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option value="gemini-3.6-flash">gemini-3.6-flash (Recommended)</option>
+              <option value="gemini-3.7-flash">gemini-3.7-flash</option>
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-200 mb-1">Creativity / Temperature (<span id="tempValue">0.85</span>)</label>
+            <input type="range" id="tempInput" min="0.2" max="1.3" step="0.05" value="0.85" oninput="document.getElementById('tempValue').innerText = this.value" class="w-full mt-2" />
+          </div>
+        </div>
+
+        <hr class="border-slate-800" />
+
+        <div class="space-y-2.5">
+          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Arjun)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
+            <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="userPersonaAvatar" placeholder="Avatar Image URL (or upload below)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs" />
+            <input type="file" accept="image/*" onchange="handleImageUpload(event, 'user')" class="text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-800 file:text-indigo-300" />
+          </div>
+          <textarea id="userPersonaDesc" rows="2" placeholder="Persona background, tone, appearance..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+        </div>
+
+        <hr class="border-slate-800" />
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Cast & Character Avatars</h3>
+            <button type="button" onclick="addCharacterRow()" class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-600/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
+          </div>
+          <div id="characterCardsContainer" class="space-y-3"></div>
+        </div>
+
+        <hr class="border-slate-800" />
+
+        <div class="space-y-2.5">
+          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Opening Scene</h3>
+          <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
+          <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, surroundings, initial conflict..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+        </div>
+      </div>
+
+      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2">
+        <button onclick="closeModal('setupModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
+        <button onclick="saveSetupAndInit()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-lg shadow-indigo-600/30">Save & Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import from Zeta App</h2>
+        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm">
+        <p class="text-[11px] sm:text-xs text-slate-400">
+          Paste copied logs or a story transcript. Each speaker will automatically become their own message bubble with their respective avatar.
+        </p>
+
+        <textarea
+          id="importTranscriptText"
+          rows="8"
+          placeholder="Lyra: &quot;Hey there.&quot;&#10;*Takes a seat beside you.*&#10;Me: &quot;Glad you made it.&quot;&#10;Guard: &quot;Keep it down!&quot;"
+          class="w-full bg-zetaInput border border-slate-700 rounded-lg p-3 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+        ></textarea>
+
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="appendTranscriptCheck" class="rounded bg-zetaInput border-slate-700 text-indigo-600" checked />
+          <label for="appendTranscriptCheck" class="text-xs text-slate-300">Append to current chat</label>
+        </div>
+      </div>
+
+      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2">
+        <button onclick="closeModal('importModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
+        <button onclick="processZetaImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Story</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PWA & Service Worker
+    (function initPwa() {
+      const manifestData = {
+        name: "ZetaForge AI Roleplay",
+        short_name: "ZetaForge",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#0f1117",
+        theme_color: "#161922",
+        icons: [{ src: document.getElementById('appleTouchIcon').href, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+      document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+      if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+        const swScript = `
+          const CACHE_NAME = 'zetaforge-v3';
+          const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
+          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
+          self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+          self.addEventListener('fetch', e => {
+            if (e.request.url.includes('googleapis.com')) return;
+            e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
+          });
+        `;
+        const swBlob = new Blob([swScript], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+      }
+    })();
+
+    // Application State
+    let appState = {
+      apiKey: '',
+      model: 'gemini-3.6-flash',
+      temperature: 0.85,
+      userPersona: {
+        name: 'Arjun',
+        role: 'Protagonist',
+        avatar: '',
+        desc: 'Quick-witted, observant, and direct.'
+      },
+      scenario: {
+        title: 'Cyberpunk Syndicate Rendezvous',
+        setting: 'Late night in the lower district. Rain slicking the neon-lit pavement outside a noodle stall.'
+      },
+      characters: [
+        {
+          id: 'char_1',
+          name: 'Lyra Vance',
+          role: 'Rogue Netrunner',
+          avatar: '',
+          personality: 'Cynical, razor-sharp sarcastic humor, fiercely loyal.',
+          relationship: 'Longtime uneasy ally; owes user a favor.'
+        }
+      ],
+      messages: [] // Array of { role: 'user'|'model', speakerName: string, text: string, timestamp: string }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderSidebar();
+      renderMessages();
+      syncModalForm();
+    });
+
+    function saveState() {
+      localStorage.setItem('zetaforge_state', JSON.stringify(appState));
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem('zetaforge_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.model && (parsed.model.includes('2.5') || parsed.model.includes('1.5'))) {
+            parsed.model = 'gemini-3.6-flash';
+          }
+          appState = { ...appState, ...parsed };
+        } catch (e) {
+          console.error("State parse error", e);
+        }
+      }
+    }
+
+    function toggleMobileSidebar(force) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('mobileBackdrop');
+      const isHidden = sidebar.classList.contains('-translate-x-full');
+      const shouldOpen = force !== undefined ? force : isHidden;
+
+      if (shouldOpen) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function openModal(id) {
+      if (id === 'setupModal') syncModalForm();
+      document.getElementById(id).classList.remove('hidden');
+      toggleMobileSidebar(false);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function handleImageUpload(event, target, charIndex = null) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        if (target === 'user') {
+          appState.userPersona.avatar = base64;
+          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
+        } else if (target === 'char' && charIndex !== null) {
+          appState.characters[charIndex].avatar = base64;
+          renderCharacterCardsSetup();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function syncModalForm() {
+      document.getElementById('apiKeyInput').value = appState.apiKey || '';
+      document.getElementById('modelSelect').value = appState.model || 'gemini-3.6-flash';
+      document.getElementById('tempInput').value = appState.temperature || 0.85;
+      document.getElementById('tempValue').innerText = appState.temperature || 0.85;
+
+      document.getElementById('userPersonaName').value = appState.userPersona.name || '';
+      document.getElementById('userPersonaRole').value = appState.userPersona.role || '';
+      document.getElementById('userPersonaAvatar').value = appState.userPersona.avatar || '';
+      document.getElementById('userPersonaDesc').value = appState.userPersona.desc || '';
+
+      document.getElementById('scenarioTitle').value = appState.scenario.title || '';
+      document.getElementById('scenarioSetting').value = appState.scenario.setting || '';
+
+      renderCharacterCardsSetup();
+    }
+
+    function renderCharacterCardsSetup() {
+      const container = document.getElementById('characterCardsContainer');
+      container.innerHTML = '';
+
+      appState.characters.forEach((char, index) => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative';
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-indigo-300">Character #${index + 1}</span>
+            <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="appState.characters[${index}].name = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Role / Tag" value="${escapeHtml(char.role)}" oninput="appState.characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+            <input type="text" placeholder="Avatar URL (or upload right)" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="appState.characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
+          </div>
+          <textarea placeholder="Personality & Tone..." oninput="appState.characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <input type="text" placeholder="Relationship to User..." value="${escapeHtml(char.relationship)}" oninput="appState.characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addCharacterRow() {
+      appState.characters.push({
+        id: 'char_' + Date.now(),
+        name: '',
+        role: '',
+        avatar: '',
+        personality: '',
+        relationship: ''
+      });
+      renderCharacterCardsSetup();
+    }
+
+    function removeCharacterRow(index) {
+      appState.characters.splice(index, 1);
+      renderCharacterCardsSetup();
+    }
+
+    function saveSetupAndInit() {
+      appState.apiKey = document.getElementById('apiKeyInput').value.trim();
+      appState.model = document.getElementById('modelSelect').value;
+      appState.temperature = parseFloat(document.getElementById('tempInput').value);
+
+      appState.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
+      appState.userPersona.role = document.getElementById('userPersonaRole').value.trim();
+      
+      const avatarInputVal = document.getElementById('userPersonaAvatar').value.trim();
+      if (!avatarInputVal.includes('(Uploaded)')) {
+        appState.userPersona.avatar = avatarInputVal;
+      }
+      appState.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
+
+      appState.scenario.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
+      appState.scenario.setting = document.getElementById('scenarioSetting').value.trim();
+
+      saveState();
+      renderSidebar();
+      closeModal('setupModal');
+
+      if (appState.messages.length === 0 && appState.scenario.setting && appState.apiKey) {
+        generateOpeningScene();
+      }
+    }
+
+    // Helper: Build Avatar HTML Element
+    function getAvatarHtml(speakerName, isUser = false, size = 'w-8 h-8 sm:w-9 sm:h-9') {
+      let avatarSrc = '';
+      let initial = (speakerName || '?')[0].toUpperCase();
+
+      if (isUser && appState.userPersona.avatar) {
+        avatarSrc = appState.userPersona.avatar;
+      } else {
+        const found = appState.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
+        if (found && found.avatar) {
+          avatarSrc = found.avatar;
+        }
+      }
+
+      if (avatarSrc) {
+        return `<img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="${size} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="this.outerHTML='<div class=\\'${size} rounded-xl bg-slate-800 text-indigo-300 flex items-center justify-center font-bold text-xs shrink-0 border border-slate-700\\'>${initial}</div>'" />`;
+      }
+
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
+      return `<div class="${size} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
+    }
+
+    function renderSidebar() {
+      document.getElementById('headerScenarioTitle').innerText = appState.scenario.title || 'Interactive Story';
+      document.getElementById('sidebarUserName').innerText = appState.userPersona.name || 'User';
+      document.getElementById('sidebarUserDesc').innerText = appState.userPersona.role ? `${appState.userPersona.role} - ${appState.userPersona.desc}` : (appState.userPersona.desc || 'Protagonist');
+      document.getElementById('charCount').innerText = `${appState.characters.length} active`;
+
+      const userAvatarContainer = document.getElementById('sidebarUserAvatar');
+      userAvatarContainer.innerHTML = getAvatarHtml(appState.userPersona.name, true, 'w-full h-full');
+
+      const list = document.getElementById('sidebarCharacterList');
+      if (appState.characters.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.</div>`;
+        return;
+      }
+
+      list.innerHTML = appState.characters.map(c => `
+        <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-1.5 hover:border-slate-700 transition">
+          <div class="flex items-center gap-2.5">
+            ${getAvatarHtml(c.name, false, 'w-8 h-8')}
+            <div class="overflow-hidden flex-1">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-xs text-indigo-300 truncate">${escapeHtml(c.name || 'Unnamed')}</span>
+                <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(c.role || 'NPC')}</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-snug">${escapeHtml(c.personality || 'No traits specified.')}</p>
+          ${c.relationship ? `<div class="text-[10px] text-indigo-400/80 pt-1 border-t border-slate-800/80">🔗 ${escapeHtml(c.relationship)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('messagesContainer');
+      if (appState.messages.length === 0) {
+        container.innerHTML = `
+          <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
+            <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
+            <p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p>
+            <button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow">Configure & Start</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = appState.messages.map((m, index) => {
+        const isUser = m.role === 'user';
+        const speaker = m.speakerName || (isUser ? (appState.userPersona.name || 'You') : 'Narrator');
+        const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
+        const avatarHtml = getAvatarHtml(speaker, isUser);
+        const renderedHtml = marked.parse(m.text || '');
+
+        return `
+          <div class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
+            ${!isUser ? avatarHtml : ''}
+            <div class="max-w-[88%] sm:max-w-[80%]">
+              <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
+                <span class="text-[11px] sm:text-xs font-semibold ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
+                <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
+              </div>
+              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+                ${renderedHtml}
+              </div>
+              <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
+                ${!isUser ? `<button onclick="regenerateTurn(${index})" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>` : ''}
+                <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button>
+              </div>
+            </div>
+            ${isUser ? avatarHtml : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function buildSystemInstruction() {
+      const charListStr = appState.characters.map(c => `
+- Name: ${c.name}
+  Role: ${c.role}
+  Personality: ${c.personality}
+  Relationship to ${appState.userPersona.name}: ${c.relationship}
+`).join('\n');
+
+      return `You are the interactive roleplay and story engine for a narrative experience like the Zeta app.
+
+[USER PERSONA]:
+- Name: ${appState.userPersona.name}
+- Role: ${appState.userPersona.role || 'Unspecified'}
+- Details: ${appState.userPersona.desc || 'Protagonist'}
+
+[MAIN CAST]:
+${charListStr || 'Create vivid characters appropriate to the scene.'}
+
+[WORLD & SCENARIO]:
+${appState.scenario.setting || 'An open roleplay world.'}
+
+[CRITICAL OUTPUT RULES]:
+1. NEVER speak or act for {{user}} (${appState.userPersona.name}).
+2. MULTI-CHARACTER INDIVIDUAL REPLIES: Every character present that reacts or speaks MUST have their own distinct turn. Also use "Narrator" for environmental shifts or scene setting.
+3. OUTPUT FORMAT: Output strictly as an array of JSON objects matching this format:
+\`\`\`json
+[
+  {
+    "speaker": "CharacterName or Narrator",
+    "text": "*Sensory actions in asterisks* \\"Character dialogue in quotes.\\""
+  }
+]
+\`\`\`
+4. If multiple characters speak or react to the user, produce multiple entries in the array in conversational chronological order.`;
+    }
+
+    // Call Gemini REST API with JSON parsing fallback
+    async function callGeminiApi(contentsArray) {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        throw new Error("Enter your Gemini API key in setup.");
+      }
+
+      const model = appState.model || 'gemini-3.6-flash';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+
+      const payload = {
+        contents: contentsArray,
+        systemInstruction: { parts: [{ text: buildSystemInstruction() }] },
+        generationConfig: {
+          temperature: appState.temperature || 0.85,
+          maxOutputTokens: 1500
+        }
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      // Parse JSON array of individual character replies
+      try {
+        const jsonMatch = rawOutput.match(/```json\s*([\s\S]*?)\s*```/) || [null, rawOutput];
+        const parsed = JSON.parse(jsonMatch[1].trim());
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (e) {
+        // Fallback: manual line splitter if model provided plain text
+        return parsePlainTextIntoBlocks(rawOutput);
+      }
+
+      return parsePlainTextIntoBlocks(rawOutput);
+    }
+
+    function parsePlainTextIntoBlocks(text) {
+      const blocks = [];
+      const lines = text.split('\n');
+      let currentSpeaker = 'Narrator';
+      let currentBuffer = [];
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const match = trimmed.match(/^(\*\*([A-Za-z0-9_\s]+)\*\*|[A-Za-z0-9_\s]{1,20}):\s*(.*)$/);
+        if (match) {
+          if (currentBuffer.length > 0) {
+            blocks.push({ speaker: currentSpeaker, text: currentBuffer.join('\n') });
+            currentBuffer = [];
+          }
+          currentSpeaker = (match[2] || match[1]).replace(/\*/g, '').trim();
+          currentBuffer.push(match[3] || '');
+        } else {
+          currentBuffer.push(trimmed);
+        }
+      }
+
+      if (currentBuffer.length > 0) {
+        blocks.push({ speaker: currentSpeaker, text: currentBuffer.join('\n') });
+      }
+
+      return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
+    }
+
+    function buildApiContents() {
+      // Compress history for Gemini API
+      return appState.messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+      }));
+    }
+
+    async function handleUserSubmit(e) {
+      if (e) e.preventDefault();
+      const inputEl = document.getElementById('userInput');
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      appState.messages.push({
+        role: 'user',
+        speakerName: appState.userPersona.name,
+        text: text,
+        timestamp: timeStr
+      });
+
+      inputEl.value = '';
+      saveState();
+      renderMessages();
+
+      await triggerAiResponse();
+    }
+
+    async function triggerContinue() {
+      if (appState.messages.length === 0 && appState.scenario.setting) {
+        generateOpeningScene();
+        return;
+      }
+      appState.messages.push({
+        role: 'user',
+        speakerName: 'System',
+        text: `[Story directive: Continue the scene naturally. Characters react in individual turns.]`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      renderMessages();
+      await triggerAiResponse();
+    }
+
+    async function generateOpeningScene() {
+      showLoading(true, "Crafting opening scene...");
+      try {
+        const contents = [{
+          role: 'user',
+          parts: [{ text: `[System directive: Begin the story. Introduce setting and opening dialogue/actions for characters present as individual character blocks.]` }]
+        }];
+        const replyBlocks = await callGeminiApi(contents);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        appState.messages = replyBlocks.map(b => ({
+          role: 'model',
+          speakerName: b.speaker || 'Narrator',
+          text: b.text || '',
+          timestamp: timeStr
+        }));
+
+        saveState();
+        renderMessages();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function triggerAiResponse() {
+      showLoading(true);
+      try {
+        const contents = buildApiContents();
+        const replyBlocks = await callGeminiApi(contents);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        replyBlocks.forEach(b => {
+          appState.messages.push({
+            role: 'model',
+            speakerName: b.speaker || 'Narrator',
+            text: b.text || '',
+            timestamp: timeStr
+          });
+        });
+
+        saveState();
+        renderMessages();
+      } catch (err) {
+        alert("Gemini API Error: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function regenerateTurn(index) {
+      if (index <= 0) return;
+      showLoading(true, "Regenerating turn...");
+      try {
+        const sliced = appState.messages.slice(0, index);
+        const contents = sliced.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: `${m.speakerName}: ${m.text}` }]
+        }));
+
+        const replyBlocks = await callGeminiApi(contents);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (edited)';
+
+        // Replace the single regenerated turn or insert new chain
+        if (replyBlocks.length > 0) {
+          appState.messages.splice(index, 1, ...replyBlocks.map(b => ({
+            role: 'model',
+            speakerName: b.speaker || 'Narrator',
+            text: b.text || '',
+            timestamp: timeStr
+          })));
+        }
+
+        saveState();
+        renderMessages();
+      } catch (err) {
+        alert("Retry error: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function deleteMessage(index) {
+      if (confirm("Delete this message?")) {
+        appState.messages.splice(index, 1);
+        saveState();
+        renderMessages();
+      }
+    }
+
+    function processZetaImport() {
+      const rawText = document.getElementById('importTranscriptText').value.trim();
+      const append = document.getElementById('appendTranscriptCheck').checked;
+      if (!rawText) return;
+
+      const userName = (appState.userPersona.name || 'Me').toLowerCase();
+      const lines = rawText.split('\n');
+      const parsedMessages = [];
+      let currentSpeaker = 'Narrator';
+      let currentRole = 'model';
+      let currentBuffer = [];
+
+      function flushBuffer() {
+        if (currentBuffer.length > 0) {
+          const textBlock = currentBuffer.join('\n').trim();
+          if (textBlock) {
+            parsedMessages.push({
+              role: currentRole,
+              speakerName: currentSpeaker,
+              text: textBlock,
+              timestamp: 'Imported'
+            });
+          }
+          currentBuffer = [];
+        }
+      }
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          currentBuffer.push('');
+          continue;
+        }
+
+        const isUserLine = trimmed.toLowerCase().startsWith('me:') || 
+                           trimmed.toLowerCase().startsWith('you:') || 
+                           trimmed.toLowerCase().startsWith(`${userName}:`);
+
+        const speakerMatch = trimmed.match(/^([A-Z][a-zA-Z0-9_\s]{1,20}):\s*(.*)$/);
+
+        if (isUserLine) {
+          flushBuffer();
+          currentRole = 'user';
+          currentSpeaker = appState.userPersona.name || 'Me';
+          currentBuffer.push(trimmed.replace(/^[^:]+:\s*/, ''));
+        } else if (speakerMatch) {
+          flushBuffer();
+          currentRole = 'model';
+          currentSpeaker = speakerMatch[1].trim();
+          currentBuffer.push(speakerMatch[2]);
+        } else {
+          currentBuffer.push(trimmed);
+        }
+      }
+      flushBuffer();
+
+      if (parsedMessages.length === 0) {
+        parsedMessages.push({
+          role: 'model',
+          speakerName: 'Narrator',
+          text: rawText,
+          timestamp: 'Imported'
+        });
+      }
+
+      appState.messages = append ? appState.messages.concat(parsedMessages) : parsedMessages;
+      saveState();
+      renderMessages();
+      closeModal('importModal');
+      document.getElementById('importTranscriptText').value = '';
+    }
+
+    function exportStory() {
+      if (appState.messages.length === 0) {
+        alert("No story content to export.");
+        return;
+      }
+      let markdown = `# ${appState.scenario.title || 'Interactive Story'}\n\n`;
+      markdown += `**Setting:** ${appState.scenario.setting || 'N/A'}\n\n`;
+      markdown += `**User:** ${appState.userPersona.name} (${appState.userPersona.role})\n\n---\n\n`;
+
+      appState.messages.forEach(m => {
+        markdown += `### ${m.speakerName || 'Character'} (${m.timestamp || ''})\n\n${m.text}\n\n---\n\n`;
+      });
+
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(appState.scenario.title || 'story').toLowerCase().replace(/\s+/g, '_')}_transcript.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearStory() {
+      if (confirm("Reset current transcript? Cast and settings are kept.")) {
+        appState.messages = [];
+        saveState();
+        renderMessages();
+      }
+    }
+
+    function showLoading(show, message = "Characters are replying...") {
+      const indicator = document.getElementById('typingIndicator');
+      const textEl = document.getElementById('typingText');
+      const sendBtn = document.getElementById('sendBtn');
+      const continueBtn = document.getElementById('continueBtn');
+
+      if (show) {
+        textEl.innerText = message;
+        indicator.classList.remove('hidden');
+        sendBtn.disabled = true;
+        continueBtn.disabled = true;
+      } else {
+        indicator.classList.add('hidden');
+        sendBtn.disabled = false;
+        continueBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
