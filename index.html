@@ -306,21 +306,18 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar (Refined & Tightened) -->
+      <!-- Bottom Chat Bar (Grouped Left Action Pills) -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
-          <!-- Unified Single-Word Action Bar -->
-          <div class="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
-                <span>🖼️</span> <span>Visualize</span>
-              </button>
-              <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm">
-                <span>💡</span> <span>Suggest</span>
-              </button>
-            </div>
-            
+          <!-- Unified Left-Aligned Action Pill Group -->
+          <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>🖼️</span> <span>Visualize</span>
+            </button>
+            <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>💡</span> <span>Suggest</span>
+            </button>
             <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>⏩</span> <span>Continue</span>
             </button>
@@ -341,7 +338,7 @@
             <textarea
               id="userInput"
               rows="1"
-              placeholder="Describe action, speak, or use @: to narrate scene..."
+              placeholder="Describe action, speak, or use @: to narrate..."
               class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
@@ -593,7 +590,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v32';
+          const CACHE_NAME = 'zetaforge-v33';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
