@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
+  <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
 
+  <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
 
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
@@ -88,6 +92,7 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
+  <!-- Fixed Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
     <div class="px-3 sm:px-4 py-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 sm:gap-3">
@@ -120,10 +125,13 @@
     </div>
   </header>
 
+  <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
+    <!-- Mobile Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
 
+    <!-- Sidebar Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
@@ -147,6 +155,7 @@
       </div>
     </aside>
 
+    <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0">
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -161,6 +170,7 @@
         </div>
       </div>
 
+      <!-- Typing / Generating Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -168,6 +178,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
@@ -203,6 +214,7 @@
     </main>
   </div>
 
+  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -274,6 +286,7 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -306,6 +319,7 @@
     </div>
   </div>
 
+  <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
       <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
@@ -336,7 +350,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v9';
+          const CACHE_NAME = 'zetaforge-v10';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -619,12 +633,12 @@
         if (m.isImage) {
           return `
             <div class="my-3 flex flex-col items-center max-w-xl mx-auto w-full group">
-              <div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2 sm:p-3 shadow-xl overflow-hidden">
+              <div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden">
                 <div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold">
                   <span class="flex items-center gap-1.5">🎬 Scene Visual Snapshot</span>
                   <span class="text-[10px] text-slate-500 font-normal">${m.timestamp || ''}</span>
                 </div>
-                <div class="relative overflow-hidden rounded-xl bg-black cursor-pointer aspect-video" onclick="openLightbox('${m.imageUrl}', '${escapeHtml(m.text || m.prompt || '')}')">
+                <div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${m.imageUrl}', '${escapeHtml(m.text || m.prompt || '')}')">
                   <img src="${m.imageUrl}" alt="Visualized Scene" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 ${m.text ? `<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>` : ''}
@@ -747,18 +761,18 @@ ${appState.scenario.setting || 'An open roleplay world.'}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // Modern Gemini 3.1 Flash Image Visualizer with automatic fallback
+    // High-Reliability Visualizer Pipeline
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
         return;
       }
       if (appState.messages.length === 0) {
-        alert("Start a story or type a message before generating a scene image.");
+        alert("Start a story or send a message before generating a visual.");
         return;
       }
 
-      showLoading(true, "Synthesizing scene & generating visual...");
+      showLoading(true, "Synthesizing scene description...");
 
       try {
         const recentDialogue = appState.messages
@@ -771,18 +785,18 @@ ${appState.scenario.setting || 'An open roleplay world.'}
           contents: [{
             role: 'user',
             parts: [{
-              text: `Based on this story context and recent scene events:
-[Scenario]: ${appState.scenario.setting}
-[User]: ${appState.userPersona.name} (${appState.userPersona.desc})
-[Characters]: ${appState.characters.map(c => c.name + ': ' + c.personality).join(', ')}
+              text: `STORY CONTEXT:
+Scenario: ${appState.scenario.title} - ${appState.scenario.setting || 'Dramatic narrative scene'}
+User: ${appState.userPersona.name} (${appState.userPersona.desc || 'Protagonist'})
+Cast: ${appState.characters.map(c => c.name + ': ' + c.personality).join(', ')}
 
-[Recent Story Turns]:
+RECENT TURNS:
 ${recentDialogue}
 
-TASK: Generate a concise, vivid cinematic image prompt (under 50 words) describing the current moment, focal characters, expressions, atmosphere, and lighting. Do not add conversation prefixes, output ONLY the visual prompt text.`
+TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive words for an anime/cinematic illustration. Mention character poses, expressions, atmosphere, and lighting. Do NOT write single words. Output ONLY the descriptive prompt text.`
             }]
           }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 100 }
+          generationConfig: { temperature: 0.65, maxOutputTokens: 120 }
         };
 
         const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -793,21 +807,21 @@ TASK: Generate a concise, vivid cinematic image prompt (under 50 words) describi
         });
 
         const promptData = await promptRes.json().catch(() => ({}));
-        const visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Cinematic anime illustration, dramatic lighting, high detail.`;
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
+        if (!visualPrompt || visualPrompt.length < 10) {
+          visualPrompt = `Cinematic anime illustration of ${appState.userPersona.name} with companions in ${appState.scenario.title}, detailed, dramatic lighting, masterpiece`;
+        }
+
+        showLoading(true, "Rendering and encoding visual snapshot...");
+
+        // Try direct Gemini Image API if available
         let fullDataUrl = null;
-
-        // Try Gemini 3.1 Flash Image API Endpoint
         try {
           const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const imagePayload = {
-            contents: [{
-              role: "user",
-              parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, masterpiece" }]
-            }],
-            generationConfig: {
-              responseModalities: ["IMAGE", "TEXT"]
-            }
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed lighting" }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
           };
 
           const imageRes = await fetch(imageEndpoint, {
@@ -827,13 +841,26 @@ TASK: Generate a concise, vivid cinematic image prompt (under 50 words) describi
             }
           }
         } catch (e) {
-          console.warn("Direct Gemini Image endpoint check failed, falling back:", e);
+          console.warn("Direct model generation bypassed:", e);
         }
 
-        // Automatic fallback: High-res AI Image Renderer
+        // Verified Blob conversion fallback (No broken Safari images)
         if (!fullDataUrl) {
-          const encodedPrompt = encodeURIComponent(visualPrompt + ", cinematic lighting, detailed, 16:9 aspect ratio");
-          fullDataUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic aesthetic, detailed lighting, 16:9 aspect ratio");
+          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          
+          const imgBlobRes = await fetch(renderUrl);
+          if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
+          
+          const blob = await imgBlobRes.blob();
+          if (blob.size < 500) throw new Error("Generated image was invalid.");
+
+          fullDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
         }
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -850,7 +877,7 @@ TASK: Generate a concise, vivid cinematic image prompt (under 50 words) describi
         saveState();
         renderMessages();
       } catch (err) {
-        alert("Visualizer notice: " + err.message);
+        alert("Visualizer Notice: " + err.message);
       } finally {
         showLoading(false);
       }
