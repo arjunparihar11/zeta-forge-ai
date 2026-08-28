@@ -154,19 +154,19 @@
         <span class="text-[11px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-3 scroll-touch" id="sidebarCharacterList">
+      <div class="flex-1 overflow-y-auto p-3 space-y-3 scroll-touch" id="sidebarCharacterList">
         <div class="text-xs text-slate-500 text-center py-8">
           No characters configured.<br>Tap <strong>Setup</strong> to add your cast.
         </div>
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow">
+        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow">
           U
         </div>
-        <div class="overflow-hidden">
-          <div class="text-white font-semibold truncate" id="sidebarUserName">User</div>
-          <div class="text-slate-400 text-[10px] truncate" id="sidebarUserDesc">Protagonist</div>
+        <div class="overflow-hidden flex-1">
+          <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
+          <div class="text-slate-400 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
         </div>
       </div>
     </aside>
@@ -405,7 +405,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v18';
+          const CACHE_NAME = 'zetaforge-v19';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -494,10 +494,10 @@
         {
           id: 'char_1',
           name: 'Rena',
-          role: 'Companion',
+          role: 'tsundere, confident, arrogant, bisexual',
           avatar: '',
-          personality: 'Playful, observant, teasing.',
-          relationship: 'Close friend'
+          personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture. Competitive energy with a flirtatious edge.',
+          relationship: "Marrisa's Friend"
         }
       ],
       messages: []
@@ -649,7 +649,7 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="appState.characters[${index}].name = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Role / Tag" value="${escapeHtml(char.role)}" oninput="appState.characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="appState.characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
             <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="appState.characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
@@ -702,7 +702,7 @@
       }
     }
 
-    function getAvatarHtml(speakerName, isUser = false, size = 'w-8 h-8 sm:w-9 sm:h-9') {
+    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       let avatarSrc = '';
       let initial = (speakerName || '?')[0].toUpperCase();
 
@@ -723,6 +723,7 @@
       return `<div class="${size} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
+    // Upgraded Dramatis Personae Sidebar Card Layout
     function renderSidebar() {
       document.getElementById('headerScenarioTitle').innerText = appState.scenario.title || 'Interactive Story';
       document.getElementById('chapterBadge').innerText = `Ch. ${appState.currentChapter || 1}`;
@@ -740,18 +741,22 @@
       }
 
       list.innerHTML = appState.characters.map(c => `
-        <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-1.5 hover:border-slate-700 transition">
-          <div class="flex items-center gap-2.5">
-            ${getAvatarHtml(c.name, false, 'w-8 h-8')}
-            <div class="overflow-hidden flex-1">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-xs text-indigo-300 truncate">${escapeHtml(c.name || 'Unnamed')}</span>
-                <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(c.role || 'NPC')}</span>
-              </div>
+        <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
+          <div class="flex items-start gap-2.5">
+            ${getAvatarHtml(c.name, false, 'w-10 h-10')}
+            <div class="overflow-hidden flex-1 flex flex-col gap-1">
+              <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight">${escapeHtml(c.name || 'Unnamed')}</span>
+              ${c.role ? `
+                <div class="flex flex-wrap gap-1">
+                  <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
+                    ${escapeHtml(c.role)}
+                  </span>
+                </div>
+              ` : ''}
             </div>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">${escapeHtml(c.personality || 'No traits specified.')}</p>
-          ${c.relationship ? `<div class="text-[10px] text-indigo-400/80 pt-1 border-t border-slate-800/80">🔗 ${escapeHtml(c.relationship)}</div>` : ''}
+          ${c.personality ? `<p class="text-[11px] text-slate-300 leading-relaxed pt-0.5">${escapeHtml(c.personality)}</p>` : ''}
+          ${c.relationship ? `<div class="text-[10px] text-indigo-400/90 pt-1.5 border-t border-slate-800/80 flex items-center gap-1">🔗 <span class="truncate">${escapeHtml(c.relationship)}</span></div>` : ''}
         </div>
       `).join('');
     }
@@ -843,7 +848,6 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    // Sequential Animated Typewriter Engine
     async function playSequentialTypewriter(replyBlocks) {
       activeTypewriter.isTyping = true;
       activeTypewriter.skipFlag = false;
@@ -1118,7 +1122,7 @@ TASK: Create a comprehensive structured summary preserving exact character conti
 
         const castVisualProfiles = appState.characters.map(c => `
 - ${c.name}:
-  Role: ${c.role || 'Companion'}
+  Role & Archetypes: ${c.role || 'Companion'}
   Visual & Attire: ${c.personality || 'Standard appearance'}`
         ).join('\n');
 
@@ -1276,7 +1280,6 @@ REQUIREMENTS:
       }));
     }
 
-    // Handles submissions with "@:" user narration prefix & multi-bubble splitting
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       skipTypewriter();
@@ -1287,12 +1290,10 @@ REQUIREMENTS:
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Split paragraphs by one or more blank lines (or multiple newlines)
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
 
       segments.forEach(seg => {
         if (seg.startsWith('@:')) {
-          // User narration block
           const cleanNarration = seg.replace(/^@:\s*/, '').trim();
           if (cleanNarration) {
             appState.messages.push({
@@ -1303,7 +1304,6 @@ REQUIREMENTS:
             });
           }
         } else {
-          // Standard user dialogue/action turn
           appState.messages.push({
             role: 'user',
             speakerName: appState.userPersona.name,
