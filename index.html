@@ -357,7 +357,7 @@
   </div>
 
   <!-- Center Screen: Character Spotlight Dossier Modal -->
-  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
         &times;
@@ -402,17 +402,22 @@
     </div>
   </div>
 
-  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal -->
+  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal (With Set as Scenario Cover button) -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
       </div>
-      <div class="text-center">
+      <div class="text-center space-y-2 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
+          <button onclick="setCurrentImageAsScenarioCover()" id="setCoverBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 flex items-center gap-1.5">
+            <span>🖼️</span> <span>Set as Scenario Cover</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
       </div>
     </div>
   </div>
@@ -559,11 +564,19 @@
     </div>
   </div>
 
-  <!-- Image Lightbox Modal -->
+  <!-- Image Lightbox Modal (For Chat Feed Visual Snapshots) -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-md">
-    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
-      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
-      <p id="lightboxCaption" class="mt-3 text-xs text-slate-300 italic text-center max-w-xl"></p>
+    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+        &times;
+      </button>
+      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[75vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
+      <div class="text-center space-y-2 w-full">
+        <p id="lightboxCaption" class="text-xs text-slate-300 italic max-w-xl mx-auto"></p>
+        <button onclick="setLightboxImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
+          <span>🖼️</span> <span>Set as Scenario Cover</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -881,17 +894,27 @@
       }
     }
 
-    // Auto-inserts line breaks between actions (*...*) and spoken dialogue (strictly idempotently)
-    function formatDialogueSpacing(text) {
-      if (!text) return '';
-      let formatted = text.trim();
+    // Set current lightbox image as scenario cover
+    let currentLightboxImgSrc = '';
+    function openLightbox(src, caption) {
+      currentLightboxImgSrc = src;
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightboxCaption').innerText = caption || 'Scene Visual';
+      document.getElementById('imageLightbox').classList.remove('hidden');
+    }
 
-      formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
-      formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
-      formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
-      formatted = formatted.replace(/([.!?])([^\S\r\n]+)\*/g, '$1\n*');
+    function closeLightbox() {
+      document.getElementById('imageLightbox').classList.add('hidden');
+    }
 
-      return formatted;
+    async function setCurrentImageAsScenarioCover() {
+      if (!currentLightboxImgSrc) return;
+      const active = getActiveScenario();
+      active.cover = currentLightboxImgSrc;
+      await saveState();
+      renderScenariosList();
+      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
+      closeLightbox();
     }
 
     // AI Reply Generator producing 3 distinct responses
@@ -1420,14 +1443,14 @@ JSON FORMAT:
       document.getElementById(id).classList.add('hidden');
     }
 
-    function openLightbox(src, caption) {
-      document.getElementById('lightboxImg').src = src;
-      document.getElementById('lightboxCaption').innerText = caption || 'Scene Visual';
-      document.getElementById('imageLightbox').classList.remove('hidden');
-    }
-
-    function closeLightbox() {
-      document.getElementById('imageLightbox').classList.add('hidden');
+    async function setLightboxImageAsScenarioCover() {
+      if (!currentLightboxImgSrc) return;
+      const active = getActiveScenario();
+      active.cover = currentLightboxImgSrc;
+      await saveState();
+      renderScenariosList();
+      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
+      closeLightbox();
     }
 
     function handleImageUpload(event, target, charIndex = null) {
@@ -1492,7 +1515,7 @@ JSON FORMAT:
             <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="getActiveScenario().characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea placeholder="Visual appearance (hair color, hairstyle, eye color, skin tone, clothing style, facial features)..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
           <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
@@ -1990,469 +2013,6 @@ TASK: Return a JSON object with:
         } finally {
           showLoading(false);
         }
-      }
-    }
-
-    // High-Fidelity Multimodal Scene Visualizer Anchored to Character Profiles & Photos
-    async function generateSceneImage() {
-      if (!appState.apiKey) {
-        openModal('setupModal');
-        return;
-      }
-      const active = getActiveScenario();
-      if (active.messages.length === 0) {
-        alert("Start a story or send a message before generating a visual.");
-        return;
-      }
-
-      showLoading(true, "Analyzing facial features, hair colors, and outfit aesthetics...");
-
-      try {
-        const recentDialogue = active.messages
-          .filter(m => !m.isImage && !m.isChapterDivider)
-          .slice(-8)
-          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
-          .join('\n');
-
-        const castProfiles = (active.characters || []).map(c => `
-- Character Name: ${c.name}
-  Archetype: ${c.role || 'Companion'}
-  Profile Physical Traits: ${c.personality || 'Distinct anime appearance'}
-`).join('\n');
-
-        const promptParts = [];
-
-        // Attach Reference Image of Protagonist if present
-        if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
-          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
-          const data = active.userPersona.avatar.split(',')[1];
-          promptParts.push({ inlineData: { mimeType: mime, data: data } });
-        }
-
-        // Attach Reference Images of all Characters in Cast
-        (active.characters || []).forEach(c => {
-          if (c.avatar && c.avatar.startsWith('data:image')) {
-            const mime = c.avatar.split(';')[0].split(':')[1];
-            const data = c.avatar.split(',')[1];
-            promptParts.push({ inlineData: { mimeType: mime, data: data } });
-          }
-        });
-
-        const promptAnalysisDirective = `TASK: You are an expert art director. Generate an ultra-detailed, character-consistent 16:9 cinematic anime illustration prompt based on the attached character reference photos and their profile descriptions.
-
-[SETTING & ATMOSPHERE]:
-${active.title} - ${active.setting || 'Intimate modern anime setting with atmospheric cinematic lighting'}
-
-[PROTAGONIST PROFILE]:
-- Name: ${active.userPersona.name}
-- Appearance/Style: ${active.userPersona.desc || 'Main character with consistent hair and outfit'}
-
-[CAST DETAILED PROFILES]:
-${castProfiles}
-
-[CURRENT SCENE ACTIONS & POSES]:
-${recentDialogue}
-
-STRICT PROMPT REQUIREMENTS:
-1. CHARACTER-ACCURATE FEATURES: Look at the attached character reference images and read their profile descriptions. Explicitly state the exact hair color and hairstyle (e.g., 'wavy auburn hair', 'dark spiky hair'), exact eye color (e.g., 'sharp emerald green eyes'), exact skin tone, and exact clothing style (e.g. 'oversized lavender hoodie', 'green striped sweater') for each character in the scene.
-2. POSES & SCENE INTERACTION: Describe the exact physical posture and interaction matching the recent dialogue (e.g., sitting on sofa, blushing, leaning close, laughing).
-3. ART STYLE & LIGHTING: High-quality modern anime keyframe art style, cinematic volumetric lighting, depth of field, detailed background, masterpiece.
-4. Output ONLY the descriptive prompt text (45-65 words), no preamble.`;
-
-        promptParts.push({ text: promptAnalysisDirective });
-
-        const promptReqPayload = {
-          contents: [{
-            role: 'user',
-            parts: promptParts
-          }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 200 }
-        };
-
-        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const promptRes = await fetch(promptEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptReqPayload)
-        });
-
-        const promptData = await promptRes.json().catch(() => ({}));
-        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-
-        if (!visualPrompt || visualPrompt.length < 20) {
-          const charSummary = (active.characters || []).map(c => `${c.name} (${c.personality || 'detailed anime appearance'})`).join(' and ');
-          visualPrompt = `High quality cinematic anime illustration of ${active.userPersona.name} (${active.userPersona.desc || 'protagonist'}) with ${charSummary}, in ${active.title}, exact character facial features and hair colors, soft dramatic indoor lighting, 16:9 aspect ratio, masterpiece`;
-        }
-
-        showLoading(true, "Rendering profile-accurate visual snapshot...");
-
-        let fullDataUrl = null;
-        try {
-          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-          const imagePayload = {
-            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, anime key visual, masterpiece" }] }],
-            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-          };
-
-          const imageRes = await fetch(imageEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(imagePayload)
-          });
-
-          if (imageRes.ok) {
-            const imgData = await imageRes.json();
-            const parts = imgData.candidates?.[0]?.content?.parts || [];
-            for (let p of parts) {
-              if (p.inlineData && p.inlineData.data) {
-                fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Direct model image generation fallback:", e);
-        }
-
-        if (!fullDataUrl) {
-          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed hair and eye colors, volumetric lighting, 16:9 aspect ratio");
-          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
-          
-          const imgBlobRes = await fetch(renderUrl);
-          if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
-          
-          const blob = await imgBlobRes.blob();
-          if (blob.size < 500) throw new Error("Generated image was invalid.");
-
-          fullDataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        }
-
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        active.messages.push({
-          role: 'model',
-          isImage: true,
-          imageUrl: fullDataUrl,
-          prompt: visualPrompt,
-          text: `*${visualPrompt}*`,
-          timestamp: timeStr
-        });
-
-        if (!active.cover) active.cover = fullDataUrl;
-
-        await saveState();
-        renderMessages();
-        renderScenariosList();
-      } catch (err) {
-        alert("Visualizer Notice: " + err.message);
-      } finally {
-        showLoading(false);
-      }
-    }
-
-    function buildApiContents(extraDirective = null) {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
-          lastDividerIdx = i;
-          break;
-        }
-      }
-
-      let activeSlice;
-      if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        activeSlice = overlap.concat(currentTurns);
-      }
-
-      const contents = activeSlice.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-      }));
-
-      if (extraDirective) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: extraDirective }]
-        });
-      }
-
-      return contents;
-    }
-
-    async function handleUserSubmit(e) {
-      if (e) e.preventDefault();
-      skipTypewriter();
-      hideReplySuggestions();
-
-      const inputEl = document.getElementById('userInput');
-      const rawText = inputEl.value.trim();
-      if (!rawText) return;
-
-      const active = getActiveScenario();
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
-
-      segments.forEach(seg => {
-        if (seg.startsWith('@:')) {
-          const cleanNarration = seg.replace(/^@:\s*/, '').trim();
-          if (cleanNarration) {
-            active.messages.push({
-              role: 'user',
-              speakerName: 'Narrator',
-              text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
-              timestamp: timeStr
-            });
-          }
-        } else {
-          active.messages.push({
-            role: 'user',
-            speakerName: active.userPersona.name,
-            text: formatDialogueSpacing(seg),
-            timestamp: timeStr
-          });
-        }
-      });
-
-      inputEl.value = '';
-      inputEl.style.height = '42px';
-      await saveState();
-      renderMessages();
-      renderScenariosList();
-
-      await triggerAiResponse();
-      await checkAndTriggerChapterArchival();
-    }
-
-    async function triggerContinue() {
-      skipTypewriter();
-      hideReplySuggestions();
-      const active = getActiveScenario();
-      if (active.messages.length === 0 && active.setting) {
-        generateOpeningScene();
-        return;
-      }
-
-      const backgroundDirective = `[System directive: Continue the scene naturally. Present characters react, dialogue continues, or environmental events unfold in individual character turns.]`;
-      await triggerAiResponse(backgroundDirective);
-      await checkAndTriggerChapterArchival();
-    }
-
-    async function generateOpeningScene() {
-      showLoading(true, "Crafting opening scene...");
-      try {
-        const contents = [{
-          role: 'user',
-          parts: [{ text: `[System directive: Begin the story. Introduce setting and opening dialogue/actions for characters present as individual character blocks.]` }]
-        }];
-        const replyBlocks = await callGeminiApi(contents);
-        showLoading(false);
-        await playSequentialTypewriter(replyBlocks);
-      } catch (err) {
-        showLoading(false);
-        alert("Error: " + err.message);
-      }
-    }
-
-    async function triggerAiResponse(extraDirective = null) {
-      showLoading(true);
-      try {
-        const contents = buildApiContents(extraDirective);
-        const replyBlocks = await callGeminiApi(contents);
-        showLoading(false);
-        await playSequentialTypewriter(replyBlocks);
-      } catch (err) {
-        showLoading(false);
-        alert("Gemini API Error: " + err.message);
-      }
-    }
-
-    async function regenerateTurn(index) {
-      if (index <= 0) return;
-      skipTypewriter();
-      hideReplySuggestions();
-      showLoading(true, "Regenerating turn...");
-      const active = getActiveScenario();
-      try {
-        const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
-        const contents = sliced.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName}: ${m.text}` }]
-        }));
-
-        const replyBlocks = await callGeminiApi(contents);
-        showLoading(false);
-
-        if (replyBlocks.length > 0) {
-          active.messages.splice(index);
-          await playSequentialTypewriter(replyBlocks);
-        }
-      } catch (err) {
-        showLoading(false);
-        alert("Retry error: " + err.message);
-      }
-    }
-
-    async function deleteMessage(index) {
-      if (confirm("Delete this entry?")) {
-        const active = getActiveScenario();
-        active.messages.splice(index, 1);
-        await saveState();
-        renderMessages();
-        renderScenariosList();
-      }
-    }
-
-    function processZetaImport() {
-      const rawText = document.getElementById('importTranscriptText').value.trim();
-      const append = document.getElementById('appendTranscriptCheck').checked;
-      if (!rawText) return;
-
-      const active = getActiveScenario();
-      const userName = (active.userPersona.name || 'Me').toLowerCase();
-      const parsedMessages = [];
-
-      const blocks = parsePlainTextIntoBlocks(rawText);
-
-      for (let b of blocks) {
-        const speakerLower = b.speaker.toLowerCase();
-        const isUser = speakerLower === 'me' || speakerLower === 'you' || speakerLower === userName;
-
-        parsedMessages.push({
-          role: isUser ? 'user' : 'model',
-          speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
-          text: formatDialogueSpacing(b.text),
-          timestamp: 'Imported'
-        });
-      }
-
-      active.messages = append ? active.messages.concat(parsedMessages) : parsedMessages;
-      saveState();
-      renderAllUi();
-      closeModal('importModal');
-      document.getElementById('importTranscriptText').value = '';
-    }
-
-    function exportStory() {
-      const active = getActiveScenario();
-      if (active.messages.length === 0) {
-        alert("No story content to export in current scenario.");
-        return;
-      }
-      let markdown = `# ${active.title || 'Interactive Story'}\n\n`;
-      markdown += `**Setting:** ${active.setting || 'N/A'}\n\n`;
-      markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
-
-      if ((active.archivedRecaps || []).length > 0) {
-        markdown += `## Archived Story Recaps\n\n`;
-        active.archivedRecaps.forEach(r => {
-          if (typeof r === 'string') {
-            markdown += `${r}\n\n`;
-          } else {
-            markdown += `### Chapter ${r.chapterNum}\n${r.milestoneSummary}\n\n`;
-            if (r.characterArcs) {
-              for (let [name, arc] of Object.entries(r.characterArcs)) {
-                markdown += `- **${name}**: ${arc}\n`;
-              }
-              markdown += `\n`;
-            }
-          }
-        });
-        markdown += `---\n\n`;
-      }
-
-      active.messages.forEach(m => {
-        if (m.isChapterDivider) {
-          markdown += `\n## --- ${m.text} ---\n\n`;
-        } else if (m.isImage) {
-          markdown += `![Scene Snapshot](${m.imageUrl})\n*${m.text || m.prompt}*\n\n---\n\n`;
-        } else {
-          markdown += `### ${m.speakerName || 'Character'} (${m.timestamp || ''})\n\n${m.text}\n\n---\n\n`;
-        }
-      });
-
-      const blob = new Blob([markdown], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(active.title || 'story').toLowerCase().replace(/\s+/g, '_')}_transcript.md`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function exportJsonBackup() {
-      const backupData = JSON.stringify(appState, null, 2);
-      const blob = new Blob([backupData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `zetaforge_all_scenarios_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function importJsonBackup(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (parsed && (Array.isArray(parsed.scenarios) || Array.isArray(parsed.messages))) {
-            if (Array.isArray(parsed.scenarios)) {
-              appState = parsed;
-            } else {
-              appState.scenarios = [parsed];
-              appState.activeScenarioId = parsed.id || 'imported_' + Date.now();
-            }
-            await saveState();
-            renderAllUi();
-            syncModalForm();
-            alert("All scenarios and backfiles restored successfully!");
-            closeModal('setupModal');
-          } else {
-            alert("Invalid backup file structure.");
-          }
-        } catch (err) {
-          alert("Error parsing JSON file: " + err.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function showLoading(show, message = "Characters are replying...") {
-      const indicator = document.getElementById('typingIndicator');
-      const textEl = document.getElementById('typingText');
-      const sendBtn = document.getElementById('sendBtn');
-      const continueBtn = document.getElementById('continueBtn');
-      const genImageBtn = document.getElementById('genImageBtn');
-      const suggestRepliesBtn = document.getElementById('suggestRepliesBtn');
-
-      if (show) {
-        textEl.innerText = message;
-        indicator.classList.remove('hidden');
-        sendBtn.disabled = true;
-        continueBtn.disabled = true;
-        if (genImageBtn) genImageBtn.disabled = true;
-        if (suggestRepliesBtn) suggestRepliesBtn.disabled = true;
-      } else {
-        indicator.classList.add('hidden');
-        sendBtn.disabled = false;
-        continueBtn.disabled = false;
-        if (genImageBtn) genImageBtn.disabled = false;
-        if (suggestRepliesBtn) suggestRepliesBtn.disabled = false;
       }
     }
 
