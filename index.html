@@ -235,6 +235,7 @@
           </div>
         </div>
 
+        <!-- Live Payload & Tokens In Chapter Drawer -->
         <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
@@ -440,7 +441,7 @@
       </div>
       <div class="text-center space-y-2 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
       </div>
     </div>
   </div>
@@ -626,7 +627,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v41';
+          const CACHE_NAME = 'zetaforge-v42';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -919,10 +920,15 @@
       }
     }
 
+    // Clean formatting: Converts escaped literal \n into real newlines and adds clean line breaks between actions and dialogue
     function formatDialogueSpacing(text) {
       if (!text) return '';
       let formatted = text.trim();
 
+      // Unescape any visible literal \n characters into real newlines
+      formatted = formatted.replace(/\\n/g, '\n');
+
+      // Ensure a line break between closing asterisk and opening quote/speech
       formatted = formatted.replace(/\*([^\S\r\n]*)(["“])/g, '*\n$2');
       formatted = formatted.replace(/(["”])([^\S\r\n]*)\*/g, '$1\n*');
       formatted = formatted.replace(/\*([^\S\r\n]+)([A-Za-z0-9])/g, '*\n$2');
@@ -931,7 +937,7 @@
       return formatted;
     }
 
-    // AI Reply Generator with Direct Array Index Binding
+    // AI Reply Generator with Direct Array Index Binding & Unquoted Dialogue Flow
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -972,13 +978,13 @@ ${recentDialogue}
 
 CRITICAL RULES:
 1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
-2. FORMATTING: Separate actions in asterisks from spoken dialogue with a newline (e.g. *I lean back with a smirk*\\n\\"Are you sure about that?\\").
-3. Keep each choice between 10 and 25 words.
+2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
+3. Keep each choice concise (10 to 25 words).
 4. Output STRICTLY a JSON array of 3 strings:
 [
-  "*Action*\\n\\"Dialogue option 1\\"",
-  "*Action*\\n\\"Dialogue option 2\\"",
-  "*Action*\\n\\"Dialogue option 3\\""
+  "*Action*\\nDialogue option 1 without quotes",
+  "*Action*\\nDialogue option 2 without quotes",
+  "*Action*\\nDialogue option 3 without quotes"
 ]`
             }]
           }],
@@ -1948,16 +1954,16 @@ ${pastChaptersStr}
 [CRITICAL OUTPUT RULES]:
 1. NEVER speak or act for {{user}} (${active.userPersona.name}).
 2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker". Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
-3. DIALOGUE FORMATTING: Always place character actions enclosed in asterisks (*...*) on their own line, separated from spoken dialogue in quotes by a line break.
+3. DIALOGUE FORMATTING: Place character actions enclosed in asterisks (*...*) on their own line, with dialogue placed naturally on the next line. Quotation marks around dialogue are optional and not required.
 Example:
-*Sensory action or expression.*
-"Spoken dialogue in quotes."
+*Sensory action or physical movement.*
+Spoken dialogue goes here.
 
 4. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker" and "text" keys:
 [
   {
     "speaker": "CharacterName or Narrator",
-    "text": "*Action in asterisks*\\n\\"Dialogue in quotes.\\""
+    "text": "*Action in asterisks*\\nDialogue text"
   }
 ]`;
     }
