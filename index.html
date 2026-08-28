@@ -168,18 +168,19 @@
             </button>
           </div>
 
-          <form onsubmit="handleUserSubmit(event)" class="flex gap-2">
+          <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
               rows="2"
               placeholder="Describe your action or speak (*I lean back* &quot;What now?&quot;)..."
-              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
-              onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleUserSubmit(event); }"
+              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none max-h-40 overflow-y-auto leading-relaxed"
+              oninput="autoExpandTextarea(this)"
+              onkeydown="handleInputKeydown(event)"
             ></textarea>
             <button
               type="submit"
               id="sendBtn"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 shrink-0 h-[42px]"
             >
               Send
             </button>
@@ -316,7 +317,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v6';
+          const CACHE_NAME = 'zetaforge-v7';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -354,7 +355,7 @@
           relationship: 'Longtime uneasy ally; owes user a favor.'
         }
       ],
-      messages: [] // Elements can have: { role, speakerName, text, timestamp, isImage?: boolean, imageUrl?: string, prompt?: string }
+      messages: []
     };
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -380,6 +381,20 @@
         } catch (e) {
           console.error("State error", e);
         }
+      }
+    }
+
+    // Dynamic auto-expanding textarea
+    function autoExpandTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
+
+    // Handles keyboard inputs: Cmd/Ctrl+Enter sends; regular Enter inserts newline
+    function handleInputKeydown(event) {
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        handleUserSubmit(event);
       }
     }
 
@@ -584,7 +599,6 @@
       }
 
       container.innerHTML = appState.messages.map((m, index) => {
-        // Render Image Snapshot Card
         if (m.isImage) {
           return `
             <div class="my-3 flex flex-col items-center max-w-xl mx-auto w-full group">
@@ -619,7 +633,7 @@
                 <span class="text-[11px] sm:text-xs font-semibold ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
-              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+              <div class="rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none whitespace-pre-wrap' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
                 ${renderedHtml}
               </div>
               <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
@@ -714,7 +728,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // Two-stage Scene Visualizer
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -728,7 +741,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
       showLoading(true, "Synthesizing scene & generating visual...");
 
       try {
-        // Step 1: Synthesize prompt using Gemini text model
         const recentDialogue = appState.messages
           .filter(m => !m.isImage)
           .slice(-6)
@@ -764,7 +776,6 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
         const promptData = await promptRes.json();
         const visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Cinematic scene in ${appState.scenario.title}, high detail, dramatic lighting.`;
 
-        // Step 2: Call Imagen API
         const imagenEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(appState.apiKey)}`;
         const imagePayload = {
           instances: [{ prompt: visualPrompt }],
@@ -789,9 +800,7 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
         const imgData = await imageRes.json();
         const base64Bytes = imgData.predictions?.[0]?.bytesBase64Encoded;
 
-        if (!base64Bytes) {
-          throw new Error("No image data returned.");
-        }
+        if (!base64Bytes) throw new Error("No image data returned.");
 
         const fullDataUrl = `data:image/jpeg;base64,${base64Bytes}`;
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -868,6 +877,7 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
       });
 
       inputEl.value = '';
+      inputEl.style.height = 'auto'; // Reset expanded height
       saveState();
       renderMessages();
 
@@ -1008,7 +1018,10 @@ TASK: Generate a concise, vivid image prompt (under 60 words) describing the cur
 
       for (let line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) continue;
+        if (!trimmed) {
+          currentBuffer.push('');
+          continue;
+        }
 
         const isUserLine = trimmed.toLowerCase().startsWith('me:') || 
                            trimmed.toLowerCase().startsWith('you:') || 
