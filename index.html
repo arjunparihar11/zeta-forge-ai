@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
-  <!-- Native iOS Meta -->
+  <!-- Native iOS Meta (Fixed Clean Translucent Header) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
@@ -52,7 +52,7 @@
     }
 
     .header-safe {
-      padding-top: env(safe-area-inset-top, 0px);
+      padding-top: max(env(safe-area-inset-top, 0px), 12px);
     }
 
     .bottom-safe {
@@ -105,8 +105,8 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <!-- Streamlined Top Header -->
-  <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
+  <!-- Streamlined Top Header (Clean, High-Z Solid Header) -->
+  <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
     <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
       <!-- Left: Cast Button + Logo + Title & Scenario Subtitle -->
       <div class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
@@ -144,7 +144,7 @@
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
     <!-- Left Sidebar: Cast Panel (Dramatis Personae) -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Dramatis Personae</h2>
@@ -171,7 +171,7 @@
     </aside>
 
     <!-- Right Drawer 1: Chapter Chronicle & Paragraph Character Summaries -->
-    <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+    <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
           <span class="text-base">📖</span>
@@ -228,7 +228,7 @@
     </div>
 
     <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu (Zeta Style) -->
-    <div id="menuDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+    <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -338,42 +338,33 @@
   </div>
 
   <!-- Center Screen: Character Spotlight Dossier Modal -->
-  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-      <!-- Modal Close Button -->
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
         &times;
       </button>
 
-      <!-- Scrollable Dossier Content -->
       <div class="overflow-y-auto p-4 sm:p-5 space-y-4 scroll-touch">
-        <!-- Top: Large Profile Artwork (Clickable for Fullscreen Window) & Basic Info -->
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-3 border-b border-slate-800">
           <div id="spotlightAvatarBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-800 border-2 border-indigo-500/50 shadow-xl shrink-0 flex items-center justify-center text-4xl font-bold text-indigo-300 cursor-pointer active:scale-95 transition group relative" title="Tap for windowed full preview">
-            <!-- Dynamic avatar element -->
           </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
             <h3 id="spotlightName" class="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">Character Name</h3>
             <div id="spotlightRoleTags" class="flex flex-wrap gap-1 justify-center sm:justify-start">
-              <!-- Role Tags -->
             </div>
             <div id="spotlightRelationshipBox" class="text-[11px] text-indigo-400 font-medium flex items-center justify-center sm:justify-start gap-1 pt-0.5">
-              <!-- Relationship dynamic -->
             </div>
           </div>
         </div>
 
-        <!-- Section 1: Dramatis Personae Visual & Personality Profile -->
         <div class="space-y-1.5">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span>🎭</span> Persona & Visual Profile
           </span>
           <div id="spotlightPersonaText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-            <!-- Personality & visual traits -->
           </div>
         </div>
 
-        <!-- Section 2: Current Chapter Story Arc & Actions -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -382,7 +373,6 @@
             <span class="text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-1.5 py-0.2 rounded font-mono" id="spotlightChapterBadge">Ch. 1</span>
           </div>
           <div id="spotlightArcText" class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-            <!-- 3-4 sentence paragraph summary -->
           </div>
         </div>
       </div>
@@ -394,13 +384,12 @@
   </div>
 
   <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal -->
-  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 hidden">
+  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
       <div id="characterPhotoContainer" class="w-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
-        <!-- Rendered high-res portrait image -->
       </div>
       <div class="text-center">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
@@ -410,7 +399,7 @@
   </div>
 
   <!-- Setup Modal -->
-  <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
+  <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Cast & Storage Settings</h2>
@@ -519,7 +508,7 @@
   </div>
 
   <!-- Import Modal -->
-  <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
+  <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import from Zeta App</h2>
@@ -552,7 +541,7 @@
   </div>
 
   <!-- Image Lightbox Modal -->
-  <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-md">
+  <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
       <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
       <p id="lightboxCaption" class="mt-3 text-xs text-slate-300 italic text-center max-w-xl"></p>
@@ -582,7 +571,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v28';
+          const CACHE_NAME = 'zetaforge-v29';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -717,6 +706,7 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
+      closeAllDrawers();
       renderAllUi();
       syncModalForm();
     });
@@ -968,7 +958,6 @@
       container.innerHTML = `<img src="${imageSrc}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
       modal.classList.remove('hidden');
 
-      // Add touch swipe-to-dismiss support
       let touchStartY = 0;
       modal.ontouchstart = (e) => { touchStartY = e.touches[0].clientY; };
       modal.ontouchend = (e) => {
@@ -1791,7 +1780,6 @@ ${pastChaptersStr}
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
-    // Dynamic Token Archival with Model-Synthesized 3-4 Sentence Per-Character Action Recaps
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
