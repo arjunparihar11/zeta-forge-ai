@@ -590,7 +590,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v36';
+          const CACHE_NAME = 'zetaforge-v37';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1492,7 +1492,7 @@ JSON FORMAT:
             <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="getActiveScenario().characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <textarea placeholder="Visual appearance (hair color, hairstyle, eye color, skin tone, clothing style, facial features)..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
           <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
@@ -1993,7 +1993,7 @@ TASK: Return a JSON object with:
       }
     }
 
-    // Fixed Visualizer function referencing active.userPersona & active.characters
+    // High-Fidelity Multimodal Scene Visualizer Anchored to Character Profiles & Photos
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -2005,7 +2005,7 @@ TASK: Return a JSON object with:
         return;
       }
 
-      showLoading(true, "Analyzing cast appearances and scene layout...");
+      showLoading(true, "Analyzing facial features, hair colors, and outfit aesthetics...");
 
       try {
         const recentDialogue = active.messages
@@ -2014,57 +2014,59 @@ TASK: Return a JSON object with:
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
-        const castVisualProfiles = (active.characters || []).map(c => `
-- ${c.name}:
-  Role & Archetypes: ${c.role || 'Companion'}
-  Visual & Attire: ${c.personality || 'Standard appearance'}`
-        ).join('\n');
+        const castProfiles = (active.characters || []).map(c => `
+- Character Name: ${c.name}
+  Archetype: ${c.role || 'Companion'}
+  Profile Physical Traits: ${c.personality || 'Distinct anime appearance'}
+`).join('\n');
 
         const promptParts = [];
 
+        // Attach Reference Image of Protagonist if present
         if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
           const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
           const data = active.userPersona.avatar.split(',')[1];
-          promptParts.push({
-            inlineData: { mimeType: mime, data: data }
-          });
+          promptParts.push({ inlineData: { mimeType: mime, data: data } });
         }
 
+        // Attach Reference Images of all Characters in Cast
         (active.characters || []).forEach(c => {
           if (c.avatar && c.avatar.startsWith('data:image')) {
             const mime = c.avatar.split(';')[0].split(':')[1];
             const data = c.avatar.split(',')[1];
-            promptParts.push({
-              inlineData: { mimeType: mime, data: data }
-            });
+            promptParts.push({ inlineData: { mimeType: mime, data: data } });
           }
         });
 
-        const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
+        const promptAnalysisDirective = `TASK: You are an expert art director. Generate an ultra-detailed, character-consistent 16:9 cinematic anime illustration prompt based on the attached character reference photos and their profile descriptions.
 
-[SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
-[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
-[CAST VISUAL DESCRIPTIONS]:
-${castVisualProfiles}
+[SETTING & ATMOSPHERE]:
+${active.title} - ${active.setting || 'Intimate modern anime setting with atmospheric cinematic lighting'}
 
-[RECENT SCENE EVENTS & POSES]:
+[PROTAGONIST PROFILE]:
+- Name: ${active.userPersona.name}
+- Appearance/Style: ${active.userPersona.desc || 'Main character with consistent hair and outfit'}
+
+[CAST DETAILED PROFILES]:
+${castProfiles}
+
+[CURRENT SCENE ACTIONS & POSES]:
 ${recentDialogue}
 
-REQUIREMENTS:
-1. Reference the exact hair, facial features, attire, and expressions of the focal characters currently in the scene.
-2. Specify exact physical positioning (e.g. who is sitting on the couch, leaning on the doorframe, holding a mug, etc.).
-3. Include cinematic lighting, atmospheric color palette, and depth of field.
-4. Keep the output prompt concise (35-50 words), high quality, anime/cinematic illustration style.
-5. Output ONLY the descriptive prompt text.`;
+STRICT PROMPT REQUIREMENTS:
+1. CHARACTER-ACCURATE FEATURES: Look at the attached character reference images and read their profile descriptions. Explicitly state the exact hair color and hairstyle (e.g., 'wavy auburn hair', 'dark spiky hair'), exact eye color (e.g., 'sharp emerald green eyes'), exact skin tone, and exact clothing style (e.g. 'oversized lavender hoodie', 'green striped sweater') for each character in the scene.
+2. POSES & SCENE INTERACTION: Describe the exact physical posture and interaction matching the recent dialogue (e.g., sitting on sofa, blushing, leaning close, laughing).
+3. ART STYLE & LIGHTING: High-quality modern anime keyframe art style, cinematic volumetric lighting, depth of field, detailed background, masterpiece.
+4. Output ONLY the descriptive prompt text (45-65 words), no preamble.`;
 
-        promptParts.push({ text: promptText });
+        promptParts.push({ text: promptAnalysisDirective });
 
         const promptReqPayload = {
           contents: [{
             role: 'user',
             parts: promptParts
           }],
-          generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
+          generationConfig: { temperature: 0.5, maxOutputTokens: 200 }
         };
 
         const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -2075,19 +2077,20 @@ REQUIREMENTS:
         });
 
         const promptData = await promptRes.json().catch(() => ({}));
-        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
-        if (!visualPrompt || visualPrompt.length < 15) {
-          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+        if (!visualPrompt || visualPrompt.length < 20) {
+          const charSummary = (active.characters || []).map(c => `${c.name} (${c.personality || 'detailed anime appearance'})`).join(' and ');
+          visualPrompt = `High quality cinematic anime illustration of ${active.userPersona.name} (${active.userPersona.desc || 'protagonist'}) with ${charSummary}, in ${active.title}, exact character facial features and hair colors, soft dramatic indoor lighting, 16:9 aspect ratio, masterpiece`;
         }
 
-        showLoading(true, "Rendering character-consistent visual snapshot...");
+        showLoading(true, "Rendering profile-accurate visual snapshot...");
 
         let fullDataUrl = null;
         try {
           const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const imagePayload = {
-            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, masterpiece" }] }],
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, anime key visual, masterpiece" }] }],
             generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
           };
 
@@ -2108,11 +2111,11 @@ REQUIREMENTS:
             }
           }
         } catch (e) {
-          console.warn("Direct model generation bypassed:", e);
+          console.warn("Direct model image generation fallback:", e);
         }
 
         if (!fullDataUrl) {
-          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed lighting, 16:9 aspect ratio");
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed hair and eye colors, volumetric lighting, 16:9 aspect ratio");
           const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
           
           const imgBlobRes = await fetch(renderUrl);
