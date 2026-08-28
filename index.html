@@ -1,22 +1,27 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark h-full">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
+  <!-- iOS Native Web App Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
 
+  <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
+  <!-- Dynamically Injected Manifest -->
   <link rel="manifest" id="pwaManifest" />
 
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js for Markdown Formatting -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
@@ -39,8 +44,40 @@
   </script>
 
   <style>
-    header { padding-top: max(0.75rem, env(safe-area-inset-top)); }
-    .bottom-bar { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    /* iOS Dynamic Island & Safe Area Fixes */
+    :root {
+      --sat: env(safe-area-inset-top, 50px);
+      --sab: env(safe-area-inset-bottom, 20px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    .app-header {
+      padding-top: max(var(--sat), 52px);
+      padding-left: max(var(--sal), 0.75rem);
+      padding-right: max(var(--sar), 0.75rem);
+    }
+
+    .app-bottom {
+      padding-bottom: max(var(--sab), 0.75rem);
+      padding-left: max(var(--sal), 0.75rem);
+      padding-right: max(var(--sar), 0.75rem);
+    }
+
+    .scroll-touch {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
+
+    /* Scrollbars */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
@@ -51,10 +88,12 @@
     textarea, input, select { -webkit-appearance: none; }
   </style>
 </head>
-<body class="bg-zetaBg text-slate-200 h-screen flex flex-col font-sans overflow-hidden select-none sm:select-auto">
+<body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <header class="bg-zetaSidebar border-b border-slate-800 px-3 sm:px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-md">
+  <!-- Top Navigation Bar (Positioned Below Dynamic Island) -->
+  <header class="app-header bg-zetaSidebar border-b border-slate-800 pb-3 flex items-center justify-between shrink-0 z-30 shadow-md">
     <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Mobile Sidebar Toggle -->
       <button onclick="toggleMobileSidebar()" class="md:hidden w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 border border-slate-700 active:scale-95 transition">
         👥
       </button>
@@ -67,6 +106,7 @@
       </div>
     </div>
 
+    <!-- Actions -->
     <div class="flex items-center gap-1.5 sm:gap-2">
       <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 transition active:scale-95">
         📥 <span class="hidden sm:inline">Import</span>
@@ -83,23 +123,27 @@
     </div>
   </header>
 
+  <!-- Main Layout -->
   <div class="flex-1 flex overflow-hidden relative">
 
+    <!-- Mobile Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
 
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
+    <!-- Sidebar: Character Cast -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out pt-12 md:pt-0">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
         <span class="text-[11px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="sidebarCharacterList">
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 scroll-touch" id="sidebarCharacterList">
         <div class="text-xs text-slate-500 text-center py-8">
           No characters configured.<br>Tap <strong>Setup</strong> to add your cast.
         </div>
       </div>
 
-      <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
+      <!-- User Persona Footer -->
+      <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0 app-bottom">
         <div id="sidebarUserAvatar" class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow">
           U
         </div>
@@ -110,8 +154,10 @@
       </div>
     </aside>
 
+    <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden">
-      <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full">
+      <!-- Transcript Feed -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
           <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
           <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
@@ -124,6 +170,7 @@
         </div>
       </div>
 
+      <!-- Typing Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-2 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -131,7 +178,8 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <div class="p-3 sm:p-4 bg-zetaSidebar border-t border-slate-800 bottom-bar shrink-0">
+      <!-- Input Bar (With Safe Area Padding for iOS) -->
+      <div class="p-3 sm:p-4 bg-zetaSidebar border-t border-slate-800 app-bottom shrink-0">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
             <span class="hidden sm:inline">Use *actions* and "dialogue"</span>
@@ -161,19 +209,22 @@
     </main>
   </div>
 
+  <!-- MODAL 1: Scenario, Characters & API Settings -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
-    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden mt-6 md:mt-0">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Cast & API Settings</h2>
         <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
-      <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm">
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm scroll-touch">
+        <!-- API Key -->
         <div class="space-y-1.5">
           <label class="block font-semibold text-slate-200">Google Gemini API Key <span class="text-rose-400">*</span></label>
           <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
         </div>
 
+        <!-- Model & Creativity -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Model</label>
@@ -192,6 +243,7 @@
 
         <hr class="border-slate-800" />
 
+        <!-- User Persona Details with Avatar -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -199,7 +251,7 @@
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="userPersonaAvatar" placeholder="Avatar Image URL (or upload below)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs" />
+            <input type="text" id="userPersonaAvatar" placeholder="Avatar Image URL (or upload right)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'user')" class="text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-800 file:text-indigo-300" />
           </div>
           <textarea id="userPersonaDesc" rows="2" placeholder="Persona background, tone, appearance..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
@@ -207,6 +259,7 @@
 
         <hr class="border-slate-800" />
 
+        <!-- Character Cast with Profile Pics -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Cast & Character Avatars</h3>
@@ -217,6 +270,7 @@
 
         <hr class="border-slate-800" />
 
+        <!-- Scenario Prompt -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Opening Scene</h3>
           <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
@@ -224,21 +278,22 @@
         </div>
       </div>
 
-      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2">
+      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2 shrink-0">
         <button onclick="closeModal('setupModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
         <button onclick="saveSetupAndInit()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-lg shadow-indigo-600/30">Save & Start</button>
       </div>
     </div>
   </div>
 
+  <!-- MODAL 2: Import from Zeta App -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
-    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden mt-6 md:mt-0">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import from Zeta App</h2>
         <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
-      <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm">
+      <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm overflow-y-auto scroll-touch">
         <p class="text-[11px] sm:text-xs text-slate-400">
           Paste copied logs or a story transcript. Each speaker will automatically become their own message bubble with their respective avatar.
         </p>
@@ -256,15 +311,15 @@
         </div>
       </div>
 
-      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2">
+      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2 shrink-0">
         <button onclick="closeModal('importModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
         <button onclick="processZetaImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Story</button>
       </div>
     </div>
   </div>
 
+  <!-- JavaScript Engine & PWA Setup -->
   <script>
-    // PWA & Service Worker
     (function initPwa() {
       const manifestData = {
         name: "ZetaForge AI Roleplay",
@@ -280,7 +335,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v3';
+          const CACHE_NAME = 'zetaforge-v4';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -294,7 +349,6 @@
       }
     })();
 
-    // Application State
     let appState = {
       apiKey: '',
       model: 'gemini-3.6-flash',
@@ -319,7 +373,7 @@
           relationship: 'Longtime uneasy ally; owes user a favor.'
         }
       ],
-      messages: [] // Array of { role: 'user'|'model', speakerName: string, text: string, timestamp: string }
+      messages: []
     };
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -478,7 +532,6 @@
       }
     }
 
-    // Helper: Build Avatar HTML Element
     function getAvatarHtml(speakerName, isUser = false, size = 'w-8 h-8 sm:w-9 sm:h-9') {
       let avatarSrc = '';
       let initial = (speakerName || '?')[0].toUpperCase();
@@ -613,7 +666,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
 4. If multiple characters speak or react to the user, produce multiple entries in the array in conversational chronological order.`;
     }
 
-    // Call Gemini REST API with JSON parsing fallback
     async function callGeminiApi(contentsArray) {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -646,7 +698,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
       const data = await response.json();
       const rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-      // Parse JSON array of individual character replies
       try {
         const jsonMatch = rawOutput.match(/```json\s*([\s\S]*?)\s*```/) || [null, rawOutput];
         const parsed = JSON.parse(jsonMatch[1].trim());
@@ -654,7 +705,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
           return parsed;
         }
       } catch (e) {
-        // Fallback: manual line splitter if model provided plain text
         return parsePlainTextIntoBlocks(rawOutput);
       }
 
@@ -692,7 +742,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
     }
 
     function buildApiContents() {
-      // Compress history for Gemini API
       return appState.messages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
@@ -799,7 +848,6 @@ ${appState.scenario.setting || 'An open roleplay world.'}
         const replyBlocks = await callGeminiApi(contents);
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (edited)';
 
-        // Replace the single regenerated turn or insert new chain
         if (replyBlocks.length > 0) {
           appState.messages.splice(index, 1, ...replyBlocks.map(b => ({
             role: 'model',
