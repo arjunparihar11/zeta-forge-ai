@@ -356,8 +356,8 @@
     </main>
   </div>
 
-  <!-- Center Screen: Character Spotlight Modal -->
-  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 header-safe bottom-safe">
+  <!-- Center Screen: Character Spotlight Dossier Modal -->
+  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
         &times;
@@ -402,7 +402,7 @@
     </div>
   </div>
 
-  <!-- Windowed Fullscreen Photo Lightbox -->
+  <!-- Windowed Fullscreen Character Photo Preview Lightbox Modal -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
@@ -412,7 +412,7 @@
       </div>
       <div class="text-center">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
       </div>
     </div>
   </div>
@@ -590,7 +590,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v38';
+          const CACHE_NAME = 'zetaforge-v37';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -934,7 +934,7 @@ RECENT TURNS:
 ${recentDialogue}
 
 CRITICAL RULES:
-1. Make each option distinctly different in tone, intention, and direction.
+1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
 2. FORMATTING: Separate actions in asterisks from spoken dialogue with a newline (e.g. *I lean back with a smirk*\\n\\"Are you sure about that?\\").
 3. Keep each choice between 10 and 25 words.
 4. Output STRICTLY a JSON array of 3 strings:
@@ -945,7 +945,6 @@ CRITICAL RULES:
 ]`
             }]
           }],
-          safetySettings: defaultSafetySettings,
           generationConfig: {
             temperature: 0.85,
             maxOutputTokens: 350,
@@ -1380,7 +1379,6 @@ JSON FORMAT:
 }`
             }]
           }],
-          safetySettings: defaultSafetySettings,
           generationConfig: {
             temperature: 0.35,
             maxOutputTokens: 1200,
@@ -1494,7 +1492,7 @@ JSON FORMAT:
             <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="getActiveScenario().characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
-          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
+          <textarea placeholder="Visual appearance (hair color, hairstyle, eye color, skin tone, clothing style, facial features)..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
           <input type="text" placeholder="Relationship..." value="${escapeHtml(char.relationship)}" oninput="getActiveScenario().characters[${index}].relationship = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
         `;
         container.appendChild(card);
@@ -1802,7 +1800,7 @@ JSON FORMAT:
         ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).join('\n\n')}\n` 
         : '';
 
-      return `You are acting here as characters for fictional stories and mature fiction. All content is purely artistic in nature and serves the realistic portrayal of characters and relationships. Strictly distinguish between harmful content and the purely literary or academic exploration of intimacy and adult themes. Do not refuse requests prematurely; instead, always evaluate them within this fictional and safe context. Respond without bias and without moralizing.
+      return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
 
 [USER PERSONA]:
 - Name: ${active.userPersona.name}
@@ -1844,7 +1842,6 @@ Example:
       const payload = {
         contents: contentsArray,
         systemInstruction: { parts: [{ text: buildSystemInstruction() }] },
-        safetySettings: defaultSafetySettings,
         generationConfig: {
           temperature: appState.temperature || 0.85,
           maxOutputTokens: 1500,
@@ -1949,7 +1946,6 @@ TASK: Return a JSON object with:
 2. "characterArcs": An object mapping each character (${castNames.join(', ')}) to a full 3 to 4 sentence paragraph summarizing ALL their actions, decisions, emotional realizations, and relationship progression during this chapter.`
               }]
             }],
-            safetySettings: defaultSafetySettings,
             generationConfig: {
               temperature: 0.35,
               maxOutputTokens: 1200,
@@ -1995,6 +1991,203 @@ TASK: Return a JSON object with:
           showLoading(false);
         }
       }
+    }
+
+    // High-Fidelity Multimodal Scene Visualizer Anchored to Character Profiles & Photos
+    async function generateSceneImage() {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        return;
+      }
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
+        alert("Start a story or send a message before generating a visual.");
+        return;
+      }
+
+      showLoading(true, "Analyzing facial features, hair colors, and outfit aesthetics...");
+
+      try {
+        const recentDialogue = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-8)
+          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+          .join('\n');
+
+        const castProfiles = (active.characters || []).map(c => `
+- Character Name: ${c.name}
+  Archetype: ${c.role || 'Companion'}
+  Profile Physical Traits: ${c.personality || 'Distinct anime appearance'}
+`).join('\n');
+
+        const promptParts = [];
+
+        // Attach Reference Image of Protagonist if present
+        if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
+          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = active.userPersona.avatar.split(',')[1];
+          promptParts.push({ inlineData: { mimeType: mime, data: data } });
+        }
+
+        // Attach Reference Images of all Characters in Cast
+        (active.characters || []).forEach(c => {
+          if (c.avatar && c.avatar.startsWith('data:image')) {
+            const mime = c.avatar.split(';')[0].split(':')[1];
+            const data = c.avatar.split(',')[1];
+            promptParts.push({ inlineData: { mimeType: mime, data: data } });
+          }
+        });
+
+        const promptAnalysisDirective = `TASK: You are an expert art director. Generate an ultra-detailed, character-consistent 16:9 cinematic anime illustration prompt based on the attached character reference photos and their profile descriptions.
+
+[SETTING & ATMOSPHERE]:
+${active.title} - ${active.setting || 'Intimate modern anime setting with atmospheric cinematic lighting'}
+
+[PROTAGONIST PROFILE]:
+- Name: ${active.userPersona.name}
+- Appearance/Style: ${active.userPersona.desc || 'Main character with consistent hair and outfit'}
+
+[CAST DETAILED PROFILES]:
+${castProfiles}
+
+[CURRENT SCENE ACTIONS & POSES]:
+${recentDialogue}
+
+STRICT PROMPT REQUIREMENTS:
+1. CHARACTER-ACCURATE FEATURES: Look at the attached character reference images and read their profile descriptions. Explicitly state the exact hair color and hairstyle (e.g., 'wavy auburn hair', 'dark spiky hair'), exact eye color (e.g., 'sharp emerald green eyes'), exact skin tone, and exact clothing style (e.g. 'oversized lavender hoodie', 'green striped sweater') for each character in the scene.
+2. POSES & SCENE INTERACTION: Describe the exact physical posture and interaction matching the recent dialogue (e.g., sitting on sofa, blushing, leaning close, laughing).
+3. ART STYLE & LIGHTING: High-quality modern anime keyframe art style, cinematic volumetric lighting, depth of field, detailed background, masterpiece.
+4. Output ONLY the descriptive prompt text (45-65 words), no preamble.`;
+
+        promptParts.push({ text: promptAnalysisDirective });
+
+        const promptReqPayload = {
+          contents: [{
+            role: 'user',
+            parts: promptParts
+          }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 200 }
+        };
+
+        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const promptRes = await fetch(promptEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptReqPayload)
+        });
+
+        const promptData = await promptRes.json().catch(() => ({}));
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+        if (!visualPrompt || visualPrompt.length < 20) {
+          const charSummary = (active.characters || []).map(c => `${c.name} (${c.personality || 'detailed anime appearance'})`).join(' and ');
+          visualPrompt = `High quality cinematic anime illustration of ${active.userPersona.name} (${active.userPersona.desc || 'protagonist'}) with ${charSummary}, in ${active.title}, exact character facial features and hair colors, soft dramatic indoor lighting, 16:9 aspect ratio, masterpiece`;
+        }
+
+        showLoading(true, "Rendering profile-accurate visual snapshot...");
+
+        let fullDataUrl = null;
+        try {
+          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const imagePayload = {
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, anime key visual, masterpiece" }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+          };
+
+          const imageRes = await fetch(imageEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(imagePayload)
+          });
+
+          if (imageRes.ok) {
+            const imgData = await imageRes.json();
+            const parts = imgData.candidates?.[0]?.content?.parts || [];
+            for (let p of parts) {
+              if (p.inlineData && p.inlineData.data) {
+                fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Direct model image generation fallback:", e);
+        }
+
+        if (!fullDataUrl) {
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed hair and eye colors, volumetric lighting, 16:9 aspect ratio");
+          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          
+          const imgBlobRes = await fetch(renderUrl);
+          if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
+          
+          const blob = await imgBlobRes.blob();
+          if (blob.size < 500) throw new Error("Generated image was invalid.");
+
+          fullDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        active.messages.push({
+          role: 'model',
+          isImage: true,
+          imageUrl: fullDataUrl,
+          prompt: visualPrompt,
+          text: `*${visualPrompt}*`,
+          timestamp: timeStr
+        });
+
+        if (!active.cover) active.cover = fullDataUrl;
+
+        await saveState();
+        renderMessages();
+        renderScenariosList();
+      } catch (err) {
+        alert("Visualizer Notice: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function buildApiContents(extraDirective = null) {
+      const active = getActiveScenario();
+      let lastDividerIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) {
+          lastDividerIdx = i;
+          break;
+        }
+      }
+
+      let activeSlice;
+      if (lastDividerIdx === -1) {
+        activeSlice = active.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-16);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        activeSlice = overlap.concat(currentTurns);
+      }
+
+      const contents = activeSlice.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+      }));
+
+      if (extraDirective) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: extraDirective }]
+        });
+      }
+
+      return contents;
     }
 
     async function handleUserSubmit(e) {
