@@ -5,22 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
-  <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
 
-  <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Marked.js -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
@@ -92,7 +88,6 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
-  <!-- Fixed Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
     <div class="px-3 sm:px-4 py-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 sm:gap-3">
@@ -103,7 +98,10 @@
           ⚡
         </div>
         <div class="overflow-hidden">
-          <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate">ZetaForge AI</h1>
+          <div class="flex items-center gap-1.5">
+            <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate">ZetaForge AI</h1>
+            <span id="chapterBadge" class="bg-indigo-950 text-indigo-300 border border-indigo-700/60 text-[10px] px-1.5 py-0.2 rounded font-mono">Ch. 1</span>
+          </div>
           <p class="text-[10px] sm:text-xs text-slate-400 truncate" id="headerScenarioTitle">Uninitialized Scenario</p>
         </div>
       </div>
@@ -125,13 +123,10 @@
     </div>
   </header>
 
-  <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
-    <!-- Mobile Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Sidebar Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
@@ -155,7 +150,6 @@
       </div>
     </aside>
 
-    <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0">
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -170,7 +164,6 @@
         </div>
       </div>
 
-      <!-- Typing / Generating Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -178,7 +171,6 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
@@ -187,9 +179,12 @@
                 🖼️ <span>Visualize Scene</span>
               </button>
             </div>
-            <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
-              ⏩ <span>Continue scene</span>
-            </button>
+            <div class="flex items-center gap-2">
+              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 60k tokens (Raw)</span>
+              <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
+                ⏩ <span>Continue scene</span>
+              </button>
+            </div>
           </div>
 
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
@@ -214,7 +209,6 @@
     </main>
   </div>
 
-  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -226,10 +220,9 @@
         <div class="space-y-1.5">
           <label class="block font-semibold text-slate-200">Google Gemini API Key <span class="text-rose-400">*</span></label>
           <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
-          <p class="text-[11px] text-slate-400">Used for story generation and Gemini visualizer.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Text Model</label>
             <select id="modelSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
@@ -240,8 +233,16 @@
             </select>
           </div>
           <div>
-            <label class="block font-semibold text-slate-200 mb-1">Creativity / Temperature (<span id="tempValue">0.85</span>)</label>
+            <label class="block font-semibold text-slate-200 mb-1">Creativity (<span id="tempValue">0.85</span>)</label>
             <input type="range" id="tempInput" min="0.2" max="1.3" step="0.05" value="0.85" oninput="document.getElementById('tempValue').innerText = this.value" class="w-full mt-2" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-200 mb-1">Auto Chapter Threshold</label>
+            <select id="tokenThresholdSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option value="50000">50,000 Tokens (~200 Raw Turns)</option>
+              <option value="75000" selected>75,000 Tokens (~350 Raw Turns - Optimal)</option>
+              <option value="120000">120,000 Tokens (~500+ Raw Turns - Max)</option>
+            </select>
           </div>
         </div>
 
@@ -273,6 +274,11 @@
         <hr class="border-slate-800" />
 
         <div class="space-y-2.5">
+          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
+          <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs"></textarea>
+        </div>
+
+        <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
           <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
           <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
@@ -286,7 +292,6 @@
     </div>
   </div>
 
-  <!-- Import Modal -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -319,7 +324,6 @@
     </div>
   </div>
 
-  <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
       <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
@@ -350,7 +354,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v10';
+          const CACHE_NAME = 'zetaforge-v12';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -368,6 +372,9 @@
       apiKey: '',
       model: 'gemini-3.6-flash',
       temperature: 0.85,
+      tokenThreshold: 75000, // Dynamic Token Threshold before creating a new chapter
+      currentChapter: 1,
+      archivedRecaps: [], // Array of string recaps per chapter
       userPersona: {
         name: 'Rapid',
         role: 'Protagonist',
@@ -415,6 +422,22 @@
           console.error("State error", e);
         }
       }
+    }
+
+    // Rough Token Calculator (1 token ≈ 4 characters)
+    function estimateTokens(text) {
+      if (!text) return 0;
+      return Math.ceil(text.length / 3.8);
+    }
+
+    function getActiveRawTokens() {
+      let totalChars = 0;
+      appState.messages
+        .filter(m => !m.isImage && !m.isChapterDivider)
+        .forEach(m => {
+          totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
+        });
+      return estimateTokens(totalChars > 0 ? totalChars.toString() : '');
     }
 
     function autoExpandTextarea(el) {
@@ -487,6 +510,9 @@
       document.getElementById('modelSelect').value = appState.model || 'gemini-3.6-flash';
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
+      document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 75000;
+
+      document.getElementById('chapterRecapsText').value = (appState.archivedRecaps || []).join('\n\n');
 
       document.getElementById('userPersonaName').value = appState.userPersona.name || '';
       document.getElementById('userPersonaRole').value = appState.userPersona.role || '';
@@ -540,6 +566,10 @@
       appState.apiKey = document.getElementById('apiKeyInput').value.trim();
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
+      appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 75000;
+
+      const rawRecap = document.getElementById('chapterRecapsText').value.trim();
+      appState.archivedRecaps = rawRecap ? rawRecap.split('\n\n').filter(Boolean) : [];
 
       appState.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
       appState.userPersona.role = document.getElementById('userPersonaRole').value.trim();
@@ -585,6 +615,7 @@
 
     function renderSidebar() {
       document.getElementById('headerScenarioTitle').innerText = appState.scenario.title || 'Interactive Story';
+      document.getElementById('chapterBadge').innerText = `Ch. ${appState.currentChapter || 1}`;
       document.getElementById('sidebarUserName').innerText = appState.userPersona.name || 'User';
       document.getElementById('sidebarUserDesc').innerText = appState.userPersona.role ? `${appState.userPersona.role} - ${appState.userPersona.desc}` : (appState.userPersona.desc || 'Protagonist');
       document.getElementById('charCount').innerText = `${appState.characters.length} active`;
@@ -617,6 +648,14 @@
 
     function renderMessages() {
       const container = document.getElementById('messagesContainer');
+      const currentRawTokens = getActiveRawTokens();
+      const limit = (appState.tokenThreshold || 75000);
+      const displayTokens = (currentRawTokens / 1000).toFixed(1);
+      const displayLimit = (limit / 1000).toFixed(0);
+
+      document.getElementById('tokenCounter').innerText = `${displayTokens}k / ${displayLimit}k tokens (Raw)`;
+      document.getElementById('chapterBadge').innerText = `Ch. ${appState.currentChapter || 1}`;
+
       if (appState.messages.length === 0) {
         container.innerHTML = `
           <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -630,6 +669,18 @@
       }
 
       container.innerHTML = appState.messages.map((m, index) => {
+        if (m.isChapterDivider) {
+          return `
+            <div class="my-6 flex items-center gap-3">
+              <div class="flex-1 h-px bg-slate-800"></div>
+              <div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">
+                📖 ${escapeHtml(m.text)}
+              </div>
+              <div class="flex-1 h-px bg-slate-800"></div>
+            </div>
+          `;
+        }
+
         if (m.isImage) {
           return `
             <div class="my-3 flex flex-col items-center max-w-xl mx-auto w-full group">
@@ -690,6 +741,10 @@
   Relationship to ${appState.userPersona.name}: ${c.relationship}
 `).join('\n');
 
+      const pastChaptersStr = (appState.archivedRecaps || []).length > 0 
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${appState.archivedRecaps.join('\n\n')}\n` 
+        : '';
+
       return `You are the interactive roleplay and story engine for a narrative experience like the Zeta app.
 
 [USER PERSONA]:
@@ -702,7 +757,7 @@ ${charListStr || 'Create vivid characters appropriate to the scene.'}
 
 [WORLD & SCENARIO]:
 ${appState.scenario.setting || 'An open roleplay world.'}
-
+${pastChaptersStr}
 [CRITICAL OUTPUT RULES]:
 1. NEVER speak or act for {{user}} (${appState.userPersona.name}).
 2. MULTI-CHARACTER INDIVIDUAL REPLIES: Every character present that reacts or speaks MUST have their own distinct turn. Also use "Narrator" for environmental shifts or scene setting.
@@ -761,7 +816,69 @@ ${appState.scenario.setting || 'An open roleplay world.'}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // High-Reliability Visualizer Pipeline
+    // Dynamic Token-Based Chapter Archival Trigger
+    async function checkAndTriggerChapterArchival() {
+      const currentTokens = getActiveRawTokens();
+      const threshold = appState.tokenThreshold || 75000;
+
+      if (currentTokens >= threshold) {
+        showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${appState.currentChapter}...`);
+        try {
+          const activeRawTurns = appState.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          const dialogueText = activeRawTurns
+            .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+            .join('\n');
+
+          const summaryReqPayload = {
+            contents: [{
+              role: 'user',
+              parts: [{
+                text: `Summarize the following entire roleplay chapter for Chapter ${appState.currentChapter || 1}:
+
+[SCENARIO]: ${appState.scenario.title}
+[DIALOGUE TURNS]:
+${dialogueText}
+
+TASK: Create a comprehensive structured summary preserving exact character continuity:
+### Chapter ${appState.currentChapter || 1} Milestone Summary
+- **Key Plot Events**: (Concise chronological recap of major events)
+- **Relationship Shifts & Shared Secrets**: (Any emotional progression between ${appState.userPersona.name} and companions)
+- **Unresolved Hooks & Current Objectives**: (Immediate ongoing tensions)`
+              }]
+            }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 400 }
+          };
+
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const summaryRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(summaryReqPayload)
+          });
+
+          const summaryData = await summaryRes.json();
+          const chapterRecap = summaryData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Chapter ${appState.currentChapter} concluded.`;
+
+          if (!appState.archivedRecaps) appState.archivedRecaps = [];
+          appState.archivedRecaps.push(chapterRecap);
+
+          appState.messages.push({
+            isChapterDivider: true,
+            text: `Chapter ${appState.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${appState.currentChapter + 1}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+
+          appState.currentChapter = (appState.currentChapter || 1) + 1;
+          saveState();
+          renderMessages();
+        } catch (e) {
+          console.warn("Dynamic token archival skipped:", e.message);
+        } finally {
+          showLoading(false);
+        }
+      }
+    }
+
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -776,7 +893,7 @@ ${appState.scenario.setting || 'An open roleplay world.'}
 
       try {
         const recentDialogue = appState.messages
-          .filter(m => !m.isImage)
+          .filter(m => !m.isImage && !m.isChapterDivider)
           .slice(-6)
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
@@ -815,7 +932,6 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
 
         showLoading(true, "Rendering and encoding visual snapshot...");
 
-        // Try direct Gemini Image API if available
         let fullDataUrl = null;
         try {
           const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -844,7 +960,6 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           console.warn("Direct model generation bypassed:", e);
         }
 
-        // Verified Blob conversion fallback (No broken Safari images)
         if (!fullDataUrl) {
           const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic aesthetic, detailed lighting, 16:9 aspect ratio");
           const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
@@ -913,13 +1028,32 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
+    // Sends all raw messages up to the current chapter
     function buildApiContents() {
-      return appState.messages
-        .filter(m => !m.isImage)
-        .map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-        }));
+      // Find the last chapter divider index
+      let lastDividerIdx = -1;
+      for (let i = appState.messages.length - 1; i >= 0; i--) {
+        if (appState.messages[i].isChapterDivider) {
+          lastDividerIdx = i;
+          break;
+        }
+      }
+
+      // If a chapter was archived, include an 8-turn overlap before the divider
+      let activeSlice;
+      if (lastDividerIdx === -1) {
+        activeSlice = appState.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = appState.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-8);
+        const currentTurns = appState.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        activeSlice = overlap.concat(currentTurns);
+      }
+
+      return activeSlice.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+      }));
     }
 
     async function handleUserSubmit(e) {
@@ -942,6 +1076,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       renderMessages();
 
       await triggerAiResponse();
+      await checkAndTriggerChapterArchival();
     }
 
     async function triggerContinue() {
@@ -957,6 +1092,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       });
       renderMessages();
       await triggerAiResponse();
+      await checkAndTriggerChapterArchival();
     }
 
     async function generateOpeningScene() {
@@ -1014,7 +1150,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       if (index <= 0) return;
       showLoading(true, "Regenerating turn...");
       try {
-        const sliced = appState.messages.slice(0, index).filter(m => !m.isImage);
+        const sliced = appState.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
         const contents = sliced.map(m => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: `${m.speakerName}: ${m.text}` }]
@@ -1125,10 +1261,16 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       }
       let markdown = `# ${appState.scenario.title || 'Interactive Story'}\n\n`;
       markdown += `**Setting:** ${appState.scenario.setting || 'N/A'}\n\n`;
-      markdown += `**User:** ${appState.userPersona.name} (${appState.userPersona.role})\n\n---\n\n`;
+      markdown += `**User:** ${appState.userPersona.name} (${appState.userPersona.role})\n\n`;
+
+      if ((appState.archivedRecaps || []).length > 0) {
+        markdown += `## Archived Story Recaps\n\n${appState.archivedRecaps.join('\n\n')}\n\n---\n\n`;
+      }
 
       appState.messages.forEach(m => {
-        if (m.isImage) {
+        if (m.isChapterDivider) {
+          markdown += `\n## --- ${m.text} ---\n\n`;
+        } else if (m.isImage) {
           markdown += `![Scene Snapshot](${m.imageUrl})\n*${m.text || m.prompt}*\n\n---\n\n`;
         } else {
           markdown += `### ${m.speakerName || 'Character'} (${m.timestamp || ''})\n\n${m.text}\n\n---\n\n`;
@@ -1147,6 +1289,8 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
     function clearStory() {
       if (confirm("Reset current transcript? Cast and settings are kept.")) {
         appState.messages = [];
+        appState.archivedRecaps = [];
+        appState.currentChapter = 1;
         saveState();
         renderMessages();
       }
