@@ -180,7 +180,7 @@
               </button>
             </div>
             <div class="flex items-center gap-2">
-              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 60k tokens (Raw)</span>
+              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 75k tokens (Raw)</span>
               <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
                 ⏩ <span>Continue scene</span>
               </button>
@@ -354,7 +354,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v12';
+          const CACHE_NAME = 'zetaforge-v13';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -372,9 +372,9 @@
       apiKey: '',
       model: 'gemini-3.6-flash',
       temperature: 0.85,
-      tokenThreshold: 75000, // Dynamic Token Threshold before creating a new chapter
+      tokenThreshold: 75000,
       currentChapter: 1,
-      archivedRecaps: [], // Array of string recaps per chapter
+      archivedRecaps: [],
       userPersona: {
         name: 'Rapid',
         role: 'Protagonist',
@@ -424,7 +424,6 @@
       }
     }
 
-    // Rough Token Calculator (1 token ≈ 4 characters)
     function estimateTokens(text) {
       if (!text) return 0;
       return Math.ceil(text.length / 3.8);
@@ -816,7 +815,7 @@ ${pastChaptersStr}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // Dynamic Token-Based Chapter Archival Trigger
+    // Dynamic Token-Based Chapter Archival Trigger with 16-Turn Buffer Hand-off
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 75000;
@@ -1028,9 +1027,8 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
-    // Sends all raw messages up to the current chapter
+    // Sends active chapter turns + exactly 16 overlap turns from prior arc for seamless banter
     function buildApiContents() {
-      // Find the last chapter divider index
       let lastDividerIdx = -1;
       for (let i = appState.messages.length - 1; i >= 0; i--) {
         if (appState.messages[i].isChapterDivider) {
@@ -1039,13 +1037,13 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
         }
       }
 
-      // If a chapter was archived, include an 8-turn overlap before the divider
       let activeSlice;
       if (lastDividerIdx === -1) {
         activeSlice = appState.messages.filter(m => !m.isImage);
       } else {
         const priorTurns = appState.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-8);
+        // Retain 16-turn conversational overlap buffer
+        const overlap = priorTurns.slice(-16);
         const currentTurns = appState.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
         activeSlice = overlap.concat(currentTurns);
       }
