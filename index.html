@@ -5,18 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
+  <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#161922" />
 
+  <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Crect x='32' y='32' width='448' height='448' rx='96' fill='%231e2230' stroke='%236366f1' stroke-width='16'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1' stroke='%23818cf8' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
 
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script>
@@ -88,6 +92,7 @@
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
+  <!-- Fixed Top Header -->
   <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-30 shadow-md">
     <div class="px-3 sm:px-4 py-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 sm:gap-3">
@@ -113,7 +118,7 @@
         <button onclick="openModal('setupModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shadow transition active:scale-95">
           ⚙️ <span class="hidden sm:inline">Setup</span>
         </button>
-        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition active:scale-95" title="Export">
+        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition active:scale-95" title="Export Markdown">
           💾
         </button>
         <button onclick="clearStory()" class="bg-red-950/50 hover:bg-red-900/60 text-red-300 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border border-red-800/50 transition active:scale-95" title="Reset">
@@ -123,10 +128,13 @@
     </div>
   </header>
 
+  <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
+    <!-- Mobile Drawer Backdrop -->
     <div id="mobileBackdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-xs"></div>
 
+    <!-- Sidebar Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dramatis Personae</h2>
@@ -150,6 +158,7 @@
       </div>
     </aside>
 
+    <!-- Center Chat Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0">
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -164,6 +173,7 @@
         </div>
       </div>
 
+      <!-- Typing / Generating Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -171,6 +181,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
+      <!-- Bottom Chat Bar with Live Raw Token Monitor -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0">
         <div class="max-w-4xl mx-auto space-y-2">
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
@@ -180,7 +191,7 @@
               </button>
             </div>
             <div class="flex items-center gap-2">
-              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 75k tokens (Raw)</span>
+              <span id="tokenCounter" class="text-[10px] text-slate-400 font-mono bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded-md" title="Live Raw Context Usage">0k / 120k tokens (Raw)</span>
               <button onclick="triggerContinue()" id="continueBtn" class="hover:text-indigo-400 flex items-center gap-1 transition ml-auto">
                 ⏩ <span>Continue scene</span>
               </button>
@@ -209,10 +220,11 @@
     </main>
   </div>
 
+  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
-        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Cast & API Settings</h2>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Cast & Storage Settings</h2>
         <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
@@ -237,17 +249,18 @@
             <input type="range" id="tempInput" min="0.2" max="1.3" step="0.05" value="0.85" oninput="document.getElementById('tempValue').innerText = this.value" class="w-full mt-2" />
           </div>
           <div>
-            <label class="block font-semibold text-slate-200 mb-1">Auto Chapter Threshold</label>
+            <label class="block font-semibold text-slate-200 mb-1">Raw Token Window</label>
             <select id="tokenThresholdSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
-              <option value="50000">50,000 Tokens (~200 Raw Turns)</option>
-              <option value="75000" selected>75,000 Tokens (~350 Raw Turns - Optimal)</option>
-              <option value="120000">120,000 Tokens (~500+ Raw Turns - Max)</option>
+              <option value="75000">75k Tokens (~350 Raw Turns)</option>
+              <option value="120000" selected>120k Tokens (~600 Raw Turns - Optimal)</option>
+              <option value="180000">180k Tokens (~900+ Raw Turns - Max Raw)</option>
             </select>
           </div>
         </div>
 
         <hr class="border-slate-800" />
 
+        <!-- User Identity & Avatar -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -263,6 +276,7 @@
 
         <hr class="border-slate-800" />
 
+        <!-- Character Cast -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Cast & Character Avatars</h3>
@@ -273,15 +287,36 @@
 
         <hr class="border-slate-800" />
 
+        <!-- Archived Chapter Recaps -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
           <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs"></textarea>
         </div>
 
+        <!-- Setting -->
         <div class="space-y-2.5">
           <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
           <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
           <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+        </div>
+
+        <hr class="border-slate-800" />
+
+        <!-- Complete JSON Backup & Restore -->
+        <div class="space-y-2.5 p-3.5 bg-slate-900/80 rounded-xl border border-slate-800">
+          <h3 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
+          <p class="text-[11px] text-slate-400">
+            Export or restore a complete uncompressed JSON backfile containing your entire raw message archive, chapter milestones, and avatars.
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button type="button" onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-2 rounded-lg transition active:scale-95">
+              📥 Export Full Backfile (.json)
+            </button>
+            <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-lg cursor-pointer transition active:scale-95">
+              📤 Restore Backfile
+              <input type="file" accept=".json" onchange="importJsonBackup(event)" class="hidden" />
+            </label>
+          </div>
         </div>
       </div>
 
@@ -292,6 +327,7 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -324,6 +360,7 @@
     </div>
   </div>
 
+  <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
       <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
@@ -354,7 +391,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v13';
+          const CACHE_NAME = 'zetaforge-v14';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -368,11 +405,65 @@
       }
     })();
 
+    // IndexedDB Storage Layer
+    const DB_NAME = 'zetaforge_db';
+    const DB_STORE = 'app_state_store';
+
+    function initDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(DB_STORE)) {
+            db.createObjectStore(DB_STORE);
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function saveStateDb(stateObj) {
+      try {
+        const db = await initDb();
+        const tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).put(stateObj, 'current_state');
+        localStorage.setItem('zetaforge_synced', Date.now().toString());
+      } catch (e) {
+        console.warn("IndexedDB save failed, falling back to localStorage", e);
+        localStorage.setItem('zetaforge_state', JSON.stringify(stateObj));
+      }
+    }
+
+    async function loadStateDb() {
+      try {
+        const db = await initDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction(DB_STORE, 'readonly');
+          const req = tx.objectStore(DB_STORE).get('current_state');
+          req.onsuccess = () => {
+            if (req.result) resolve(req.result);
+            else {
+              const fallback = localStorage.getItem('zetaforge_state');
+              resolve(fallback ? JSON.parse(fallback) : null);
+            }
+          };
+          req.onerror = () => {
+            const fallback = localStorage.getItem('zetaforge_state');
+            resolve(fallback ? JSON.parse(fallback) : null);
+          };
+        });
+      } catch (e) {
+        const fallback = localStorage.getItem('zetaforge_state');
+        return fallback ? JSON.parse(fallback) : null;
+      }
+    }
+
     let appState = {
       apiKey: '',
       model: 'gemini-3.6-flash',
       temperature: 0.85,
-      tokenThreshold: 75000,
+      tokenThreshold: 120000, // Safe High-Cap Raw Limit (~600 raw turns)
       currentChapter: 1,
       archivedRecaps: [],
       userPersona: {
@@ -398,29 +489,24 @@
       messages: []
     };
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadState();
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadState();
       renderSidebar();
       renderMessages();
       syncModalForm();
     });
 
-    function saveState() {
-      localStorage.setItem('zetaforge_state', JSON.stringify(appState));
+    async function saveState() {
+      await saveStateDb(appState);
     }
 
-    function loadState() {
-      const saved = localStorage.getItem('zetaforge_state');
+    async function loadState() {
+      const saved = await loadStateDb();
       if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.model && (parsed.model.includes('2.5') || parsed.model.includes('1.5'))) {
-            parsed.model = 'gemini-3.6-flash';
-          }
-          appState = { ...appState, ...parsed };
-        } catch (e) {
-          console.error("State error", e);
+        if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
+          saved.model = 'gemini-3.6-flash';
         }
+        appState = { ...appState, ...saved };
       }
     }
 
@@ -509,7 +595,7 @@
       document.getElementById('modelSelect').value = appState.model || 'gemini-3.6-flash';
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
-      document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 75000;
+      document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
 
       document.getElementById('chapterRecapsText').value = (appState.archivedRecaps || []).join('\n\n');
 
@@ -561,11 +647,11 @@
       renderCharacterCardsSetup();
     }
 
-    function saveSetupAndInit() {
+    async function saveSetupAndInit() {
       appState.apiKey = document.getElementById('apiKeyInput').value.trim();
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
-      appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 75000;
+      appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
       appState.archivedRecaps = rawRecap ? rawRecap.split('\n\n').filter(Boolean) : [];
@@ -582,7 +668,7 @@
       appState.scenario.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
       appState.scenario.setting = document.getElementById('scenarioSetting').value.trim();
 
-      saveState();
+      await saveState();
       renderSidebar();
       closeModal('setupModal');
 
@@ -648,7 +734,7 @@
     function renderMessages() {
       const container = document.getElementById('messagesContainer');
       const currentRawTokens = getActiveRawTokens();
-      const limit = (appState.tokenThreshold || 75000);
+      const limit = (appState.tokenThreshold || 120000);
       const displayTokens = (currentRawTokens / 1000).toFixed(1);
       const displayLimit = (limit / 1000).toFixed(0);
 
@@ -815,13 +901,13 @@ ${pastChaptersStr}
       return parsePlainTextIntoBlocks(rawOutput);
     }
 
-    // Dynamic Token-Based Chapter Archival Trigger with 16-Turn Buffer Hand-off
+    // Dynamic Token Chapter Archival with 16-turn hand-off
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
-      const threshold = appState.tokenThreshold || 75000;
+      const threshold = appState.tokenThreshold || 120000;
 
       if (currentTokens >= threshold) {
-        showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${appState.currentChapter}...`);
+        showLoading(true, `Token ceiling reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${appState.currentChapter}...`);
         try {
           const activeRawTurns = appState.messages.filter(m => !m.isImage && !m.isChapterDivider);
           const dialogueText = activeRawTurns
@@ -832,20 +918,20 @@ ${pastChaptersStr}
             contents: [{
               role: 'user',
               parts: [{
-                text: `Summarize the following entire roleplay chapter for Chapter ${appState.currentChapter || 1}:
+                text: `Summarize the following complete roleplay chapter for Chapter ${appState.currentChapter || 1}:
 
 [SCENARIO]: ${appState.scenario.title}
 [DIALOGUE TURNS]:
 ${dialogueText}
 
-TASK: Create a comprehensive structured summary preserving exact character continuity:
+TASK: Create a dense, highly structured milestone summary:
 ### Chapter ${appState.currentChapter || 1} Milestone Summary
 - **Key Plot Events**: (Concise chronological recap of major events)
 - **Relationship Shifts & Shared Secrets**: (Any emotional progression between ${appState.userPersona.name} and companions)
 - **Unresolved Hooks & Current Objectives**: (Immediate ongoing tensions)`
               }]
             }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 400 }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 450 }
           };
 
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
@@ -868,7 +954,7 @@ TASK: Create a comprehensive structured summary preserving exact character conti
           });
 
           appState.currentChapter = (appState.currentChapter || 1) + 1;
-          saveState();
+          await saveState();
           renderMessages();
         } catch (e) {
           console.warn("Dynamic token archival skipped:", e.message);
@@ -988,7 +1074,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           timestamp: timeStr
         });
 
-        saveState();
+        await saveState();
         renderMessages();
       } catch (err) {
         alert("Visualizer Notice: " + err.message);
@@ -1027,7 +1113,6 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
-    // Sends active chapter turns + exactly 16 overlap turns from prior arc for seamless banter
     function buildApiContents() {
       let lastDividerIdx = -1;
       for (let i = appState.messages.length - 1; i >= 0; i--) {
@@ -1042,7 +1127,6 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
         activeSlice = appState.messages.filter(m => !m.isImage);
       } else {
         const priorTurns = appState.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        // Retain 16-turn conversational overlap buffer
         const overlap = priorTurns.slice(-16);
         const currentTurns = appState.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
         activeSlice = overlap.concat(currentTurns);
@@ -1070,7 +1154,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
 
       inputEl.value = '';
       inputEl.style.height = 'auto';
-      saveState();
+      await saveState();
       renderMessages();
 
       await triggerAiResponse();
@@ -1110,7 +1194,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           timestamp: timeStr
         }));
 
-        saveState();
+        await saveState();
         renderMessages();
       } catch (err) {
         alert("Error: " + err.message);
@@ -1135,7 +1219,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           });
         });
 
-        saveState();
+        await saveState();
         renderMessages();
       } catch (err) {
         alert("Gemini API Error: " + err.message);
@@ -1166,7 +1250,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
           })));
         }
 
-        saveState();
+        await saveState();
         renderMessages();
       } catch (err) {
         alert("Retry error: " + err.message);
@@ -1175,15 +1259,15 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       }
     }
 
-    function deleteMessage(index) {
+    async function deleteMessage(index) {
       if (confirm("Delete this entry?")) {
         appState.messages.splice(index, 1);
-        saveState();
+        await saveState();
         renderMessages();
       }
     }
 
-    function processZetaImport() {
+    async function processZetaImport() {
       const rawText = document.getElementById('importTranscriptText').value.trim();
       const append = document.getElementById('appendTranscriptCheck').checked;
       if (!rawText) return;
@@ -1246,7 +1330,7 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       }
 
       appState.messages = append ? appState.messages.concat(parsedMessages) : parsedMessages;
-      saveState();
+      await saveState();
       renderMessages();
       closeModal('importModal');
       document.getElementById('importTranscriptText').value = '';
@@ -1284,12 +1368,49 @@ TASK: Describe a single visual snapshot of the scene above in 25-45 descriptive 
       URL.revokeObjectURL(url);
     }
 
-    function clearStory() {
+    function exportJsonBackup() {
+      const backupData = JSON.stringify(appState, null, 2);
+      const blob = new Blob([backupData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `zetaforge_backup_${(appState.scenario.title || 'story').toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJsonBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && Array.isArray(parsed.messages)) {
+            appState = parsed;
+            await saveState();
+            renderSidebar();
+            renderMessages();
+            syncModalForm();
+            alert("Backup restored successfully!");
+            closeModal('setupModal');
+          } else {
+            alert("Invalid backup file structure.");
+          }
+        } catch (err) {
+          alert("Error parsing JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    async function clearStory() {
       if (confirm("Reset current transcript? Cast and settings are kept.")) {
         appState.messages = [];
         appState.archivedRecaps = [];
         appState.currentChapter = 1;
-        saveState();
+        await saveState();
         renderMessages();
       }
     }
