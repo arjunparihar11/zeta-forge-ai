@@ -170,7 +170,7 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Per-Character Summaries -->
+    <!-- Right Drawer 1: Chapter Chronicle & Paragraph Character Summaries -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-40 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -190,11 +190,11 @@
 
         <!-- Chapter Status & Action Header -->
         <div class="flex items-center justify-between pt-1">
-          <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Chapter 1 Breakdown</span>
+          <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Chapter Summary</span>
           <div class="flex items-center gap-1.5">
             <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
             <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
-              ✨ <span>Analyze</span>
+              ✨ <span id="refreshArcsBtnText">Re-Analyze</span>
             </button>
           </div>
         </div>
@@ -204,10 +204,10 @@
           <!-- Populated dynamically -->
         </div>
 
-        <!-- Per-Character What Happened Breakdown -->
-        <div class="space-y-2">
-          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Character Journeys & Arcs</h3>
-          <div id="chapterCharacterArcsList" class="space-y-2.5">
+        <!-- Per-Character 3-4 Sentence Narrative Paragraph Breakdown -->
+        <div class="space-y-2.5">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Character Actions & Narrative Arcs</h3>
+          <div id="chapterCharacterArcsList" class="space-y-3">
             <!-- Dynamic Character Cards populated here -->
           </div>
         </div>
@@ -521,7 +521,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v22';
+          const CACHE_NAME = 'zetaforge-v24';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -612,9 +612,9 @@
           }
         ],
         messages: [],
-        archivedRecaps: [], // Array of structured objects: { chapterNum, milestoneSummary, characterArcs: [{ name, summary }] }
+        archivedRecaps: [],
         currentChapter: 1,
-        activeChapterArcs: null, // Cached character arcs for current chapter
+        activeChapterArcs: null,
         updatedAt: Date.now()
       };
     }
@@ -773,6 +773,13 @@
         populateChapterChronicle();
         drawer.classList.remove('translate-x-full');
         document.getElementById('mobileBackdrop').classList.remove('hidden');
+        
+        // Auto-synthesize character summaries if not yet cached
+        const active = getActiveScenario();
+        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        if (!active.activeChapterArcs && activeTurns.length > 2 && appState.apiKey) {
+          refreshActiveChapterCharacterArcs(true);
+        }
       } else {
         drawer.classList.add('translate-x-full');
         checkBackdrop();
@@ -900,7 +907,6 @@
       }
     }
 
-    // Populate Chapter Chronicle Selector Dropdown & Stats
     function populateChapterChronicle() {
       const select = document.getElementById('chapterSelectDropdown');
       const active = getActiveScenario();
@@ -930,7 +936,7 @@
       renderSelectedChapterSummary('active');
     }
 
-    // Render Detailed Per-Character What-Happened Breakdown for Selected Chapter
+    // Render Gemini-Synthesized 3-4 Sentence Narrative Paragraph for Selected Chapter
     function renderSelectedChapterSummary(selectedVal) {
       const generalBox = document.getElementById('chapterGeneralSummary');
       const arcsContainer = document.getElementById('chapterCharacterArcsList');
@@ -940,7 +946,6 @@
       const active = getActiveScenario();
       const totalChapters = active.currentChapter || 1;
 
-      // Compile all characters list including protagonist
       const allCast = [
         { name: active.userPersona.name, role: active.userPersona.role || 'Protagonist', isUser: true },
         ...active.characters.map(c => ({ name: c.name, role: c.role || 'Companion', isUser: false }))
@@ -954,35 +959,27 @@
 
         const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
         generalBox.innerHTML = activeTurns.length > 0 
-          ? `<p class="text-slate-300 italic"><span class="text-indigo-300 font-semibold">Active Scene Status:</span> ${activeTurns.length} ongoing dialogue turns in progress.</p>`
-          : `<p class="text-slate-500 italic">No turns in Chapter ${totalChapters} yet.</p>`;
+          ? `<p class="text-slate-300 leading-relaxed"><span class="text-indigo-300 font-semibold">Active Scene Status:</span> ${activeTurns.length} dialogue & action turns recorded in Chapter ${totalChapters}.</p>`
+          : `<p class="text-slate-500 italic">No turns recorded in Chapter ${totalChapters} yet.</p>`;
 
-        // Render Character Cards with cached arcs or default snippet
         const cachedArcs = active.activeChapterArcs || {};
         arcsContainer.innerHTML = allCast.map(member => {
           const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
           let summary = cachedArcs[member.name];
 
           if (!summary) {
-            // Find recent lines from this member
-            const memberTurns = activeTurns.filter(m => (m.speakerName || '').toLowerCase() === member.name.toLowerCase());
-            if (memberTurns.length > 0) {
-              const lastLine = memberTurns[memberTurns.length - 1].text;
-              summary = `*Recent action/dialogue:* ${lastLine.length > 120 ? lastLine.slice(0, 120) + '...' : lastLine}`;
-            } else {
-              summary = `Present in the scene. Awaiting direct focus or reaction.`;
-            }
+            summary = `*Narrative summary not yet analyzed.* Tap **✨ Re-Analyze** above to generate a 3–4 sentence story arc for ${member.name} using ${appState.model}.`;
           }
 
           return `
-            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
+            <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
               ${avatarHtml}
-              <div class="overflow-hidden flex-1 space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="font-bold text-xs text-white">${escapeHtml(member.name)}</span>
-                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.2 rounded">${escapeHtml(member.role)}</span>
+              <div class="overflow-hidden flex-1 space-y-1.5">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="font-bold text-xs sm:text-sm text-white truncate">${escapeHtml(member.name)}</span>
+                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(member.role)}</span>
                 </div>
-                <div class="text-[11px] text-slate-300 leading-snug prose prose-invert max-w-none">
+                <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
                   ${marked.parse(summary)}
                 </div>
               </div>
@@ -1006,17 +1003,17 @@
 
         arcsContainer.innerHTML = allCast.map(member => {
           const avatarHtml = getAvatarHtml(member.name, member.isUser, 'w-10 h-10');
-          const summary = charArcsObj[member.name] || `Engaged throughout Chapter ${chapterNum}'s events.`;
+          const summary = charArcsObj[member.name] || `Active participant throughout Chapter ${chapterNum}'s events with continuous story progression.`;
 
           return `
-            <div class="p-3 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
+            <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl flex items-start gap-3 shadow-sm">
               ${avatarHtml}
-              <div class="overflow-hidden flex-1 space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="font-bold text-xs text-white">${escapeHtml(member.name)}</span>
-                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.2 rounded">${escapeHtml(member.role)}</span>
+              <div class="overflow-hidden flex-1 space-y-1.5">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="font-bold text-xs sm:text-sm text-white truncate">${escapeHtml(member.name)}</span>
+                  <span class="text-[9px] bg-slate-800 text-indigo-300 border border-slate-700 px-1.5 py-0.5 rounded shrink-0">${escapeHtml(member.role)}</span>
                 </div>
-                <div class="text-[11px] text-slate-300 leading-snug prose prose-invert max-w-none">
+                <div class="text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
                   ${marked.parse(summary)}
                 </div>
               </div>
@@ -1026,21 +1023,22 @@
       }
     }
 
-    // AI Synthesizer for Character-by-Character Breakdown in Current Active Chapter
-    async function refreshActiveChapterCharacterArcs() {
+    // AI Synthesizer generating a cohesive 3-4 sentence paragraph summary of character journeys in current chapter
+    async function refreshActiveChapterCharacterArcs(silent = false) {
       if (!appState.apiKey) {
-        openModal('setupModal');
+        if (!silent) openModal('setupModal');
         return;
       }
       const active = getActiveScenario();
       const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
 
-      if (activeTurns.length === 0) {
-        alert("Start a conversation first before synthesizing character arcs.");
+      if (activeTurns.length < 2) {
+        if (!silent) alert("Play a few turns first before generating character action summaries.");
         return;
       }
 
-      showLoading(true, "Synthesizing individual character journeys...");
+      const btnText = document.getElementById('refreshArcsBtnText');
+      if (btnText) btnText.innerText = "Analyzing...";
 
       try {
         const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
@@ -1050,24 +1048,33 @@
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: For each character in the list below, write a 1-2 sentence summary of what happened to them, their reactions, and their emotional shifts during the current chapter:
+              text: `TASK: For EACH character in the list below, write a cohesive, descriptive 3 to 4 sentence paragraph summarizing their complete story arc, specific actions, statements, emotional changes, and relationship dynamics throughout the dialogue turns of Chapter ${active.currentChapter || 1}:
 
 CHARACTERS:
 ${castNames.join(', ')}
 
-DIALOGUE TURNS IN CURRENT CHAPTER:
+SCENARIO CONTEXT:
+${active.title} - ${active.setting || 'Narrative scene'}
+
+ALL DIALOGUE & ACTIONS IN CURRENT CHAPTER:
 ${dialogueText}
 
-OUTPUT FORMAT: Return strictly a valid JSON object mapping each character's exact name to their concise summary:
+CRITICAL RULES:
+1. Each character must receive a full 3–4 sentence narrative summary formatted like a story paragraph.
+2. Capture their major choices, body language, confessions, reactions to others, and psychological headspace.
+3. Do NOT simply quote their last line. Provide a synthesized retrospective of their entire chapter journey.
+4. Return ONLY a valid JSON object mapping each character's exact name to their 3–4 sentence summary string.
+
+JSON FORMAT:
 {
-  "${active.userPersona.name}": "Brief summary...",
-  "${active.characters[0]?.name || 'Companion'}": "Brief summary..."
+  "${active.userPersona.name}": "Sentence one detailing their initial actions. Sentence two on their main choices and dialogue. Sentence three regarding their emotional realization. Sentence four covering their current stance.",
+  "${active.characters[0]?.name || 'Companion'}": "Sentence one on what occurred with them. Sentence two detailing their reaction and physical behavior. Sentence three on how their dynamic with others shifted. Sentence four on where they stand right now."
 }`
             }]
           }],
           generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 600,
+            temperature: 0.35,
+            maxOutputTokens: 1200,
             responseMimeType: "application/json"
           }
         };
@@ -1079,17 +1086,20 @@ OUTPUT FORMAT: Return strictly a valid JSON object mapping each character's exac
           body: JSON.stringify(promptPayload)
         });
 
-        const data = await res.json();
-        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsedArcs = JSON.parse(rawJson.trim());
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const parsedArcs = JSON.parse(rawJson.trim());
 
-        active.activeChapterArcs = parsedArcs;
-        await saveState();
-        renderSelectedChapterSummary('active');
+          active.activeChapterArcs = parsedArcs;
+          await saveState();
+          renderSelectedChapterSummary('active');
+        }
       } catch (err) {
-        alert("Arc Analysis Notice: " + err.message);
+        console.warn("Arc synthesis error:", err.message);
+        if (!silent) alert("Character Arc Analysis Notice: " + err.message);
       } finally {
-        showLoading(false);
+        if (btnText) btnText.innerText = "Re-Analyze";
       }
     }
 
@@ -1445,6 +1455,7 @@ OUTPUT FORMAT: Return strictly a valid JSON object mapping each character's exac
       }
 
       activeTypewriter.isTyping = false;
+      active.activeChapterArcs = null;
       await saveState();
       renderMessages();
       renderScenariosList();
@@ -1575,7 +1586,7 @@ ${pastChaptersStr}
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
-    // Dynamic Token Archival with Per-Character Arc Extraction
+    // Dynamic Token Archival with Model-Synthesized 3-4 Sentence Per-Character Action Recaps
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
@@ -1602,12 +1613,12 @@ ${dialogueText}
 
 TASK: Return a JSON object with:
 1. "milestoneSummary": A 2-3 sentence overview of major plot and relationship shifts.
-2. "characterArcs": An object mapping each character (${castNames.join(', ')}) to a 1-2 sentence breakdown of what happened to them.`
+2. "characterArcs": An object mapping each character (${castNames.join(', ')}) to a full 3 to 4 sentence paragraph summarizing ALL their actions, decisions, emotional realizations, and relationship progression during this chapter.`
               }]
             }],
             generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 750,
+              temperature: 0.35,
+              maxOutputTokens: 1200,
               responseMimeType: "application/json"
             }
           };
@@ -1680,9 +1691,9 @@ TASK: Return a JSON object with:
 
         const promptParts = [];
 
-        if (active.userPersona.avatar && active.userPersona.avatar.startsWith('data:image')) {
-          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
-          const data = active.userPersona.avatar.split(',')[1];
+        if (appState.userPersona.avatar && appState.userPersona.avatar.startsWith('data:image')) {
+          const mime = appState.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = appState.userPersona.avatar.split(',')[1];
           promptParts.push({
             inlineData: { mimeType: mime, data: data }
           });
