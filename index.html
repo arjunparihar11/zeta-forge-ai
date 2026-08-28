@@ -235,7 +235,6 @@
           </div>
         </div>
 
-        <!-- Live Payload & Tokens In Chapter Drawer -->
         <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
@@ -350,7 +349,7 @@
               <span class="font-semibold text-indigo-300">💡 Tap an option to insert into text box:</span>
               <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
             </div>
-            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-48 overflow-y-auto no-scrollbar pb-1">
+            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto scroll-touch pb-1">
             </div>
           </div>
 
@@ -378,7 +377,7 @@
   </div>
 
   <!-- Center Screen: Character Spotlight Dossier Modal -->
-  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 header-safe bottom-safe">
+  <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
         &times;
@@ -437,11 +436,11 @@
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
       </div>
-      <div class="text-center">
+      <div class="text-center space-y-2 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-0.5">Tap anywhere outside or swipe down to return to dossier</p>
+        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
       </div>
     </div>
   </div>
@@ -590,9 +589,17 @@
 
   <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 hidden backdrop-blur-md">
-    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
-      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
-      <p id="lightboxCaption" class="mt-3 text-xs text-slate-300 italic text-center max-w-xl"></p>
+    <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+        &times;
+      </button>
+      <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[75vh] rounded-2xl object-contain shadow-2xl border border-slate-700" />
+      <div class="text-center space-y-2 w-full">
+        <p id="lightboxCaption" class="text-xs text-slate-300 italic max-w-xl mx-auto"></p>
+        <button onclick="setCurrentImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
+          <span>🖼️</span> <span>Set as Scenario Cover</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -619,7 +626,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v40';
+          const CACHE_NAME = 'zetaforge-v41';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -730,6 +737,8 @@
       isTyping: false,
       skipFlag: false
     };
+
+    let activeSuggestedReplies = [];
 
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
@@ -922,7 +931,7 @@
       return formatted;
     }
 
-    // AI Reply Generator (Now populates text box instead of auto-sending)
+    // AI Reply Generator with Direct Array Index Binding
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -993,18 +1002,17 @@ CRITICAL RULES:
         const choices = JSON.parse(rawJson.trim());
 
         if (Array.isArray(choices) && choices.length > 0) {
-          list.innerHTML = choices.map((choice, idx) => {
-            const formattedChoice = formatDialogueSpacing(choice);
-            return `
-              <button onclick="applySuggestedReply('${escapeJsString(formattedChoice)}')" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group">
-                <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold">
-                  <span>Option ${idx + 1}</span>
-                  <span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert into text box ✍️</span>
-                </div>
-                <p class="leading-relaxed text-slate-300 font-normal italic">${escapeHtml(formattedChoice).replace(/\n/g, '<br>')}</p>
-              </button>
-            `;
-          }).join('');
+          activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
+
+          list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
+            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
+              <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold pointer-events-none">
+                <span>Option ${idx + 1}</span>
+                <span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert ✍️</span>
+              </div>
+              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
+            </button>
+          `).join('');
 
           container.classList.remove('hidden');
         }
@@ -1016,12 +1024,14 @@ CRITICAL RULES:
       }
     }
 
-    // Populates text box for user adjustment instead of instantly sending
-    function applySuggestedReply(text) {
-      const inputEl = document.getElementById('userInput');
-      inputEl.value = text;
-      autoExpandTextarea(inputEl);
-      inputEl.focus();
+    // Drops suggestion text into user's textbox and dismisses suggestion container
+    function applySuggestedReply(index) {
+      if (activeSuggestedReplies && activeSuggestedReplies[index] !== undefined) {
+        const inputEl = document.getElementById('userInput');
+        inputEl.value = activeSuggestedReplies[index];
+        autoExpandTextarea(inputEl);
+        inputEl.focus();
+      }
       hideReplySuggestions();
     }
 
@@ -1030,7 +1040,7 @@ CRITICAL RULES:
     }
 
     // Interactive Character Spotlight Dossier Functions
-    function openCharacterSpotlight(characterName) {
+    async function openCharacterSpotlight(characterName) {
       if (!characterName || characterName === 'Narrator' || characterName === 'Scene') return;
 
       const active = getActiveScenario();
@@ -1134,6 +1144,75 @@ CRITICAL RULES:
     function closeCharacterSpotlight(event) {
       if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
       document.getElementById('characterSpotlightModal').classList.add('hidden');
+    }
+
+    async function updateInterCharacterRelationships() {
+      const active = getActiveScenario();
+      if (!appState.apiKey || active.characters.length === 0) return;
+
+      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      if (activeTurns.length < 3) return;
+
+      try {
+        const castList = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const dialogueText = activeTurns.slice(-15).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
+
+        const promptPayload = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `TASK: Analyze the current story interactions and update the dynamic relationship labels between all characters.
+
+CAST MEMBERS:
+${castList.join(', ')}
+
+RECENT DIALOGUE:
+${dialogueText}
+
+RULES:
+1. For each character in the cast, define their dynamic relationship label toward EVERY OTHER character in the cast.
+2. Labels must be purely descriptive (e.g. "Close confidant", "Playful rivalry", "Lingering tension", "Protective sibling", "Dating"). No numerical values.
+3. Return STRICTLY a JSON object mapping each character's name to an object of relationships with others:
+{
+  "CharacterName": {
+    "OtherCharacterName": "Relationship Label"
+  }
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 800,
+            responseMimeType: "application/json"
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptPayload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const parsedMap = JSON.parse(rawJson.trim());
+
+          for (let c of active.characters) {
+            if (parsedMap[c.name]) {
+              if (parsedMap[c.name][active.userPersona.name]) {
+                c.relationship = parsedMap[c.name][active.userPersona.name];
+              }
+              c.relationships = parsedMap[c.name];
+            }
+          }
+          await saveState();
+          renderSidebar();
+        }
+      } catch (e) {
+        console.warn("Inter-character relationship sync notice:", e);
+      }
     }
 
     function openCharacterPhotoModal(imageSrc, charName) {
@@ -1470,6 +1549,16 @@ JSON FORMAT:
 
     function closeModal(id) {
       document.getElementById(id).classList.add('hidden');
+    }
+
+    async function setCurrentImageAsScenarioCover() {
+      if (!currentLightboxImgSrc) return;
+      const active = getActiveScenario();
+      active.cover = currentLightboxImgSrc;
+      await saveState();
+      renderScenariosList();
+      alert(`🖼️ Success! Set this image as the cover preview for "${active.title}".`);
+      closeLightbox();
     }
 
     function handleImageUpload(event, target, charIndex = null) {
@@ -2034,6 +2123,199 @@ TASK: Return a JSON object with:
           showLoading(false);
         }
       }
+    }
+
+    async function generateSceneImage() {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        return;
+      }
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
+        alert("Start a story or send a message before generating a visual.");
+        return;
+      }
+
+      showLoading(true, "Analyzing cast appearances and scene layout...");
+
+      try {
+        const recentDialogue = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-8)
+          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+          .join('\n');
+
+        const castVisualProfiles = (active.characters || []).map(c => `
+- ${c.name}:
+  Role & Archetypes: ${c.role || 'Companion'}
+  Visual & Attire: ${c.personality || 'Standard appearance'}`
+        ).join('\n');
+
+        const promptParts = [];
+
+        if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
+          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = active.userPersona.avatar.split(',')[1];
+          promptParts.push({
+            inlineData: { mimeType: mime, data: data }
+          });
+        }
+
+        (active.characters || []).forEach(c => {
+          if (c.avatar && c.avatar.startsWith('data:image')) {
+            const mime = c.avatar.split(';')[0].split(':')[1];
+            const data = c.avatar.split(',')[1];
+            promptParts.push({
+              inlineData: { mimeType: mime, data: data }
+            });
+          }
+        });
+
+        const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
+
+[SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
+[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
+[CAST VISUAL DESCRIPTIONS]:
+${castVisualProfiles}
+
+[RECENT SCENE EVENTS & POSES]:
+${recentDialogue}
+
+REQUIREMENTS:
+1. Reference the exact hair, facial features, attire, and expressions of the focal characters currently in the scene.
+2. Specify exact physical positioning (e.g. who is sitting on the couch, leaning on the doorframe, holding a mug, etc.).
+3. Include cinematic lighting, atmospheric color palette, and depth of field.
+4. Keep the output prompt concise (35-50 words), high quality, anime/cinematic illustration style.
+5. Output ONLY the descriptive prompt text.`;
+
+        promptParts.push({ text: promptText });
+
+        const promptReqPayload = {
+          contents: [{
+            role: 'user',
+            parts: promptParts
+          }],
+          generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
+        };
+
+        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const promptRes = await fetch(promptEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptReqPayload)
+        });
+
+        const promptData = await promptRes.json().catch(() => ({}));
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (!visualPrompt || visualPrompt.length < 15) {
+          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+        }
+
+        showLoading(true, "Rendering character-consistent visual snapshot...");
+
+        let fullDataUrl = null;
+        try {
+          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const imagePayload = {
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, masterpiece" }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+          };
+
+          const imageRes = await fetch(imageEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(imagePayload)
+          });
+
+          if (imageRes.ok) {
+            const imgData = await imageRes.json();
+            const parts = imgData.candidates?.[0]?.content?.parts || [];
+            for (let p of parts) {
+              if (p.inlineData && p.inlineData.data) {
+                fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Direct model generation bypassed:", e);
+        }
+
+        if (!fullDataUrl) {
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed lighting, 16:9 aspect ratio");
+          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          
+          const imgBlobRes = await fetch(renderUrl);
+          if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
+          
+          const blob = await imgBlobRes.blob();
+          if (blob.size < 500) throw new Error("Generated image was invalid.");
+
+          fullDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        active.messages.push({
+          role: 'model',
+          isImage: true,
+          imageUrl: fullDataUrl,
+          prompt: visualPrompt,
+          text: `*${visualPrompt}*`,
+          timestamp: timeStr
+        });
+
+        if (!active.cover) active.cover = fullDataUrl;
+
+        await saveState();
+        renderMessages();
+        renderScenariosList();
+      } catch (err) {
+        alert("Visualizer Notice: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function buildApiContents(extraDirective = null) {
+      const active = getActiveScenario();
+      let lastDividerIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) {
+          lastDividerIdx = i;
+          break;
+        }
+      }
+
+      let activeSlice;
+      if (lastDividerIdx === -1) {
+        activeSlice = active.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-16);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        activeSlice = overlap.concat(currentTurns);
+      }
+
+      const contents = activeSlice.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+      }));
+
+      if (extraDirective) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: extraDirective }]
+        });
+      }
+
+      return contents;
     }
 
     async function handleUserSubmit(e) {
