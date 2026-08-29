@@ -630,7 +630,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v51';
+          const CACHE_NAME = 'zetaforge-v50';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1012,7 +1012,7 @@
       return Array.from(sideMap.values());
     }
 
-    // Fixed API Call: Valid JSON-safe strings without control character violations
+    // Resilient Reply Suggestion Engine (Schema Object + Multi-Tier Fallback)
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1042,22 +1042,42 @@
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Generate 3 distinct short response choices for {{user}} (${active.userPersona.name}) responding to the scene.
+              text: `TASK: Generate exactly 3 completely distinct dialogue and action response options for {{user}} (${active.userPersona.name}) to respond to the scene.
 
-USER: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
+USER DETAILS & PERSONALITY:
+- Name: ${active.userPersona.name}
+- Persona/Role: ${active.userPersona.role || 'Protagonist'} - ${active.userPersona.desc || 'Observant and quick-witted'}
+
 RECENT TURNS:
 ${recentDialogue}
 
-RULES:
-1. Make each option distinctly different in tone (e.g. witty/playful, emotional/vulnerable, bold/proactive).
-2. Separate actions in asterisks from dialogue with a newline.
-3. Return a valid JSON object with an array named "options" containing exactly 3 strings.`
+CRITICAL RULES:
+1. Make each option distinctly different in tone (e.g., Option A: playful teasing, Option B: vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
+2. FORMATTING: Separate actions in asterisks from spoken dialogue with a newline.
+3. Output STRICTLY a JSON object with an "options" array containing 3 response strings:
+{
+  "options": [
+    "*Action in asterisks*\\nDialogue text",
+    "*Action in asterisks*\\nDialogue text",
+    "*Action in asterisks*\\nDialogue text"
+  ]
+}`
             }]
           }],
           generationConfig: {
             temperature: 0.85,
             maxOutputTokens: 800,
-            responseMimeType: "application/json"
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                options: {
+                  type: "ARRAY",
+                  items: { type: "STRING" }
+                }
+              },
+              required: ["options"]
+            }
           }
         };
 
@@ -1074,6 +1094,7 @@ RULES:
 
         let parsedChoices = [];
 
+        // Tier 1: Direct JSON parsing
         try {
           const parsed = JSON.parse(rawText.trim());
           if (parsed && Array.isArray(parsed.options) && parsed.options.length > 0) {
@@ -1082,6 +1103,7 @@ RULES:
             parsedChoices = parsed;
           }
         } catch (e1) {
+          // Tier 2: Strip markdown fences
           try {
             const cleaned = rawText.trim()
               .replace(/^```json\s*/i, '')
@@ -1094,6 +1116,7 @@ RULES:
               parsedChoices = parsed;
             }
           } catch (e2) {
+            // Tier 3: Regex JSON array quote extractor
             const quoteMatches = rawText.match(/"((?:\\.|[^"\\])*)"/g);
             if (quoteMatches && quoteMatches.length >= 3) {
               parsedChoices = quoteMatches
@@ -1103,6 +1126,7 @@ RULES:
                   try { return JSON.parse(m); } catch(e) { return m.replace(/^"|"$/g, ''); }
                 });
             } else {
+              // Tier 4: Line-by-line fallback extractor
               const lines = rawText.split('\n')
                 .map(l => l.replace(/^[0-9]+[.)]\s*|^[-*]\s*/, '').trim())
                 .filter(l => l.length > 10 && !l.startsWith('{') && !l.startsWith('}'));
