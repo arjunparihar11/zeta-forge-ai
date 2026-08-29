@@ -163,7 +163,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel -->
+    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -314,11 +314,10 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar with Mode Toggle -->
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
-          <!-- Action Buttons with Dedicated Narrate Mode Toggle -->
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
@@ -344,7 +343,6 @@
             </div>
           </div>
 
-          <!-- Textarea & Mode Indicator -->
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
@@ -632,7 +630,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v48';
+          const CACHE_NAME = 'zetaforge-v49';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1014,6 +1012,7 @@
       return Array.from(sideMap.values());
     }
 
+    // Robust AI Reply Generator with Increased Buffer & Fallback Parser
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1054,20 +1053,19 @@ ${recentDialogue}
 
 CRITICAL RULES:
 1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
-2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
+2. FORMATTING: Separate actions in asterisks from dialogue with a newline break. Do NOT put quotation marks around spoken dialogue.
 3. Keep each choice concise (10 to 25 words).
-4. Output STRICTLY a JSON array of 3 strings:
-[
-  "*Action*\\nDialogue option 1 without quotes",
-  "*Action*\\nDialogue option 2 without quotes",
-  "*Action*\\nDialogue option 3 without quotes"
-]`
+4. Output STRICTLY a valid JSON array containing exactly 3 strings.`
             }]
           }],
           generationConfig: {
             temperature: 0.85,
-            maxOutputTokens: 350,
-            responseMimeType: "application/json"
+            maxOutputTokens: 800,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "ARRAY",
+              items: { type: "STRING" }
+            }
           }
         };
 
@@ -1081,7 +1079,26 @@ CRITICAL RULES:
         if (!res.ok) throw new Error("Failed to generate suggestion paths.");
         const data = await res.json();
         const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        const choices = JSON.parse(rawJson.trim());
+        
+        let choices = [];
+        try {
+          choices = JSON.parse(rawJson.trim());
+        } catch (parseErr) {
+          const cleaned = rawJson.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/, '');
+          try {
+            choices = JSON.parse(cleaned);
+          } catch (e2) {
+            const matches = cleaned.match(/"((?:\\.|[^"\\])*)"/g);
+            if (matches && matches.length > 0) {
+              choices = matches.map(m => {
+                try { return JSON.parse(m); } catch(e3) { return m.replace(/^"|"$/g, ''); }
+              });
+            }
+          }
+        }
 
         if (Array.isArray(choices) && choices.length > 0) {
           activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
@@ -1097,6 +1114,8 @@ CRITICAL RULES:
           `).join('');
 
           container.classList.remove('hidden');
+        } else {
+          throw new Error("Could not parse suggestion options from response.");
         }
       } catch (err) {
         alert("Reply Suggestion Notice: " + err.message);
@@ -1309,7 +1328,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1387,7 +1406,7 @@ RULES:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1720,7 +1739,7 @@ JSON FORMAT:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2254,7 +2273,7 @@ Spoken dialogue goes here.
       }
 
       const model = appState.model || 'gemini-3.6-flash';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
 
       const payload = {
         contents: contentsArray,
@@ -2370,7 +2389,7 @@ TASK: Return a JSON object with:
             }
           };
 
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const summaryRes = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2483,7 +2502,7 @@ REQUIREMENTS:
           generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
         };
 
-        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const promptEndpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const promptRes = await fetch(promptEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2501,7 +2520,7 @@ REQUIREMENTS:
 
         let fullDataUrl = null;
         try {
-          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const imageEndpoint = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=$){encodeURIComponent(appState.apiKey)}`;
           const imagePayload = {
             contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, masterpiece" }] }],
             generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
@@ -2529,7 +2548,7 @@ REQUIREMENTS:
 
         if (!fullDataUrl) {
           const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed lighting, 16:9 aspect ratio");
-          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          const renderUrl = `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
           
           const imgBlobRes = await fetch(renderUrl);
           if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
@@ -2641,7 +2660,6 @@ REQUIREMENTS:
       inputEl.value = '';
       inputEl.style.height = '42px';
 
-      // Reset narration toggle after sending
       if (isNarrationActive) {
         toggleNarrationMode();
       }
