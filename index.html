@@ -627,7 +627,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v47';
+          const CACHE_NAME = 'zetaforge-v46';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1818,6 +1818,7 @@ JSON FORMAT:
           </div>
           <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
 
+          <!-- Inter-Character Dynamic Relationship Override Matrix -->
           <div class="pt-2 border-t border-slate-800/80 space-y-2">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">🔗 Relationships to Other Cast (Manual Override)</span>
             <div class="space-y-1.5">
@@ -1892,17 +1893,15 @@ JSON FORMAT:
       }
     }
 
-    // Avatar Renderer with side-cast styling and narrator exclusion
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
       const safeName = escapeHtml(speakerName || '?');
       const initial = (speakerName || '?')[0].toUpperCase();
-      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
 
-      if (!isNarrator && isUser && active.userPersona?.avatar) {
+      if (isUser && active.userPersona?.avatar) {
         avatarSrc = active.userPersona.avatar;
-      } else if (!isNarrator && active.characters) {
+      } else if (active.characters) {
         const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
         if (found && found.avatar) {
           avatarSrc = found.avatar;
@@ -1918,16 +1917,15 @@ JSON FORMAT:
       }
 
       const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
     function handleAvatarError(imgEl, speakerName, isUser, size) {
       const active = getActiveScenario();
       const initial = (speakerName || '?')[0].toUpperCase();
-      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
       const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
 
       const div = document.createElement('div');
@@ -2075,9 +2073,9 @@ JSON FORMAT:
           `;
         }
 
-        const speaker = m.speakerName || (m.role === 'user' ? (active.userPersona.name || 'You') : 'Narrator');
+        const isUser = m.role === 'user';
+        const speaker = m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Narrator');
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const isUser = !isNarrator && (m.role === 'user' || speaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
@@ -2599,7 +2597,7 @@ REQUIREMENTS:
           const cleanNarration = seg.replace(/^@:\s*/, '').trim();
           if (cleanNarration) {
             active.messages.push({
-              role: 'model',
+              role: 'user',
               speakerName: 'Narrator',
               text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
               timestamp: timeStr
