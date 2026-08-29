@@ -163,7 +163,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
+    <!-- Left Sidebar: Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -187,7 +187,7 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Paragraph Character Summaries -->
+    <!-- Right Drawer 1: Chapter Chronicle & Arcs -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -314,7 +314,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar -->
+      <!-- Bottom Chat Bar with Mode Toggle -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
@@ -325,18 +325,21 @@
             <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>💡</span> <span>Suggest</span>
             </button>
+            <button onclick="toggleNarrationMode()" id="narrateModeBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>📖</span> <span id="narrateBtnLabel">Narrate</span>
+            </button>
             <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>⏩</span> <span>Continue</span>
             </button>
           </div>
 
-          <!-- Dynamic Vertical Reply Suggestions Stack -->
+          <!-- Dynamic Vertical Reply Suggestions Stack with Expanded Height & Safe Scrolling -->
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
             <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
               <span class="font-semibold text-indigo-300">💡 Tap an option to insert into text box:</span>
               <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
             </div>
-            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto scroll-touch pb-1">
+            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-52 sm:max-h-64 overflow-y-auto scroll-touch pb-1 pr-0.5">
             </div>
           </div>
 
@@ -344,7 +347,7 @@
             <textarea
               id="userInput"
               rows="1"
-              placeholder="Describe action, speak, or use @: to narrate..."
+              placeholder="Describe action, speak, or toggle Narrate..."
               class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
@@ -447,7 +450,7 @@
     </div>
   </div>
 
-  <!-- Setup Modal with Character Relationship Override Matrix -->
+  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -627,7 +630,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v46';
+          const CACHE_NAME = 'zetaforge-v49';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -743,6 +746,25 @@
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
+    let isNarrationActive = false;
+
+    function toggleNarrationMode() {
+      isNarrationActive = !isNarrationActive;
+      const btn = document.getElementById('narrateModeBtn');
+      const label = document.getElementById('narrateBtnLabel');
+      const input = document.getElementById('userInput');
+
+      if (isNarrationActive) {
+        btn.className = "bg-amber-950 text-amber-300 border border-amber-600 text-xs font-medium px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0 ring-1 ring-amber-500/50";
+        label.innerText = "Narrating";
+        input.placeholder = "Describe narrative environment, pacing, or scene change...";
+      } else {
+        btn.className = "bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0";
+        label.innerText = "Narrate";
+        input.placeholder = "Describe action, speak, or toggle Narrate...";
+      }
+      input.focus();
+    }
 
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
@@ -990,6 +1012,7 @@
       return Array.from(sideMap.values());
     }
 
+    // AI Reply Generator with Increased Output Capacity & Safe UI Scrolling
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1031,7 +1054,7 @@ ${recentDialogue}
 CRITICAL RULES:
 1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
 2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
-3. Keep each choice concise (10 to 25 words).
+3. Provide rich, complete, and engaging responses (aim for 25 to 65 words per option).
 4. Output STRICTLY a JSON array of 3 strings:
 [
   "*Action*\\nDialogue option 1 without quotes",
@@ -1042,7 +1065,7 @@ CRITICAL RULES:
           }],
           generationConfig: {
             temperature: 0.85,
-            maxOutputTokens: 350,
+            maxOutputTokens: 800,
             responseMimeType: "application/json"
           }
         };
@@ -1063,12 +1086,12 @@ CRITICAL RULES:
           activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
 
           list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
-            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
+            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3.5 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1.5 group cursor-pointer shrink-0">
               <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold pointer-events-none">
                 <span>Option ${idx + 1}</span>
                 <span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert ✍️</span>
               </div>
-              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
+              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none whitespace-normal break-words">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
             </button>
           `).join('');
 
@@ -1818,7 +1841,6 @@ JSON FORMAT:
           </div>
           <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
 
-          <!-- Inter-Character Dynamic Relationship Override Matrix -->
           <div class="pt-2 border-t border-slate-800/80 space-y-2">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">🔗 Relationships to Other Cast (Manual Override)</span>
             <div class="space-y-1.5">
@@ -1898,10 +1920,11 @@ JSON FORMAT:
       let avatarSrc = '';
       const safeName = escapeHtml(speakerName || '?');
       const initial = (speakerName || '?')[0].toUpperCase();
+      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
 
-      if (isUser && active.userPersona?.avatar) {
+      if (!isNarrator && isUser && active.userPersona?.avatar) {
         avatarSrc = active.userPersona.avatar;
-      } else if (active.characters) {
+      } else if (!isNarrator && active.characters) {
         const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
         if (found && found.avatar) {
           avatarSrc = found.avatar;
@@ -1917,15 +1940,16 @@ JSON FORMAT:
       }
 
       const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
     function handleAvatarError(imgEl, speakerName, isUser, size) {
       const active = getActiveScenario();
       const initial = (speakerName || '?')[0].toUpperCase();
+      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
       const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = isUser ? 'bg-indigo-600 text-white' : (speakerName === 'Narrator' || speakerName === 'Scene' ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
 
       const div = document.createElement('div');
@@ -2073,9 +2097,9 @@ JSON FORMAT:
           `;
         }
 
-        const isUser = m.role === 'user';
-        const speaker = m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Narrator');
+        const speaker = m.speakerName || (m.role === 'user' ? (active.userPersona.name || 'You') : 'Narrator');
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
+        const isUser = !isNarrator && (m.role === 'user' || speaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
@@ -2593,21 +2617,21 @@ REQUIREMENTS:
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
 
       segments.forEach(seg => {
-        if (seg.startsWith('@:')) {
-          const cleanNarration = seg.replace(/^@:\s*/, '').trim();
-          if (cleanNarration) {
-            active.messages.push({
-              role: 'user',
-              speakerName: 'Narrator',
-              text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
-              timestamp: timeStr
-            });
-          }
+        const isExplicitTag = seg.startsWith('@:');
+        const cleanContent = isExplicitTag ? seg.replace(/^@:\s*/, '').trim() : seg;
+
+        if (isNarrationActive || isExplicitTag) {
+          active.messages.push({
+            role: 'model',
+            speakerName: 'Narrator',
+            text: cleanContent.startsWith('*') ? cleanContent : `*${cleanContent}*`,
+            timestamp: timeStr
+          });
         } else {
           active.messages.push({
             role: 'user',
             speakerName: active.userPersona.name,
-            text: formatDialogueSpacing(seg),
+            text: formatDialogueSpacing(cleanContent),
             timestamp: timeStr
           });
         }
@@ -2615,6 +2639,11 @@ REQUIREMENTS:
 
       inputEl.value = '';
       inputEl.style.height = '42px';
+
+      if (isNarrationActive) {
+        toggleNarrationMode();
+      }
+
       await saveState();
       renderMessages();
       renderSidebar();
@@ -2718,10 +2747,11 @@ REQUIREMENTS:
       for (let b of blocks) {
         const speakerLower = b.speaker.toLowerCase();
         const isUser = speakerLower === 'me' || speakerLower === 'you' || speakerLower === userName;
+        const isNarrator = speakerLower === 'narrator' || speakerLower === 'scene';
 
         parsedMessages.push({
           role: isUser ? 'user' : 'model',
-          speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
+          speakerName: isUser ? (active.userPersona.name || 'Me') : (isNarrator ? 'Narrator' : b.speaker),
           text: formatDialogueSpacing(b.text),
           timestamp: 'Imported'
         });
