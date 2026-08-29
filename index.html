@@ -244,7 +244,7 @@
       </div>
     </div>
 
-    <!-- Right Drawer 2: Dedicated Scenarios Menu -->
+    <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu -->
     <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
         <div class="flex items-center justify-between">
@@ -306,7 +306,7 @@
         </div>
       </div>
 
-      <!-- Typing Indicator -->
+      <!-- Typing / Generating Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -314,10 +314,11 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar -->
+      <!-- Bottom Chat Bar with Mode Toggle -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
+          <!-- Action Buttons with Dedicated Narrate Mode Toggle -->
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
@@ -343,6 +344,7 @@
             </div>
           </div>
 
+          <!-- Textarea & Mode Indicator -->
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
@@ -365,7 +367,7 @@
     </main>
   </div>
 
-  <!-- Character Spotlight Modal -->
+  <!-- Center Screen: Character Spotlight Dossier Modal -->
   <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
@@ -630,7 +632,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v52';
+          const CACHE_NAME = 'zetaforge-v48';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1041,28 +1043,30 @@
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Generate exactly 3 completely distinct dialogue and action response options for {{user}} (${active.userPersona.name}) to respond to the scene.
+              text: `TASK: Generate exactly 3 completely distinct dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
 
-USER: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
+USER DETAILS & PERSONALITY:
+- Name: ${active.userPersona.name}
+- Persona/Role: ${active.userPersona.role || 'Protagonist'} - ${active.userPersona.desc || 'Observant and quick-witted'}
+
 RECENT TURNS:
 ${recentDialogue}
 
-RULES:
-1. Make each option distinctly different in tone (e.g. witty/playful, emotional/vulnerable, bold/proactive).
-2. Separate actions in asterisks from dialogue with a newline.
-3. Output STRICTLY a JSON object with an "options" array containing 3 response strings:
-{
-  "options": [
-    "*Action in asterisks*\\nDialogue text",
-    "*Action in asterisks*\\nDialogue text",
-    "*Action in asterisks*\\nDialogue text"
-  ]
-}`
+CRITICAL RULES:
+1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
+2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
+3. Keep each choice concise (10 to 25 words).
+4. Output STRICTLY a JSON array of 3 strings:
+[
+  "*Action*\\nDialogue option 1 without quotes",
+  "*Action*\\nDialogue option 2 without quotes",
+  "*Action*\\nDialogue option 3 without quotes"
+]`
             }]
           }],
           generationConfig: {
             temperature: 0.85,
-            maxOutputTokens: 800,
+            maxOutputTokens: 350,
             responseMimeType: "application/json"
           }
         };
@@ -1074,62 +1078,13 @@ RULES:
           body: JSON.stringify(promptPayload)
         });
 
-        const rawText = await res.text();
-        let data = {};
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          throw new Error(`Invalid response format from server (${res.status})`);
-        }
+        if (!res.ok) throw new Error("Failed to generate suggestion paths.");
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        const choices = JSON.parse(rawJson.trim());
 
-        if (!res.ok) {
-          throw new Error(data.error?.message || `API error ${res.status}`);
-        }
-
-        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        let parsedChoices = [];
-
-        try {
-          const parsed = JSON.parse(candidateText.trim());
-          if (parsed && Array.isArray(parsed.options) && parsed.options.length > 0) {
-            parsedChoices = parsed.options;
-          } else if (Array.isArray(parsed) && parsed.length > 0) {
-            parsedChoices = parsed;
-          }
-        } catch (e1) {
-          try {
-            const cleaned = candidateText.trim()
-              .replace(/^```json\s*/i, '')
-              .replace(/^```\s*/i, '')
-              .replace(/\s*```$/, '');
-            const parsed = JSON.parse(cleaned);
-            if (parsed && Array.isArray(parsed.options)) {
-              parsedChoices = parsed.options;
-            } else if (Array.isArray(parsed)) {
-              parsedChoices = parsed;
-            }
-          } catch (e2) {
-            const quoteMatches = candidateText.match(/"((?:\\.|[^"\\])*)"/g);
-            if (quoteMatches && quoteMatches.length >= 3) {
-              parsedChoices = quoteMatches
-                .filter(m => !m.includes('"options"'))
-                .slice(0, 3)
-                .map(m => {
-                  try { return JSON.parse(m); } catch(e) { return m.replace(/^"|"$/g, ''); }
-                });
-            } else {
-              const lines = candidateText.split('\n')
-                .map(l => l.replace(/^[0-9]+[.)]\s*|^[-*]\s*/, '').trim())
-                .filter(l => l.length > 10 && !l.startsWith('{') && !l.startsWith('}'));
-              if (lines.length > 0) {
-                parsedChoices = lines.slice(0, 3);
-              }
-            }
-          }
-        }
-
-        if (Array.isArray(parsedChoices) && parsedChoices.length > 0) {
-          activeSuggestedReplies = parsedChoices.map(c => formatDialogueSpacing(c));
+        if (Array.isArray(choices) && choices.length > 0) {
+          activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
 
           list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
             <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
@@ -1142,8 +1097,6 @@ RULES:
           `).join('');
 
           container.classList.remove('hidden');
-        } else {
-          throw new Error("Unable to parse suggestion options.");
         }
       } catch (err) {
         alert("Reply Suggestion Notice: " + err.message);
@@ -1356,24 +1309,17 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           }
         };
 
-        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(promptPayload)
         });
 
-        const rawText = await res.text();
-        let data = {};
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          throw new Error("Invalid response from server.");
-        }
-
-        if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
-        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsed = JSON.parse(candidateText.trim());
+        if (!res.ok) throw new Error("Failed to generate profile.");
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const parsed = JSON.parse(rawJson.trim());
 
         const newChar = {
           id: 'char_' + Date.now(),
@@ -1441,30 +1387,29 @@ RULES:
           }
         };
 
-        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(promptPayload)
         });
 
-        const rawText = await res.text();
-        if (!res.ok) return;
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const parsedMap = JSON.parse(rawJson.trim());
 
-        const data = JSON.parse(rawText);
-        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsedMap = JSON.parse(candidateText.trim());
-
-        for (let c of active.characters) {
-          if (parsedMap[c.name]) {
-            if (parsedMap[c.name][active.userPersona.name]) {
-              c.relationship = parsedMap[c.name][active.userPersona.name];
+          for (let c of active.characters) {
+            if (parsedMap[c.name]) {
+              if (parsedMap[c.name][active.userPersona.name]) {
+                c.relationship = parsedMap[c.name][active.userPersona.name];
+              }
+              c.relationships = parsedMap[c.name];
             }
-            c.relationships = parsedMap[c.name];
           }
+          await saveState();
+          renderSidebar();
         }
-        await saveState();
-        renderSidebar();
       } catch (e) {
         console.warn("Relationship sync notice:", e);
       }
@@ -1775,23 +1720,22 @@ JSON FORMAT:
           }
         };
 
-        const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(promptPayload)
         });
 
-        const rawText = await res.text();
-        if (!res.ok) throw new Error(`API error ${res.status}`);
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const parsedArcs = JSON.parse(rawJson.trim());
 
-        const data = JSON.parse(rawText);
-        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsedArcs = JSON.parse(rawJson.trim());
-
-        active.activeChapterArcs = parsedArcs;
-        await saveState();
-        renderSelectedChapterSummary('active');
+          active.activeChapterArcs = parsedArcs;
+          await saveState();
+          renderSelectedChapterSummary('active');
+        }
       } catch (err) {
         console.warn("Arc synthesis error:", err.message);
         if (!silent) alert("Character Arc Analysis Notice: " + err.message);
@@ -1866,43 +1810,6 @@ JSON FORMAT:
       if (targetName.toLowerCase() === (active.userPersona.name || 'User').toLowerCase()) {
         char.relationship = value;
       }
-    }
-
-    // Safe Non-Lookbehind Speaker Tokenizer for Safari / WebKit Compatibility
-    function parsePlainTextIntoBlocks(text) {
-      if (!text) return [{ speaker: 'Narrator', text: '' }];
-      const active = getActiveScenario();
-
-      const knownNames = ['Narrator', 'Scene', ...(active.characters || []).map(c => c.name).filter(Boolean)];
-      const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-      
-      const pattern = new RegExp('(?:^|\\n)([A-Za-z0-9_ ]+):\\s*', 'g');
-
-      const blocks = [];
-      let lastIndex = 0;
-      let currentSpeaker = 'Narrator';
-      let match;
-
-      while ((match = pattern.exec(text)) !== null) {
-        const potentialSpeaker = match[1].trim();
-        const isKnown = knownNames.some(k => k.toLowerCase() === potentialSpeaker.toLowerCase());
-
-        if (isKnown) {
-          const preceding = text.slice(lastIndex, match.index).trim();
-          if (preceding) {
-            blocks.push({ speaker: currentSpeaker, text: preceding });
-          }
-          currentSpeaker = potentialSpeaker;
-          lastIndex = pattern.lastIndex;
-        }
-      }
-
-      const remaining = text.slice(lastIndex).trim();
-      if (remaining) {
-        blocks.push({ speaker: currentSpeaker, text: remaining });
-      }
-
-      return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
     function renderCharacterCardsSetup() {
@@ -2009,6 +1916,693 @@ JSON FORMAT:
       }
     }
 
+    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
+      const active = getActiveScenario();
+      let avatarSrc = '';
+      const safeName = escapeHtml(speakerName || '?');
+      const initial = (speakerName || '?')[0].toUpperCase();
+      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
+
+      if (!isNarrator && isUser && active.userPersona?.avatar) {
+        avatarSrc = active.userPersona.avatar;
+      } else if (!isNarrator && active.characters) {
+        const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
+        if (found && found.avatar) {
+          avatarSrc = found.avatar;
+        }
+      }
+
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
+      const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
+      const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
+
+      if (avatarSrc) {
+        return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
+      }
+
+      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
+    }
+
+    function handleAvatarError(imgEl, speakerName, isUser, size) {
+      const active = getActiveScenario();
+      const initial = (speakerName || '?')[0].toUpperCase();
+      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
+      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
+
+      const div = document.createElement('div');
+      div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60`;
+      div.innerText = initial;
+
+      if (isInteractive) {
+        div.onclick = (e) => {
+          e.stopPropagation();
+          openCharacterSpotlight(speakerName);
+        };
+      }
+      imgEl.replaceWith(div);
+    }
+
+    function renderSidebar() {
+      const active = getActiveScenario();
+      document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
+      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
+      document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
+      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
+
+      const sideCharacters = getDynamicSideCharacters();
+      document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
+
+      const userAvatarContainer = document.getElementById('sidebarUserAvatar');
+      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
+
+      const list = document.getElementById('sidebarCharacterList');
+      if (active.characters.length === 0 && sideCharacters.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.<br>Tap <strong>Setup</strong> above to add cast.</div>`;
+        return;
+      }
+
+      let html = '';
+
+      if (active.characters.length > 0) {
+        html += `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Cast</span>
+              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${active.characters.length}</span>
+            </div>
+            <div class="space-y-2.5">
+              ${active.characters.map(c => `
+                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
+                  <div class="flex items-start gap-2.5">
+                    ${getAvatarHtml(c.name, false, 'w-10 h-10')}
+                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                      <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
+                      ${c.role ? `
+                        <div class="flex flex-wrap gap-1">
+                          <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
+                            ${escapeHtml(c.role)}
+                          </span>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                  ${c.personality ? `<p class="text-[11px] text-slate-300 leading-relaxed pt-0.5">${escapeHtml(c.personality)}</p>` : ''}
+                  ${c.relationship ? `<div class="text-[10px] text-indigo-400/90 pt-1.5 border-t border-slate-800/80 flex items-center gap-1">🔗 <span class="truncate">${escapeHtml(c.relationship)}</span></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (sideCharacters.length > 0) {
+        html += `
+          <div class="space-y-2 pt-1 border-t border-slate-800/80">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Side Characters (Present)</span>
+              <span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 py-0.2 rounded">${sideCharacters.length}</span>
+            </div>
+            <div class="space-y-2">
+              ${sideCharacters.map(name => `
+                <div class="p-2.5 bg-slate-900/80 rounded-xl border border-dashed border-slate-700/80 hover:border-indigo-500/60 transition flex items-center justify-between gap-2.5 cursor-pointer group" onclick="openCharacterSpotlight('${escapeJsString(name)}')">
+                  <div class="flex items-center gap-2.5 overflow-hidden min-w-0">
+                    ${getAvatarHtml(name, false, 'w-8 h-8')}
+                    <div class="overflow-hidden">
+                      <div class="font-bold text-xs text-amber-200 truncate group-hover:underline">${escapeHtml(name)}</div>
+                      <div class="text-[10px] text-slate-400 truncate">Tap to promote to Main Cast</div>
+                    </div>
+                  </div>
+                  <span class="text-xs text-indigo-400 opacity-0 group-hover:opacity-100 transition shrink-0 pr-1">✨</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      list.innerHTML = html;
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('messagesContainer');
+      const active = getActiveScenario();
+
+      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
+
+      if (active.messages.length === 0) {
+        container.innerHTML = `
+          <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
+            <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
+            <p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p>
+            <button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow">Configure & Start</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = active.messages.map((m, index) => {
+        if (m.isChapterDivider) {
+          return `
+            <div class="my-6 flex items-center gap-3">
+              <div class="flex-1 h-px bg-slate-800"></div>
+              <div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">
+                📖 ${escapeHtml(m.text)}
+              </div>
+              <div class="flex-1 h-px bg-slate-800"></div>
+            </div>
+          `;
+        }
+
+        if (m.isImage) {
+          return `
+            <div class="my-3 flex flex-col items-center max-w-xl mx-auto w-full group">
+              <div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden">
+                <div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold">
+                  <span class="flex items-center gap-1.5">🎬 Scene Visual Snapshot</span>
+                  <span class="text-[10px] text-slate-500 font-normal">${m.timestamp || ''}</span>
+                </div>
+                <div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl)}', '${escapeJsString(m.text || m.prompt || '')}')">
+                  <img src="${m.imageUrl}" alt="Visualized Scene" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                </div>
+                ${m.text ? `<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>` : ''}
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button>
+              </div>
+            </div>
+          `;
+        }
+
+        const speaker = m.speakerName || (m.role === 'user' ? (active.userPersona.name || 'You') : 'Narrator');
+        const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
+        const isUser = !isNarrator && (m.role === 'user' || speaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
+        const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
+        
+        const cleanContent = formatDialogueSpacing((m.text || '').trim());
+        const renderedHtml = marked.parse(cleanContent);
+
+        return `
+          <div id="msg-${index}" class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
+            ${!isUser ? avatarHtml : ''}
+            <div class="max-w-[88%] sm:max-w-[80%]">
+              <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
+                <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
+                <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
+              </div>
+              <div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+                ${renderedHtml}
+              </div>
+              <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
+                ${!isUser ? `<button onclick="regenerateTurn(${index})" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>` : ''}
+                <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button>
+              </div>
+            </div>
+            ${isUser ? avatarHtml : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function playSequentialTypewriter(replyBlocks) {
+      activeTypewriter.isTyping = true;
+      activeTypewriter.skipFlag = false;
+
+      const container = document.getElementById('messagesContainer');
+      const emptyState = document.getElementById('emptyState');
+      if (emptyState) emptyState.remove();
+
+      const active = getActiveScenario();
+
+      for (let block of replyBlocks) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const speaker = block.speaker || 'Narrator';
+        const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
+        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
+        const fullText = formatDialogueSpacing((block.text || '').trim());
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
+        wrapper.innerHTML = `
+          ${avatarHtml}
+          <div class="max-w-[88%] sm:max-w-[80%]">
+            <div class="flex items-center gap-2 mb-1 justify-start">
+              <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
+              <span class="text-[9px] sm:text-[10px] text-slate-500">${timeStr}</span>
+            </div>
+            <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm">
+            </div>
+          </div>
+        `;
+        container.appendChild(wrapper);
+        container.scrollTop = container.scrollHeight;
+
+        const bubbleBody = wrapper.querySelector('.bubble-body');
+
+        let visibleChars = 0;
+        const totalChars = fullText.length;
+        const step = 3;
+
+        while (visibleChars < totalChars) {
+          if (activeTypewriter.skipFlag) {
+            visibleChars = totalChars;
+          } else {
+            visibleChars = Math.min(visibleChars + step, totalChars);
+            await new Promise(r => setTimeout(r, 16));
+          }
+
+          bubbleBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
+          container.scrollTop = container.scrollHeight;
+        }
+
+        bubbleBody.classList.remove('typing-cursor');
+
+        active.messages.push({
+          role: 'model',
+          speakerName: speaker,
+          text: fullText,
+          timestamp: timeStr
+        });
+
+        if (!activeTypewriter.skipFlag) {
+          await new Promise(r => setTimeout(r, 220));
+        }
+      }
+
+      activeTypewriter.isTyping = false;
+      active.activeChapterArcs = null;
+      await saveState();
+      renderMessages();
+      renderSidebar();
+      renderScenariosList();
+      updateInterCharacterRelationships();
+    }
+
+    function buildSystemInstruction() {
+      const active = getActiveScenario();
+      const charListStr = active.characters.map(c => `
+- Name: ${c.name}
+  Role: ${c.role}
+  Appearance & Personality: ${c.personality}
+  Relationship to ${active.userPersona.name}: ${c.relationship}
+`).join('\n');
+
+      const pastChaptersStr = (active.archivedRecaps || []).length > 0 
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).join('\n\n')}\n` 
+        : '';
+
+      return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
+
+[USER PERSONA]:
+- Name: ${active.userPersona.name}
+- Role: ${active.userPersona.role || 'Protagonist'}
+- Details & Appearance: ${active.userPersona.desc || 'Main character'}
+
+[MAIN CAST]:
+${charListStr || 'Portray distinct, lively characters suited to the scene.'}
+
+[WORLD & SCENARIO]:
+${active.setting || 'An open roleplay world.'}
+${pastChaptersStr}
+[CRITICAL OUTPUT RULES]:
+1. NEVER speak or act for {{user}} (${active.userPersona.name}).
+2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker". Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
+3. DIALOGUE FORMATTING: Place character actions enclosed in asterisks (*...*) on their own line, with dialogue placed naturally on the next line. Quotation marks around dialogue are optional and not required.
+Example:
+*Sensory action or physical movement.*
+Spoken dialogue goes here.
+
+4. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker" and "text" keys:
+[
+  {
+    "speaker": "CharacterName or Narrator",
+    "text": "*Action in asterisks*\\nDialogue text"
+  }
+]`;
+    }
+
+    async function callGeminiApi(contentsArray) {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        throw new Error("Enter your Gemini API key in setup.");
+      }
+
+      const model = appState.model || 'gemini-3.6-flash';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+
+      const payload = {
+        contents: contentsArray,
+        systemInstruction: { parts: [{ text: buildSystemInstruction() }] },
+        generationConfig: {
+          temperature: appState.temperature || 0.85,
+          maxOutputTokens: 1500,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                speaker: { type: "STRING" },
+                text: { type: "STRING" }
+              },
+              required: ["speaker", "text"]
+            }
+          }
+        }
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      try {
+        const parsed = JSON.parse(rawOutput.trim());
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(b => b.text && b.text.trim());
+        }
+      } catch (e) {
+        return parsePlainTextIntoBlocks(rawOutput);
+      }
+
+      return parsePlainTextIntoBlocks(rawOutput);
+    }
+
+    function parsePlainTextIntoBlocks(text) {
+      if (!text) return [{ speaker: 'Narrator', text: '' }];
+      const active = getActiveScenario();
+
+      const knownNames = ['Narrator', 'Scene', ...(active.characters || []).map(c => c.name).filter(Boolean)];
+      const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      
+      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))(${namesPattern}):`, 'g');
+
+      const blocks = [];
+      let lastIndex = 0;
+      let currentSpeaker = 'Narrator';
+      let match;
+
+      while ((match = splitterRegex.exec(text)) !== null) {
+        const precedingText = text.slice(lastIndex, match.index).trim();
+        if (precedingText) {
+          blocks.push({ speaker: currentSpeaker, text: precedingText });
+        }
+        currentSpeaker = match[1];
+        lastIndex = splitterRegex.lastIndex;
+      }
+
+      const remainingText = text.slice(lastIndex).trim();
+      if (remainingText) {
+        blocks.push({ speaker: currentSpeaker, text: remainingText });
+      }
+
+      return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
+    }
+
+    async function checkAndTriggerChapterArchival() {
+      const currentTokens = getActiveRawTokens();
+      const threshold = appState.tokenThreshold || 120000;
+      const active = getActiveScenario();
+
+      if (currentTokens >= threshold) {
+        showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${active.currentChapter}...`);
+        try {
+          const activeRawTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          const dialogueText = activeRawTurns
+            .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+            .join('\n');
+          const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+
+          const summaryReqPayload = {
+            contents: [{
+              role: 'user',
+              parts: [{
+                text: `Summarize the following entire roleplay chapter for Chapter ${active.currentChapter || 1}:
+
+[SCENARIO]: ${active.title}
+[DIALOGUE TURNS]:
+${dialogueText}
+
+TASK: Return a JSON object with:
+1. "milestoneSummary": A 2-3 sentence overview of major plot and relationship shifts.
+2. "characterArcs": An object mapping each character (${castNames.join(', ')}) to a full 3 to 4 sentence paragraph summarizing ALL their actions, decisions, emotional realizations, and relationship progression during this chapter.`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 1200,
+              responseMimeType: "application/json"
+            }
+          };
+
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const summaryRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(summaryReqPayload)
+          });
+
+          const summaryData = await summaryRes.json();
+          const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          let parsed = {};
+          try { parsed = JSON.parse(rawJson.trim()); } catch(e){}
+
+          if (!active.archivedRecaps) active.archivedRecaps = [];
+          active.archivedRecaps.push({
+            chapterNum: active.currentChapter,
+            milestoneSummary: parsed.milestoneSummary || `Chapter ${active.currentChapter} concluded.`,
+            characterArcs: parsed.characterArcs || active.activeChapterArcs || {}
+          });
+
+          active.activeChapterArcs = null;
+
+          active.messages.push({
+            isChapterDivider: true,
+            text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+
+          active.currentChapter = (active.currentChapter || 1) + 1;
+          await saveState();
+          renderMessages();
+          populateChapterChronicle();
+          renderScenariosList();
+        } catch (e) {
+          console.warn("Dynamic token archival skipped:", e.message);
+        } finally {
+          showLoading(false);
+        }
+      }
+    }
+
+    async function generateSceneImage() {
+      if (!appState.apiKey) {
+        openModal('setupModal');
+        return;
+      }
+      const active = getActiveScenario();
+      if (active.messages.length === 0) {
+        alert("Start a story or send a message before generating a visual.");
+        return;
+      }
+
+      showLoading(true, "Analyzing cast appearances and scene layout...");
+
+      try {
+        const recentDialogue = active.messages
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .slice(-8)
+          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
+          .join('\n');
+
+        const castVisualProfiles = (active.characters || []).map(c => `
+- ${c.name}:
+  Role & Archetypes: ${c.role || 'Companion'}
+  Visual & Attire: ${c.personality || 'Standard appearance'}`
+        ).join('\n');
+
+        const promptParts = [];
+
+        if (active.userPersona?.avatar && active.userPersona.avatar.startsWith('data:image')) {
+          const mime = active.userPersona.avatar.split(';')[0].split(':')[1];
+          const data = active.userPersona.avatar.split(',')[1];
+          promptParts.push({
+            inlineData: { mimeType: mime, data: data }
+          });
+        }
+
+        (active.characters || []).forEach(c => {
+          if (c.avatar && c.avatar.startsWith('data:image')) {
+            const mime = c.avatar.split(';')[0].split(':')[1];
+            const data = c.avatar.split(',')[1];
+            promptParts.push({
+              inlineData: { mimeType: mime, data: data }
+            });
+          }
+        });
+
+        const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
+
+[SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
+[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
+[CAST VISUAL DESCRIPTIONS]:
+${castVisualProfiles}
+
+[RECENT SCENE EVENTS & POSES]:
+${recentDialogue}
+
+REQUIREMENTS:
+1. Reference the exact hair, facial features, attire, and expressions of the focal characters currently in the scene.
+2. Specify exact physical positioning (e.g. who is sitting on the couch, leaning on the doorframe, holding a mug, etc.).
+3. Include cinematic lighting, atmospheric color palette, and depth of field.
+4. Keep the output prompt concise (35-50 words), high quality, anime/cinematic illustration style.
+5. Output ONLY the descriptive prompt text.`;
+
+        promptParts.push({ text: promptText });
+
+        const promptReqPayload = {
+          contents: [{
+            role: 'user',
+            parts: promptParts
+          }],
+          generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
+        };
+
+        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const promptRes = await fetch(promptEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptReqPayload)
+        });
+
+        const promptData = await promptRes.json().catch(() => ({}));
+        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (!visualPrompt || visualPrompt.length < 15) {
+          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+        }
+
+        showLoading(true, "Rendering character-consistent visual snapshot...");
+
+        let fullDataUrl = null;
+        try {
+          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const imagePayload = {
+            contents: [{ role: "user", parts: [{ text: visualPrompt + ", cinematic 16:9 illustration, high resolution, detailed character design, masterpiece" }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+          };
+
+          const imageRes = await fetch(imageEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(imagePayload)
+          });
+
+          if (imageRes.ok) {
+            const imgData = await imageRes.json();
+            const parts = imgData.candidates?.[0]?.content?.parts || [];
+            for (let p of parts) {
+              if (p.inlineData && p.inlineData.data) {
+                fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Direct model generation bypassed:", e);
+        }
+
+        if (!fullDataUrl) {
+          const cleanPrompt = encodeURIComponent(visualPrompt + ", cinematic anime aesthetic, detailed lighting, 16:9 aspect ratio");
+          const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+          
+          const imgBlobRes = await fetch(renderUrl);
+          if (!imgBlobRes.ok) throw new Error("Image renderer network error. Please try again.");
+          
+          const blob = await imgBlobRes.blob();
+          if (blob.size < 500) throw new Error("Generated image was invalid.");
+
+          fullDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        active.messages.push({
+          role: 'model',
+          isImage: true,
+          imageUrl: fullDataUrl,
+          prompt: visualPrompt,
+          text: `*${visualPrompt}*`,
+          timestamp: timeStr
+        });
+
+        if (!active.cover) active.cover = fullDataUrl;
+
+        await saveState();
+        renderMessages();
+        renderScenariosList();
+      } catch (err) {
+        alert("Visualizer Notice: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function buildApiContents(extraDirective = null) {
+      const active = getActiveScenario();
+      let lastDividerIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) {
+          lastDividerIdx = i;
+          break;
+        }
+      }
+
+      let activeSlice;
+      if (lastDividerIdx === -1) {
+        activeSlice = active.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-16);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        activeSlice = overlap.concat(currentTurns);
+      }
+
+      const contents = activeSlice.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+      }));
+
+      if (extraDirective) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: extraDirective }]
+        });
+      }
+
+      return contents;
+    }
+
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       skipTypewriter();
@@ -2047,6 +2641,7 @@ JSON FORMAT:
       inputEl.value = '';
       inputEl.style.height = '42px';
 
+      // Reset narration toggle after sending
       if (isNarrationActive) {
         toggleNarrationMode();
       }
