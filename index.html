@@ -163,7 +163,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel -->
+    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -187,7 +187,7 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Arcs -->
+    <!-- Right Drawer 1: Chapter Chronicle & Paragraph Character Summaries -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -314,7 +314,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar with Mode Toggle -->
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
@@ -325,21 +325,18 @@
             <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>💡</span> <span>Suggest</span>
             </button>
-            <button onclick="toggleNarrationMode()" id="narrateModeBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
-              <span>📖</span> <span id="narrateBtnLabel">Narrate</span>
-            </button>
             <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>⏩</span> <span>Continue</span>
             </button>
           </div>
 
-          <!-- Dynamic Vertical Reply Suggestions Stack with Expanded Height & Safe Scrolling -->
+          <!-- Dynamic Vertical Reply Suggestions Stack -->
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
             <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
               <span class="font-semibold text-indigo-300">💡 Tap an option to insert into text box:</span>
               <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
             </div>
-            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-52 sm:max-h-64 overflow-y-auto scroll-touch pb-1 pr-0.5">
+            <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto scroll-touch pb-1">
             </div>
           </div>
 
@@ -347,7 +344,7 @@
             <textarea
               id="userInput"
               rows="1"
-              placeholder="Describe action, speak, or toggle Narrate..."
+              placeholder="Describe action, speak, or use @: to narrate..."
               class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
@@ -630,7 +627,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v49';
+          const CACHE_NAME = 'zetaforge-v50';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -746,25 +743,6 @@
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
-    let isNarrationActive = false;
-
-    function toggleNarrationMode() {
-      isNarrationActive = !isNarrationActive;
-      const btn = document.getElementById('narrateModeBtn');
-      const label = document.getElementById('narrateBtnLabel');
-      const input = document.getElementById('userInput');
-
-      if (isNarrationActive) {
-        btn.className = "bg-amber-950 text-amber-300 border border-amber-600 text-xs font-medium px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0 ring-1 ring-amber-500/50";
-        label.innerText = "Narrating";
-        input.placeholder = "Describe narrative environment, pacing, or scene change...";
-      } else {
-        btn.className = "bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0";
-        label.innerText = "Narrate";
-        input.placeholder = "Describe action, speak, or toggle Narrate...";
-      }
-      input.focus();
-    }
 
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
@@ -1012,7 +990,7 @@
       return Array.from(sideMap.values());
     }
 
-    // AI Reply Generator with Increased Output Capacity & Safe UI Scrolling
+    // AI Reply Generator with Increased Length Limits
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -1042,7 +1020,7 @@
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Generate exactly 3 completely distinct dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
+              text: `TASK: Generate exactly 3 completely distinct, rich, and immersive dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
 
 USER DETAILS & PERSONALITY:
 - Name: ${active.userPersona.name}
@@ -1054,18 +1032,18 @@ ${recentDialogue}
 CRITICAL RULES:
 1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
 2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
-3. Provide rich, complete, and engaging responses (aim for 25 to 65 words per option).
+3. LENGTH: Make each reply detailed and expressive (between 30 to 60 words). Allow full narrative depth.
 4. Output STRICTLY a JSON array of 3 strings:
 [
-  "*Action*\\nDialogue option 1 without quotes",
-  "*Action*\\nDialogue option 2 without quotes",
-  "*Action*\\nDialogue option 3 without quotes"
+  "*Detailed Action*\\nRich dialogue response option 1 without quotes",
+  "*Detailed Action*\\nRich dialogue response option 2 without quotes",
+  "*Detailed Action*\\nRich dialogue response option 3 without quotes"
 ]`
             }]
           }],
           generationConfig: {
             temperature: 0.85,
-            maxOutputTokens: 800,
+            maxOutputTokens: 650,
             responseMimeType: "application/json"
           }
         };
@@ -1086,12 +1064,12 @@ CRITICAL RULES:
           activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
 
           list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
-            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3.5 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1.5 group cursor-pointer shrink-0">
+            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
               <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold pointer-events-none">
                 <span>Option ${idx + 1}</span>
                 <span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert ✍️</span>
               </div>
-              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none whitespace-normal break-words">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
+              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
             </button>
           `).join('');
 
@@ -1167,7 +1145,7 @@ CRITICAL RULES:
         badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60";
         badgeEl.innerText = "Main Cast";
       } else {
-        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-amber-950 text-amber-300 border border-amber-700/60";
+        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-amber-950 text-amber-300 border border-amber-800/60";
         badgeEl.innerText = "Side Character";
       }
 
@@ -1915,6 +1893,7 @@ JSON FORMAT:
       }
     }
 
+    // Avatar Renderer with side-cast styling and narrator exclusion
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -2097,9 +2076,10 @@ JSON FORMAT:
           `;
         }
 
-        const speaker = m.speakerName || (m.role === 'user' ? (active.userPersona.name || 'You') : 'Narrator');
-        const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const isUser = !isNarrator && (m.role === 'user' || speaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
+        const rawSpeaker = m.speakerName || '';
+        const isNarrator = rawSpeaker.toLowerCase() === 'narrator' || rawSpeaker.toLowerCase() === 'scene';
+        const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
+        const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Companion'));
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
@@ -2244,6 +2224,53 @@ Spoken dialogue goes here.
     "text": "*Action in asterisks*\\nDialogue text"
   }
 ]`;
+    }
+
+    function buildApiContents(extraDirective = null) {
+      const active = getActiveScenario();
+      let lastDividerIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) {
+          lastDividerIdx = i;
+          break;
+        }
+      }
+
+      let activeSlice;
+      if (lastDividerIdx === -1) {
+        activeSlice = active.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-16);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        activeSlice = overlap.concat(currentTurns);
+      }
+
+      const contents = activeSlice.map(m => {
+        const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
+        return {
+          role: isUserTurn ? 'user' : 'model',
+          parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
+        };
+      });
+
+      // If background directive supplied, append as user turn
+      if (extraDirective) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: extraDirective }]
+        });
+      }
+
+      // Guarantee the request ends with a user turn to avoid API rejection
+      if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
+        contents.push({
+          role: 'user',
+          parts: [{ text: `[Scene update / Narration: React to the unfolding events and dialogue naturally.]` }]
+        });
+      }
+
+      return contents;
     }
 
     async function callGeminiApi(contentsArray) {
@@ -2567,41 +2594,6 @@ REQUIREMENTS:
       }
     }
 
-    function buildApiContents(extraDirective = null) {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
-          lastDividerIdx = i;
-          break;
-        }
-      }
-
-      let activeSlice;
-      if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        activeSlice = overlap.concat(currentTurns);
-      }
-
-      const contents = activeSlice.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-      }));
-
-      if (extraDirective) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: extraDirective }]
-        });
-      }
-
-      return contents;
-    }
-
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       skipTypewriter();
@@ -2617,21 +2609,21 @@ REQUIREMENTS:
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
 
       segments.forEach(seg => {
-        const isExplicitTag = seg.startsWith('@:');
-        const cleanContent = isExplicitTag ? seg.replace(/^@:\s*/, '').trim() : seg;
-
-        if (isNarrationActive || isExplicitTag) {
-          active.messages.push({
-            role: 'model',
-            speakerName: 'Narrator',
-            text: cleanContent.startsWith('*') ? cleanContent : `*${cleanContent}*`,
-            timestamp: timeStr
-          });
+        if (seg.startsWith('@:')) {
+          const cleanNarration = seg.replace(/^@:\s*/, '').trim();
+          if (cleanNarration) {
+            active.messages.push({
+              role: 'model',
+              speakerName: 'Narrator',
+              text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
+              timestamp: timeStr
+            });
+          }
         } else {
           active.messages.push({
             role: 'user',
             speakerName: active.userPersona.name,
-            text: formatDialogueSpacing(cleanContent),
+            text: formatDialogueSpacing(seg),
             timestamp: timeStr
           });
         }
@@ -2639,11 +2631,6 @@ REQUIREMENTS:
 
       inputEl.value = '';
       inputEl.style.height = '42px';
-
-      if (isNarrationActive) {
-        toggleNarrationMode();
-      }
-
       await saveState();
       renderMessages();
       renderSidebar();
@@ -2704,10 +2691,20 @@ REQUIREMENTS:
       const active = getActiveScenario();
       try {
         const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
-        const contents = sliced.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName}: ${m.text}` }]
-        }));
+        const contents = sliced.map(m => {
+          const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
+          return {
+            role: isUserTurn ? 'user' : 'model',
+            parts: [{ text: `${m.speakerName}: ${m.text}` }]
+          };
+        });
+
+        if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
+          contents.push({
+            role: 'user',
+            parts: [{ text: `[System directive: Regenerate the next turn naturally.]` }]
+          });
+        }
 
         const replyBlocks = await callGeminiApi(contents);
         showLoading(false);
@@ -2747,11 +2744,10 @@ REQUIREMENTS:
       for (let b of blocks) {
         const speakerLower = b.speaker.toLowerCase();
         const isUser = speakerLower === 'me' || speakerLower === 'you' || speakerLower === userName;
-        const isNarrator = speakerLower === 'narrator' || speakerLower === 'scene';
 
         parsedMessages.push({
           role: isUser ? 'user' : 'model',
-          speakerName: isUser ? (active.userPersona.name || 'Me') : (isNarrator ? 'Narrator' : b.speaker),
+          speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
           text: formatDialogueSpacing(b.text),
           timestamp: 'Imported'
         });
