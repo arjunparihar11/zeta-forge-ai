@@ -128,18 +128,18 @@
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
         <!-- Visual Novel / Chat Mode Switcher Button -->
-        <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation (Chat vs Visual Novel Stage)">
+        <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
           <span id="viewModeIcon">🎭</span>
           <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
         </button>
 
-        <!-- Image Gallery Button -->
-        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
+        <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
+        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
           <span>🖼️</span>
-          <span class="hidden sm:inline font-semibold">Gallery</span>
+          <span>Gallery</span>
         </button>
 
-        <!-- Chapter Chronicle Button -->
+        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
@@ -177,7 +177,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast with Live Mood Badges) -->
+    <!-- Left Sidebar: Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -201,18 +201,22 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access -->
+    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access (With Mobile Gallery Button) -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
           <span class="text-base">📖</span>
           <h2 class="text-xs font-bold uppercase tracking-wider text-white">Chapter Chronicle</h2>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <!-- Mobile-Only Gallery Button in Chronicle Header -->
+          <button onclick="openImageLibraryModal()" class="md:hidden bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow" title="Scenario Image Gallery">
+            <span>🖼️</span> <span>Gallery</span>
+          </button>
           <button onclick="openLorebookModal()" class="bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/70 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow">
             <span>📚</span> <span>Codex</span>
           </button>
-          <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+          <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none pl-1">&times;</button>
         </div>
       </div>
 
@@ -310,7 +314,7 @@
       </div>
     </div>
 
-    <!-- Center Canvas: Chat Feed OR Visual Novel Stage View -->
+    <!-- Center Canvas -->
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0" onclick="skipTypewriter()">
       
       <!-- MODE A: Standard Chat Messages Container -->
@@ -329,34 +333,41 @@
 
       <!-- MODE B: Traditional Visual Novel Stage View -->
       <div id="vnStageContainer" class="flex-1 relative overflow-hidden hidden flex-col justify-between p-3 sm:p-6 bg-slate-950">
-        <!-- Background Scene Image -->
         <div id="vnBackgroundLayer" class="absolute inset-0 bg-cover bg-center transition-all duration-700 opacity-60 filter brightness-[0.7] blur-[1px]"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-zetaBg via-transparent to-black/50 pointer-events-none"></div>
 
+        <!-- Transparent Left / Right Navigation Tap Zones (Above Textbox, Below Top Bar) -->
+        <div class="absolute inset-0 top-12 bottom-36 flex z-10 pointer-events-auto">
+          <div onclick="handleVnStageTap('prev')" class="w-1/2 h-full cursor-pointer select-none" title="Previous turn (Tap Left)"></div>
+          <div onclick="handleVnStageTap('next')" class="w-1/2 h-full cursor-pointer select-none" title="Next turn / Advance (Tap Right)"></div>
+        </div>
+
         <!-- Top Stage Quick Navigation & Scene Bar -->
-        <div class="relative z-10 flex items-center justify-between gap-2 max-w-4xl mx-auto w-full">
+        <div class="relative z-20 flex items-center justify-between gap-2 max-w-4xl mx-auto w-full pointer-events-auto">
           <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] font-semibold text-indigo-300 shadow">
-            🎭 Visual Novel Mode • <span id="vnSceneTitle" class="text-white">Scene Stage</span>
+            🎭 <span id="vnSceneTitle" class="text-white">Scene Stage</span>
           </span>
           <div class="flex items-center gap-1.5">
+            <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-black/60 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
+              <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
+            </button>
             <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-black/60 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
-              <span>🖼️</span> <span class="hidden sm:inline">Scene Backdrop</span>
+              <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
             </button>
             <button onclick="toggleStoryViewMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1.5 rounded-xl font-medium transition active:scale-95 shadow">
-              💬 Chat View
+              💬 <span class="hidden sm:inline">Chat View</span>
             </button>
           </div>
         </div>
 
         <!-- Center Stage Speaker Portrait Area -->
-        <div class="relative z-10 flex-1 flex items-end justify-center pb-2 pointer-events-none overflow-hidden min-h-0">
-          <div id="vnCharacterStageBox" class="max-h-[65vh] w-auto transition-all duration-300 transform flex items-end justify-center">
-            <!-- Dynamic character sprite rendered here -->
+        <div class="relative z-20 flex-1 flex items-end justify-center pb-2 pointer-events-none overflow-hidden min-h-0">
+          <div id="vnCharacterStageBox" class="max-h-[65vh] w-auto transition-all duration-300 transform flex items-end justify-center pointer-events-auto">
           </div>
         </div>
 
         <!-- Visual Novel Dialog Box -->
-        <div class="relative z-20 max-w-4xl mx-auto w-full space-y-2">
+        <div class="relative z-20 max-w-4xl mx-auto w-full space-y-2 pointer-events-auto">
           <div class="bg-slate-900/90 backdrop-blur-md border border-indigo-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-2.5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -366,14 +377,14 @@
                 <span id="vnSpeakerMoodBadge" class="text-[10px] bg-slate-800 text-amber-300 border border-slate-700 px-2 py-0.5 rounded-full font-medium"></span>
               </div>
               <div class="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                <button onclick="stepVnDialogue(-1)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
+                <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
                 <span id="vnTurnCounter">Turn 0/0</span>
-                <button onclick="stepVnDialogue(1)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
+                <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
               </div>
             </div>
 
             <div id="vnDialogueBody" class="text-xs sm:text-sm text-slate-200 leading-relaxed min-h-[54px] prose prose-invert max-w-none">
-              Press Next or type below to advance...
+              Press Next or tap anywhere on the right to advance...
             </div>
           </div>
         </div>
@@ -454,7 +465,7 @@
     </div>
   </div>
 
-  <!-- Lorebook / Dynamic World Codex Modal -->
+  <!-- Lorebook / World Codex Modal -->
   <div id="lorebookModal" onclick="closeLorebookModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -484,7 +495,7 @@
     </div>
   </div>
 
-  <!-- Character Spotlight Dossier Modal (With In-Modal Editing) -->
+  <!-- Character Spotlight Dossier Modal -->
   <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       
@@ -660,7 +671,7 @@
     </div>
   </div>
 
-  <!-- Setup Modal with VN Toggle, Art Style Selector, and Lorebook Editor -->
+  <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
@@ -887,7 +898,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v58';
+          const CACHE_NAME = 'zetaforge-v59';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1015,6 +1026,14 @@
       skipFlag: false
     };
 
+    let vnTypewriter = {
+      isTyping: false,
+      skipFlag: false
+    };
+    let vnTypewriterGeneration = 0;
+    let isVnAutoPlaying = false;
+    let vnAutoTimeout = null;
+
     let isNarrateModeActive = false;
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
@@ -1052,6 +1071,9 @@
     function skipTypewriter() {
       if (activeTypewriter.isTyping) {
         activeTypewriter.skipFlag = true;
+      }
+      if (vnTypewriter.isTyping) {
+        vnTypewriter.skipFlag = true;
       }
     }
 
@@ -1279,7 +1301,7 @@
       closeLightbox();
     }
 
-    // Dynamic Emotion Sprite Selector (Matches character mood against photo library tags)
+    // Dynamic Emotion Sprite Selector
     function getCharacterActiveAvatar(char) {
       if (!char) return '';
       const photos = (char.photos || []).map(normalizePhoto);
@@ -1290,7 +1312,6 @@
 
       const normalizedMood = currentMood.replace(/[^a-z0-9]/g, '');
 
-      // Check for exact/fuzzy caption or emotion match
       const matched = photos.find(p => {
         const cap = (p.caption || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         return cap.includes(normalizedMood) || normalizedMood.includes(cap);
@@ -1876,7 +1897,6 @@
       saveState();
     }
 
-    // Dynamic Lorebook Keyword Scanner for Prompt Injections
     function getRelevantLorebookInjections() {
       const active = getActiveScenario();
       if (!active.lorebook || active.lorebook.length === 0) return '';
@@ -1894,7 +1914,7 @@
       return `\n[WORLD CODEX & DYNAMIC LOREBOOK INJECTIONS]:\n` + matchedEntries.map(e => `- ${e.title}: ${e.content}`).join('\n') + `\n`;
     }
 
-    // Visual Novel Stage View Engine
+    // Visual Novel Stage View Engine with Left/Right Taps & Auto-Forward
     function toggleStoryViewMode() {
       const active = getActiveScenario();
       active.viewMode = active.viewMode === 'vn' ? 'chat' : 'vn';
@@ -1917,21 +1937,91 @@
         viewModeIcon.innerText = '💬';
         viewModeText.innerText = 'Chat View';
         
-        // Find latest valid turn
         const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = Math.max(0, validTurns.length - 1);
-        renderVnTurn();
+        renderVnTurn(true);
       } else {
         chatContainer.classList.remove('hidden');
         vnContainer.classList.add('hidden');
         vnContainer.classList.remove('flex');
         viewModeIcon.innerText = '🎭';
         viewModeText.innerText = 'VN View';
+        if (isVnAutoPlaying) toggleVnAutoPlay();
         renderMessages();
       }
     }
 
-    function renderVnTurn() {
+    function toggleVnAutoPlay() {
+      isVnAutoPlaying = !isVnAutoPlaying;
+      const btn = document.getElementById('vnAutoPlayBtn');
+      const txt = document.getElementById('vnAutoPlayText');
+      if (isVnAutoPlaying) {
+        btn.classList.add('bg-indigo-950', 'text-indigo-300', 'border-indigo-600', 'ring-1', 'ring-indigo-500/50');
+        btn.classList.remove('bg-black/60', 'text-slate-300', 'border-slate-700');
+        txt.innerText = 'Auto: ON';
+        runVnAutoStep();
+      } else {
+        btn.classList.remove('bg-indigo-950', 'text-indigo-300', 'border-indigo-600', 'ring-1', 'ring-indigo-500/50');
+        btn.classList.add('bg-black/60', 'text-slate-300', 'border-slate-700');
+        txt.innerText = 'Auto: OFF';
+        if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
+      }
+    }
+
+    function runVnAutoStep() {
+      if (!isVnAutoPlaying) return;
+      if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
+      const active = getActiveScenario();
+      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+
+      if (currentVnIndex >= validTurns.length - 1 && !vnTypewriter.isTyping) {
+        toggleVnAutoPlay();
+        return;
+      }
+
+      if (!vnTypewriter.isTyping) {
+        const currentTurn = validTurns[currentVnIndex];
+        const textLen = (currentTurn?.text || '').length;
+        const delay = Math.max(2200, Math.min(5500, textLen * 40 + 1400));
+        vnAutoTimeout = setTimeout(() => {
+          if (isVnAutoPlaying && currentVnIndex < validTurns.length - 1) {
+            stepVnDialogue(1, true);
+          } else if (currentVnIndex >= validTurns.length - 1) {
+            toggleVnAutoPlay();
+          }
+        }, delay);
+      }
+    }
+
+    function handleVnStageTap(direction) {
+      if (direction === 'prev') {
+        if (vnTypewriter.isTyping) {
+          vnTypewriter.skipFlag = true;
+        }
+        stepVnDialogue(-1, false);
+      } else if (direction === 'next') {
+        if (vnTypewriter.isTyping) {
+          vnTypewriter.skipFlag = true;
+        } else {
+          stepVnDialogue(1, true);
+        }
+      }
+    }
+
+    function stepVnDialogue(delta, animate = true) {
+      const active = getActiveScenario();
+      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+      if (validTurns.length === 0) return;
+
+      const newIdx = Math.max(0, Math.min(currentVnIndex + delta, validTurns.length - 1));
+      if (newIdx !== currentVnIndex || animate) {
+        currentVnIndex = newIdx;
+        renderVnTurn(animate);
+      }
+    }
+
+    async function renderVnTurn(animate = false) {
+      if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
       const active = getActiveScenario();
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
       const bgLayer = document.getElementById('vnBackgroundLayer');
@@ -1944,7 +2034,6 @@
 
       sceneTitle.innerText = active.title || 'Scene Stage';
 
-      // Background Scene Artwork
       if (active.vnBackground || active.cover) {
         bgLayer.style.backgroundImage = `url('${active.vnBackground || active.cover}')`;
       } else {
@@ -1971,7 +2060,6 @@
       nameBadge.innerText = speakerName;
       nameBadge.className = isUser ? "bg-indigo-600 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : (isNarrator ? "bg-slate-800 text-amber-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : "bg-emerald-700 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline");
 
-      // Character Look / Sprite Matching
       let charObj = null;
       if (isUser) {
         charObj = active.userPersona;
@@ -1986,7 +2074,6 @@
         moodBadge.classList.add('hidden');
       }
 
-      // Render Stage Portrait
       const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
@@ -1996,16 +2083,42 @@
         stageBox.innerHTML = '';
       }
 
-      dialogueBody.innerHTML = marked.parse(formatDialogueSpacing(turn.text || ''));
-    }
+      const fullText = formatDialogueSpacing(turn.text || '');
 
-    function stepVnDialogue(delta) {
-      const active = getActiveScenario();
-      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
-      if (validTurns.length === 0) return;
+      if (!animate) {
+        dialogueBody.innerHTML = marked.parse(fullText);
+        dialogueBody.classList.remove('typing-cursor');
+        vnTypewriter.isTyping = false;
+        if (isVnAutoPlaying) runVnAutoStep();
+        return;
+      }
 
-      currentVnIndex = Math.max(0, Math.min(currentVnIndex + delta, validTurns.length - 1));
-      renderVnTurn();
+      const thisGen = ++vnTypewriterGeneration;
+      vnTypewriter.isTyping = true;
+      vnTypewriter.skipFlag = false;
+      dialogueBody.classList.add('typing-cursor');
+
+      let visibleChars = 0;
+      const totalChars = fullText.length;
+      const step = 3;
+
+      while (visibleChars < totalChars) {
+        if (thisGen !== vnTypewriterGeneration) return;
+        if (vnTypewriter.skipFlag) {
+          visibleChars = totalChars;
+        } else {
+          visibleChars = Math.min(visibleChars + step, totalChars);
+          await new Promise(r => setTimeout(r, 16));
+        }
+        dialogueBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
+      }
+
+      dialogueBody.classList.remove('typing-cursor');
+      vnTypewriter.isTyping = false;
+
+      if (isVnAutoPlaying) {
+        runVnAutoStep();
+      }
     }
 
     function openCurrentVnCharacterSpotlight() {
@@ -2044,12 +2157,12 @@
 
         active.vnBackground = fullDataUrl;
         await saveState();
-        renderVnTurn();
+        renderVnTurn(false);
       } catch (err) {
         alert("Backdrop Notice: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>🖼️</span> <span>Scene Backdrop</span>`;
+        btn.innerHTML = `<span>🖼️</span> <span>Backdrop</span>`;
       }
     }
 
@@ -2112,72 +2225,7 @@
       openCharacterSpotlight(charObj.name);
       renderSidebar();
       renderCharacterCardsSetup();
-      if (active.viewMode === 'vn') renderVnTurn();
-    }
-
-    function openImageLibraryModal() {
-      const active = getActiveScenario();
-      const container = document.getElementById('imageLibraryContainer');
-      closeAllDrawers();
-
-      let currentChap = 1;
-      const chapterBuckets = {};
-
-      (active.messages || []).forEach(m => {
-        if (m.isChapterDivider) {
-          currentChap++;
-        } else if (m.isImage && m.imageUrl) {
-          if (!chapterBuckets[currentChap]) {
-            chapterBuckets[currentChap] = [];
-          }
-          chapterBuckets[currentChap].push(m);
-        }
-      });
-
-      const chapterKeys = Object.keys(chapterBuckets).sort((a, b) => parseInt(b) - parseInt(a));
-
-      if (chapterKeys.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 text-slate-400 space-y-2">
-            <div class="text-4xl">🖼️</div>
-            <p class="text-sm font-semibold text-white">No images generated yet</p>
-            <p class="text-xs text-slate-500">Tap <strong>🖼️ Visualize</strong> during your story to generate scene snapshots.</p>
-          </div>
-        `;
-      } else {
-        container.innerHTML = chapterKeys.map(chKey => {
-          const images = chapterBuckets[chKey];
-          return `
-            <div class="space-y-3">
-              <div class="flex items-center gap-2 pb-1 border-b border-slate-800">
-                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">📖 Chapter ${chKey}</span>
-                <span class="text-[10px] text-slate-500 font-mono">(${images.length} ${images.length === 1 ? 'image' : 'images'})</span>
-              </div>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                ${images.map(img => `
-                  <div onclick="openLightbox('${escapeJsString(img.imageUrl)}', '${escapeJsString(img.text || img.prompt || '')}')" class="group relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-indigo-500 cursor-pointer shadow transition active:scale-95">
-                    <img src="${img.imageUrl}" alt="Scene Snapshot" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-end p-2">
-                      <p class="text-[10px] text-slate-200 line-clamp-2 italic leading-tight">${escapeHtml(img.text || img.prompt || 'Scene Snapshot')}</p>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      const modal = document.getElementById('imageLibraryModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeImageLibraryModal(event) {
-      if (event && event.target && event.target.id !== 'imageLibraryModal') return;
-      const modal = document.getElementById('imageLibraryModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
     function getDynamicSideCharacters() {
@@ -2393,158 +2441,6 @@ CRITICAL RULES:
       }
     }
 
-    async function openCharacterSpotlight(characterName) {
-      if (!characterName || characterName === 'Narrator' || characterName === 'Scene' || characterName === 'System') return;
-
-      currentSpotlightCharName = characterName;
-      isSpotlightEditing = false;
-      toggleSpotlightEditMode(false);
-
-      const active = getActiveScenario();
-      const isUser = (characterName.toLowerCase() === active.userPersona.name.toLowerCase()) || (characterName.toLowerCase() === 'you');
-      
-      let isMainCast = false;
-      let charObj;
-
-      if (isUser) {
-        charObj = {
-          name: active.userPersona.name,
-          role: active.userPersona.role || 'Protagonist',
-          avatar: active.userPersona.avatar,
-          photos: active.userPersona.photos || [],
-          mood: active.userPersona.mood || 'Focused',
-          personality: active.userPersona.desc || 'Protagonist of the scenario.',
-          relationship: 'Self',
-          relationships: {}
-        };
-      } else {
-        const found = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
-        if (found) {
-          isMainCast = true;
-          charObj = found;
-        } else {
-          isMainCast = false;
-          charObj = {
-            name: characterName,
-            role: 'Side Character',
-            avatar: '',
-            photos: [],
-            mood: 'Neutral',
-            personality: 'Currently active in the ongoing scene.',
-            relationship: 'Story Participant',
-            relationships: {}
-          };
-        }
-      }
-
-      document.getElementById('spotlightName').innerText = charObj.name;
-      
-      const badgeEl = document.getElementById('spotlightCastTierBadge');
-      if (isUser) {
-        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-indigo-950 text-indigo-300 border border-indigo-700/60";
-        badgeEl.innerText = "Protagonist";
-      } else if (isMainCast) {
-        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60";
-        badgeEl.innerText = "Main Cast";
-      } else {
-        badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-amber-950 text-amber-300 border border-amber-800/60";
-        badgeEl.innerText = "Side Character";
-      }
-
-      const moodBadge = document.getElementById('spotlightMoodBadge');
-      moodBadge.innerHTML = `<span>🎭 Mood:</span> <span class="text-amber-200">${escapeHtml(charObj.mood || 'Neutral')}</span>`;
-
-      const promoteContainer = document.getElementById('spotlightPromoteContainer');
-      if (!isUser && !isMainCast) {
-        promoteContainer.classList.remove('hidden');
-      } else {
-        promoteContainer.classList.add('hidden');
-      }
-
-      const avatarBox = document.getElementById('spotlightAvatarBox');
-      const activeDisplayAvatar = getCharacterActiveAvatar(charObj);
-
-      if (activeDisplayAvatar) {
-        avatarBox.innerHTML = `
-          <img src="${activeDisplayAvatar}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-cover shadow" />
-          <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition backdrop-blur-xs text-white text-xs font-semibold">🔍 Enlarge</div>
-        `;
-        avatarBox.onclick = () => openCharacterPhotoModal(activeDisplayAvatar, charObj.name);
-      } else {
-        const bg = isUser ? 'bg-indigo-600' : (isMainCast ? 'bg-emerald-700' : 'bg-slate-700 text-amber-300');
-        avatarBox.innerHTML = `<div class="w-full h-full ${bg} flex items-center justify-center text-4xl font-bold text-white shadow">${(charObj.name[0] || '?').toUpperCase()}</div>`;
-        avatarBox.onclick = null;
-      }
-
-      const roleTagsBox = document.getElementById('spotlightRoleTags');
-      if (charObj.role) {
-        const tags = charObj.role.split(',').map(t => t.trim()).filter(Boolean);
-        roleTagsBox.innerHTML = tags.map(t => `
-          <span class="text-[10px] bg-slate-800 text-indigo-300 border border-slate-700/80 px-2 py-0.5 rounded-md font-medium">
-            ${escapeHtml(t)}
-          </span>
-        `).join('');
-      } else {
-        roleTagsBox.innerHTML = `<span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Character</span>`;
-      }
-
-      const relBox = document.getElementById('spotlightRelationshipBox');
-      const relToUser = charObj.relationship || 'Active Participant';
-      if (!isUser) {
-        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona.name)}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
-        relBox.classList.remove('hidden');
-      } else {
-        relBox.classList.add('hidden');
-      }
-
-      const personaBox = document.getElementById('spotlightPersonaText');
-      personaBox.innerHTML = marked.parse(charObj.personality || 'No specific traits recorded.');
-
-      const interGrid = document.getElementById('spotlightInterCharacterGrid');
-      if (isUser) {
-        interGrid.innerHTML = `<p class="text-slate-400 italic text-[11px]">Protagonist perspective. View individual cast profiles for inter-character dynamics.</p>`;
-      } else {
-        const otherCast = [
-          { name: active.userPersona.name, isUser: true },
-          ...active.characters.filter(c => c.name.toLowerCase() !== charObj.name.toLowerCase()).map(c => ({ name: c.name, isUser: false }))
-        ];
-
-        if (!charObj.relationships) charObj.relationships = {};
-
-        interGrid.innerHTML = otherCast.map(other => {
-          const dyn = charObj.relationships[other.name] || (other.isUser ? (charObj.relationship || 'Neutral') : 'Acquaintance / Neutral');
-          return `
-            <div class="flex items-center justify-between p-2 bg-slate-900/60 rounded-lg border border-slate-800 text-[11px]">
-              <span class="font-semibold text-indigo-200 flex items-center gap-1.5">👤 ${escapeHtml(other.name)}</span>
-              <span class="text-slate-300 italic px-2 py-0.5 bg-slate-800 rounded border border-slate-700/50">${escapeHtml(dyn)}</span>
-            </div>
-          `;
-        }).join('');
-      }
-
-      document.getElementById('spotlightChapterBadge').innerText = `Ch. ${active.currentChapter || 1}`;
-      const arcBox = document.getElementById('spotlightArcText');
-      
-      const cachedArc = (active.activeChapterArcs || {})[charObj.name];
-      if (cachedArc) {
-        arcBox.innerHTML = marked.parse(cachedArc);
-      } else {
-        arcBox.innerHTML = `<p class="italic text-slate-400">Action summary not yet analyzed for Chapter ${active.currentChapter || 1}. Open Chapter Chronicle to synthesize full story arcs.</p>`;
-      }
-
-      const modal = document.getElementById('characterSpotlightModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeCharacterSpotlight(event) {
-      if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
-      const modal = document.getElementById('characterSpotlightModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      toggleSpotlightEditMode(false);
-    }
-
     async function promoteSideCharacterToMain() {
       const active = getActiveScenario();
       const targetName = currentSpotlightCharName;
@@ -2707,7 +2603,7 @@ RULES:
           }
           await saveState();
           renderSidebar();
-          if (active.viewMode === 'vn') renderVnTurn();
+          if (active.viewMode === 'vn') renderVnTurn(false);
         }
       } catch (e) {
         console.warn("Relationship & mood sync notice:", e);
@@ -3058,6 +2954,25 @@ JSON FORMAT:
       const modal = document.getElementById(id);
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+    }
+
+    function handleImageUpload(event, target, charIndex = null) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const active = getActiveScenario();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        if (target === 'user') {
+          active.userPersona.avatar = base64;
+          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
+        } else if (target === 'char' && charIndex !== null) {
+          active.characters[charIndex].avatar = base64;
+          renderCharacterCardsSetup();
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
     function syncModalForm() {
@@ -3487,7 +3402,6 @@ JSON FORMAT:
         const fullText = formatDialogueSpacing((block.text || '').trim());
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
-        // Update speaker mood if included in block
         if (block.mood && !isNarrator) {
           const charObj = active.characters.find(c => c.name.toLowerCase() === speaker.toLowerCase());
           if (charObj) charObj.mood = block.mood;
@@ -3548,7 +3462,11 @@ JSON FORMAT:
       renderMessages();
       renderSidebar();
       renderScenariosList();
-      if (active.viewMode === 'vn') renderVnTurn();
+      if (active.viewMode === 'vn') {
+        const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        currentVnIndex = validTurns.length - 1;
+        renderVnTurn(true);
+      }
       updateInterCharacterRelationships();
     }
 
@@ -3966,7 +3884,7 @@ REQUIREMENTS:
         await saveState();
         renderMessages();
         renderScenariosList();
-        if (active.viewMode === 'vn') renderVnTurn();
+        if (active.viewMode === 'vn') renderVnTurn(false);
       } catch (err) {
         alert("Visualizer Notice: " + err.message);
       } finally {
@@ -4028,7 +3946,7 @@ REQUIREMENTS:
       if (active.viewMode === 'vn') {
         const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = validTurns.length - 1;
-        renderVnTurn();
+        renderVnTurn(true);
       }
 
       await triggerAiResponse();
@@ -4122,7 +4040,7 @@ REQUIREMENTS:
         renderMessages();
         renderSidebar();
         renderScenariosList();
-        if (active.viewMode === 'vn') renderVnTurn();
+        if (active.viewMode === 'vn') renderVnTurn(false);
       }
     }
 
