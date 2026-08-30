@@ -168,7 +168,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
+    <!-- Left Sidebar: Cast Panel -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -192,7 +192,7 @@
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Paragraph Character Summaries -->
+    <!-- Right Drawer 1: Chapter Chronicle -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -249,7 +249,7 @@
       </div>
     </div>
 
-    <!-- Right Drawer 2: Dedicated Scenarios & Utilities Menu -->
+    <!-- Right Drawer 2: Dedicated Scenarios Menu -->
     <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
         <div class="flex items-center justify-between">
@@ -319,7 +319,7 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar (Swapped Suggest & Visualize) -->
+      <!-- Bottom Chat Bar -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
@@ -471,6 +471,58 @@
     </div>
   </div>
 
+  <!-- Dedicated Photo Manager & Gallery Modal -->
+  <div id="avatarManagerModal" onclick="closeAvatarManagerModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 id="avatarManagerTitle" class="text-sm font-bold text-white flex items-center gap-2">🖼️ Manage Character Photos</h2>
+        <button onclick="closeAvatarManagerModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-5 flex-1 scroll-touch">
+        <!-- Upload Options: Single File / URL / 4x4 Sprite Sheet -->
+        <div class="p-3.5 bg-zetaCard rounded-xl border border-slate-700/80 space-y-3">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400 block">Add New Photos & Expression Sheets</span>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-2 rounded-lg cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5 shadow">
+              <span>📁</span> <span>Single Photo (Auto-Scale)</span>
+              <input type="file" accept="image/*" onchange="handleAvatarManagerUpload(event)" class="hidden" />
+            </label>
+
+            <label class="bg-amber-700 hover:bg-amber-600 text-white text-xs font-medium px-3 py-2 rounded-lg cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5 shadow" title="Extract 16 transparent emotion sprites from a 4x4 sheet">
+              <span>🎞️</span> <span>Upload 4x4 Sprite Sheet</span>
+              <input type="file" accept="image/*" onchange="handleSpriteSheetUpload(event)" class="hidden" />
+            </label>
+          </div>
+
+          <div class="flex gap-1.5 pt-0.5">
+            <input type="text" id="avatarManagerUrlInput" placeholder="Or paste image URL..." class="flex-1 bg-zetaInput border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            <button onclick="addAvatarFromUrlInput()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
+          </div>
+
+          <p class="text-[10px] text-slate-400 leading-tight">
+            Sprite sheets (4×4 grid) automatically extract 16 transparent emotion poses, label them with expressions, and strip faux checkerboard backgrounds via BFS flood-fill.
+          </p>
+        </div>
+
+        <!-- Photo Gallery with Live Caption Editing -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Character Photo Library</span>
+            <span id="avatarManagerCount" class="text-[10px] text-indigo-400 font-mono">0 Photos</span>
+          </div>
+          <div id="avatarManagerGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeAvatarManagerModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Close Library</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
@@ -512,14 +564,15 @@
         <hr class="border-slate-800" />
 
         <div class="space-y-2.5">
-          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
+            <button type="button" onclick="openAvatarManager('user')" id="userPhotoManagerBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
+              <span>🖼️</span> <span>Photos (0)</span>
+            </button>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="userPersonaAvatar" placeholder="Avatar Image URL (or upload right)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs" />
-            <input type="file" accept="image/*" onchange="handleImageUpload(event, 'user')" class="text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-800 file:text-indigo-300" />
           </div>
           <textarea id="userPersonaDesc" rows="2" placeholder="Persona visual appearance, hair, clothing style, tone..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
         </div>
@@ -651,7 +704,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v53';
+          const CACHE_NAME = 'zetaforge-v55';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -729,6 +782,7 @@
           name: 'Rapid',
           role: 'Protagonist',
           avatar: '',
+          photos: [],
           desc: 'Quick-witted, observant, and direct.'
         },
         characters: [
@@ -737,6 +791,7 @@
             name: 'Rena',
             role: 'tsundere, confident, arrogant',
             avatar: '',
+            photos: [],
             personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
             relationship: 'Companion',
             relationships: {}
@@ -770,6 +825,15 @@
     let currentSpotlightCharName = '';
     let messageBranches = {};
     let editingMessageId = null;
+
+    let currentAvatarManagerTarget = 'user';
+
+    const SPRITE_EMOTIONS = [
+      '01_neutral', '02_happy', '03_sad', '04_angry',
+      '05_confident', '06_thinking', '07_surprised', '08_tired_bored',
+      '09_embarrassed', '10_shy', '11_flirtatious', '12_touched',
+      '13_smug_teasing', '14_hurt_defeated', '15_determined', '16_disgusted'
+    ];
 
     function toggleNarrateMode() {
       isNarrateModeActive = !isNarrateModeActive;
@@ -812,6 +876,7 @@
       await loadState();
       closeAllDrawers();
       closeImageLibraryModal();
+      closeAvatarManagerModal();
       closeCharacterSpotlight();
       closeCharacterPhotoModal();
       closeLightbox();
@@ -839,7 +904,7 @@
             title: saved.scenario?.title || 'Interactive Story',
             setting: saved.scenario?.setting || '',
             cover: '',
-            userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', desc: '' },
+            userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', photos: [], desc: '' },
             characters: saved.characters || [],
             messages: saved.messages || [],
             archivedRecaps: saved.archivedRecaps || [],
@@ -1008,6 +1073,414 @@
       renderScenariosList();
       alert(`🖼️ Set this image as the scenario preview cover!`);
       closeLightbox();
+    }
+
+    // Client-Side Image Compression Engine
+    function compressImageFile(file, maxDimension = 1024, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+
+            let dataUrl = canvas.toDataURL('image/webp', quality);
+            if (!dataUrl.startsWith('data:image/webp')) {
+              dataUrl = canvas.toDataURL('image/jpeg', quality);
+            }
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Faux-Checkerboard Background Removal (BFS Flood-Fill)
+    function isCheckerboardColor(r, g, b) {
+      const isNeutral = Math.abs(r - g) <= 18 && Math.abs(g - b) <= 18 && Math.abs(r - b) <= 18;
+      const isBright = r >= 165 && g >= 165 && b >= 165;
+      return isNeutral && isBright;
+    }
+
+    function removeBackgroundFromPixelData(pixelData, width, height) {
+      const visited = new Uint8Array(width * height);
+      const queue = [];
+
+      const enqueue = (x, y) => {
+        const idx = y * width + x;
+        if (!visited[idx]) {
+          visited[idx] = 1;
+          queue.push(x, y);
+        }
+      };
+
+      for (let x = 0; x < width; x++) {
+        enqueue(x, 0);
+        enqueue(x, height - 1);
+      }
+      for (let y = 0; y < height; y++) {
+        enqueue(0, y);
+        enqueue(width - 1, y);
+      }
+
+      let head = 0;
+      while (head < queue.length) {
+        const x = queue[head++];
+        const y = queue[head++];
+        const pIdx = (y * width + x) * 4;
+
+        const r = pixelData[pIdx];
+        const g = pixelData[pIdx + 1];
+        const b = pixelData[pIdx + 2];
+
+        if (isCheckerboardColor(r, g, b)) {
+          pixelData[pIdx] = 0;
+          pixelData[pIdx + 1] = 0;
+          pixelData[pIdx + 2] = 0;
+          pixelData[pIdx + 3] = 0;
+
+          if (x > 0) enqueue(x - 1, y);
+          if (x < width - 1) enqueue(x + 1, y);
+          if (y > 0) enqueue(x, y - 1);
+          if (y < height - 1) enqueue(x, y + 1);
+        }
+      }
+    }
+
+    function formatEmotionLabel(slug) {
+      if (!slug) return 'Sprite';
+      return slug
+        .replace(/^\d+_/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Photo Manager Helper & Structure Normalizer
+    function normalizePhoto(p) {
+      if (!p) return { src: '', caption: '' };
+      if (typeof p === 'string') return { src: p, caption: '' };
+      return { src: p.src || '', caption: p.caption || '' };
+    }
+
+    function getPhotoTargetObject() {
+      const active = getActiveScenario();
+      if (currentAvatarManagerTarget === 'user') {
+        if (!active.userPersona.photos) active.userPersona.photos = [];
+        active.userPersona.photos = active.userPersona.photos.map(normalizePhoto);
+        if (active.userPersona.avatar && !active.userPersona.photos.some(p => p.src === active.userPersona.avatar)) {
+          active.userPersona.photos.unshift({ src: active.userPersona.avatar, caption: 'Default' });
+        }
+        return active.userPersona;
+      } else {
+        const idx = parseInt(currentAvatarManagerTarget);
+        const char = active.characters[idx];
+        if (char) {
+          if (!char.photos) char.photos = [];
+          char.photos = char.photos.map(normalizePhoto);
+          if (char.avatar && !char.photos.some(p => p.src === char.avatar)) {
+            char.photos.unshift({ src: char.avatar, caption: 'Default' });
+          }
+          return char;
+        }
+      }
+      return null;
+    }
+
+    function openAvatarManager(targetType, charIndex = null) {
+      currentAvatarManagerTarget = targetType === 'user' ? 'user' : charIndex.toString();
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj) return;
+
+      const titleEl = document.getElementById('avatarManagerTitle');
+      const name = targetType === 'user' ? (targetObj.name || 'User') : (targetObj.name || `Character #${parseInt(charIndex) + 1}`);
+      titleEl.innerHTML = `<span>🖼️</span> <span>Photos for ${escapeHtml(name)}</span>`;
+
+      document.getElementById('avatarManagerUrlInput').value = '';
+      renderAvatarManagerGallery();
+
+      const modal = document.getElementById('avatarManagerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAvatarManagerModal(event) {
+      if (event && event.target && event.target.id !== 'avatarManagerModal') return;
+      const modal = document.getElementById('avatarManagerModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      renderCharacterCardsSetup();
+      renderSidebar();
+    }
+
+    function renderAvatarManagerGallery() {
+      const targetObj = getPhotoTargetObject();
+      const grid = document.getElementById('avatarManagerGrid');
+      const countEl = document.getElementById('avatarManagerCount');
+      if (!targetObj) return;
+
+      const photos = (targetObj.photos || []).map(normalizePhoto);
+      targetObj.photos = photos;
+
+      const currentDefault = targetObj.avatar || (photos[0]?.src || '');
+      countEl.innerText = `${photos.length} ${photos.length === 1 ? 'Photo' : 'Photos'}`;
+
+      if (photos.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-8 text-slate-500 text-xs">
+            No photos uploaded yet.<br>Upload a photo, paste an image URL, or drop a 4x4 sprite sheet above.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = photos.map((photo, pIdx) => {
+        const isDefault = photo.src === currentDefault;
+        return `
+          <div class="relative group rounded-xl overflow-hidden bg-slate-900 border ${isDefault ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-md' : 'border-slate-800'} flex flex-col justify-between p-2 transition space-y-1.5">
+            <div class="relative aspect-square rounded-lg overflow-hidden bg-slate-950 flex items-center justify-center">
+              <img src="${photo.src}" alt="Portrait" class="w-full h-full object-contain" />
+              <button type="button" onclick="deleteAvatarPhoto(${pIdx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-200 hover:text-white flex items-center justify-center text-xs transition shadow" title="Delete Photo">
+                ✕
+              </button>
+              ${isDefault ? `
+                <span class="absolute top-1.5 left-1.5 bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">⭐ Default</span>
+              ` : ''}
+            </div>
+
+            <!-- Editable Photo Caption / Emotion Tag -->
+            <input
+              type="text"
+              placeholder="Caption/Emotion tag..."
+              value="${escapeHtml(photo.caption || '')}"
+              oninput="updatePhotoCaption(${pIdx}, this.value)"
+              class="w-full bg-zetaInput border border-slate-700/80 rounded px-1.5 py-1 text-[11px] text-indigo-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+            />
+
+            <div class="pt-0.5">
+              ${!isDefault ? `
+                <button type="button" onclick="setDefaultAvatar('${escapeJsString(photo.src)}')" class="w-full bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-semibold py-1 rounded-lg transition shadow active:scale-95">
+                  Set Default
+                </button>
+              ` : `
+                <span class="block text-center text-[10px] text-indigo-300 font-semibold bg-black/40 rounded py-1">Active Default</span>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePhotoCaption(pIdx, newCaption) {
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj || !targetObj.photos || !targetObj.photos[pIdx]) return;
+      targetObj.photos[pIdx].caption = newCaption;
+      saveState();
+    }
+
+    async function handleAvatarManagerUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj) return;
+
+      try {
+        const compressedBase64 = await compressImageFile(file, 1024, 0.82);
+        const autoCaption = file.name ? file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') : 'Photo';
+        
+        if (!targetObj.photos) targetObj.photos = [];
+        targetObj.photos.unshift({ src: compressedBase64, caption: autoCaption });
+
+        if (!targetObj.avatar) {
+          targetObj.avatar = compressedBase64;
+        }
+
+        await saveState();
+        renderAvatarManagerGallery();
+        renderCharacterCardsSetup();
+        renderSidebar();
+      } catch (err) {
+        alert("Image upload error: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    // Client-Side 4x4 Sprite Sheet Extraction with Checkerboard Removal
+    async function handleSpriteSheetUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj) return;
+
+      const countEl = document.getElementById('avatarManagerCount');
+      if (countEl) countEl.innerText = "Extracting 16 Sprites...";
+
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = e.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const cellWidth = Math.floor(img.naturalWidth / 4);
+        const cellHeight = Math.floor(img.naturalHeight / 4);
+
+        if (cellWidth <= 0 || cellHeight <= 0) {
+          throw new Error("Invalid sprite sheet dimensions.");
+        }
+
+        const maxCellDimension = 1024;
+        let exportWidth = cellWidth;
+        let exportHeight = cellHeight;
+
+        if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) {
+          if (exportWidth > exportHeight) {
+            exportHeight = Math.round((exportHeight * maxCellDimension) / exportWidth);
+            exportWidth = maxCellDimension;
+          } else {
+            exportWidth = Math.round((exportWidth * maxCellDimension) / exportHeight);
+            exportHeight = maxCellDimension;
+          }
+        }
+
+        const cellCanvas = document.createElement('canvas');
+        cellCanvas.width = cellWidth;
+        cellCanvas.height = cellHeight;
+        const ctx = cellCanvas.getContext('2d', { willReadFrequently: true });
+
+        const downscaleCanvas = document.createElement('canvas');
+        downscaleCanvas.width = exportWidth;
+        downscaleCanvas.height = exportHeight;
+        const downscaleCtx = downscaleCanvas.getContext('2d');
+
+        const extractedPhotos = [];
+
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 4; col++) {
+            const index = row * 4 + col;
+            const emotionSlug = SPRITE_EMOTIONS[index] || `sprite_${index + 1}`;
+            const emotionCaption = formatEmotionLabel(emotionSlug);
+
+            ctx.clearRect(0, 0, cellWidth, cellHeight);
+            ctx.drawImage(img, col * cellWidth, row * cellHeight, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+
+            const imgData = ctx.getImageData(0, 0, cellWidth, cellHeight);
+            removeBackgroundFromPixelData(imgData.data, cellWidth, cellHeight);
+            ctx.putImageData(imgData, 0, 0);
+
+            let spriteDataUrl;
+            if (cellWidth !== exportWidth || cellHeight !== exportHeight) {
+              downscaleCtx.clearRect(0, 0, exportWidth, exportHeight);
+              downscaleCtx.imageSmoothingEnabled = true;
+              downscaleCtx.imageSmoothingQuality = 'high';
+              downscaleCtx.drawImage(cellCanvas, 0, 0, exportWidth, exportHeight);
+              spriteDataUrl = downscaleCanvas.toDataURL('image/png');
+            } else {
+              spriteDataUrl = cellCanvas.toDataURL('image/png');
+            }
+
+            extractedPhotos.push({
+              src: spriteDataUrl,
+              caption: emotionCaption
+            });
+          }
+        }
+
+        if (!targetObj.photos) targetObj.photos = [];
+        targetObj.photos = extractedPhotos.concat(targetObj.photos);
+
+        if (!targetObj.avatar && extractedPhotos.length > 0) {
+          targetObj.avatar = extractedPhotos[0].src;
+        }
+
+        await saveState();
+        renderAvatarManagerGallery();
+        renderCharacterCardsSetup();
+        renderSidebar();
+        alert(`✨ Successfully extracted and alpha-masked 16 emotion sprites for ${targetObj.name || 'character'}!`);
+      } catch (err) {
+        alert("Sprite sheet error: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    async function addAvatarFromUrlInput() {
+      const urlInput = document.getElementById('avatarManagerUrlInput');
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj) return;
+
+      if (!targetObj.photos) targetObj.photos = [];
+      targetObj.photos.unshift({ src: url, caption: 'Linked Photo' });
+
+      if (!targetObj.avatar) {
+        targetObj.avatar = url;
+      }
+
+      urlInput.value = '';
+      await saveState();
+      renderAvatarManagerGallery();
+      renderCharacterCardsSetup();
+      renderSidebar();
+    }
+
+    async function setDefaultAvatar(photoSrc) {
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj) return;
+
+      targetObj.avatar = photoSrc;
+      await saveState();
+      renderAvatarManagerGallery();
+      renderCharacterCardsSetup();
+      renderSidebar();
+    }
+
+    async function deleteAvatarPhoto(index) {
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj || !targetObj.photos) return;
+
+      const deleted = targetObj.photos[index];
+      targetObj.photos.splice(index, 1);
+
+      if (targetObj.avatar === (deleted?.src || deleted)) {
+        targetObj.avatar = targetObj.photos[0]?.src || '';
+      }
+
+      await saveState();
+      renderAvatarManagerGallery();
+      renderCharacterCardsSetup();
+      renderSidebar();
     }
 
     function openImageLibraryModal() {
@@ -1226,10 +1699,8 @@ CRITICAL RULES:
       const newText = textareaEl.value.trim();
       if (!newText) return;
 
-      // Save branch snapshot of entire message history prior to truncation
       messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
 
-      // Update edited turn and delete all turns below it
       active.messages[idx].text = formatDialogueSpacing(newText);
       active.messages = active.messages.slice(0, idx + 1);
 
@@ -1237,7 +1708,6 @@ CRITICAL RULES:
       await saveState();
       renderAllUi();
 
-      // If user message was edited, prompt new response seamlessly
       if (active.messages[idx].role === 'user') {
         await triggerAiResponse();
         await checkAndTriggerChapterArchival();
@@ -1262,7 +1732,6 @@ CRITICAL RULES:
 
       showLoading(true, "Regenerating from last user turn with variation...");
 
-      // Find the index of the latest user turn
       let lastUserIdx = -1;
       for (let i = active.messages.length - 1; i >= 0; i--) {
         const msg = active.messages[i];
@@ -1276,7 +1745,6 @@ CRITICAL RULES:
       const lastModelMsg = active.messages[active.messages.length - 1];
       const branchKey = (lastUserIdx !== -1 && active.messages[lastUserIdx]?.id) ? active.messages[lastUserIdx].id : (lastModelMsg.id || 'last_turn');
 
-      // Save original branch snapshot for undo
       messageBranches[branchKey] = JSON.parse(JSON.stringify(active.messages));
 
       if (lastUserIdx !== -1) {
@@ -1498,6 +1966,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           name: targetName,
           role: parsed.role || 'Companion',
           avatar: '',
+          photos: [],
           personality: parsed.personality || 'Active member of the main cast.',
           relationship: parsed.relationship || parsed.relationships?.[active.userPersona.name] || 'Companion',
           relationships: parsed.relationships || {}
@@ -1930,25 +2399,6 @@ JSON FORMAT:
       modal.classList.remove('flex');
     }
 
-    function handleImageUpload(event, target, charIndex = null) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const active = getActiveScenario();
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target.result;
-        if (target === 'user') {
-          active.userPersona.avatar = base64;
-          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
-        } else if (target === 'char' && charIndex !== null) {
-          active.characters[charIndex].avatar = base64;
-          renderCharacterCardsSetup();
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
     function syncModalForm() {
       const active = getActiveScenario();
       document.getElementById('apiKeyInput').value = appState.apiKey || '';
@@ -1962,8 +2412,13 @@ JSON FORMAT:
 
       document.getElementById('userPersonaName').value = active.userPersona.name || '';
       document.getElementById('userPersonaRole').value = active.userPersona.role || '';
-      document.getElementById('userPersonaAvatar').value = active.userPersona.avatar || '';
       document.getElementById('userPersonaDesc').value = active.userPersona.desc || '';
+
+      const userPhotosCount = (active.userPersona.photos || []).length;
+      const userPhotoBtn = document.getElementById('userPhotoManagerBtn');
+      if (userPhotoBtn) {
+        userPhotoBtn.innerHTML = `<span>🖼️</span> <span>Photos (${userPhotosCount})</span>`;
+      }
 
       document.getElementById('scenarioTitle').value = active.title || '';
       document.getElementById('scenarioSetting').value = active.setting || '';
@@ -1991,6 +2446,12 @@ JSON FORMAT:
 
       active.characters.forEach((char, index) => {
         if (!char.relationships) char.relationships = {};
+        if (!char.photos) char.photos = [];
+        char.photos = char.photos.map(normalizePhoto);
+
+        if (char.avatar && !char.photos.some(p => p.src === char.avatar)) {
+          char.photos.unshift({ src: char.avatar, caption: 'Default' });
+        }
 
         const otherCastMembers = [
           { name: active.userPersona.name || 'User', isUser: true },
@@ -2002,15 +2463,16 @@ JSON FORMAT:
         card.innerHTML = `
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-bold text-indigo-300">Main Character #${index + 1}</span>
-            <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="openAvatarManager('char', ${index})" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1">
+                <span>🖼️</span> <span>Photos (${char.photos.length})</span>
+              </button>
+              <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
+            </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="getActiveScenario().characters[${index}].name = this.value; renderCharacterCardsSetup();" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
-            <input type="text" placeholder="Avatar URL" value="${escapeHtml(char.avatar ? (char.avatar.startsWith('data:') ? 'Custom Image Stored' : char.avatar) : '')}" oninput="getActiveScenario().characters[${index}].avatar = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="file" accept="image/*" onchange="handleImageUpload(event, 'char', ${index})" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-slate-800 file:text-indigo-300" />
           </div>
           <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
 
@@ -2041,7 +2503,7 @@ JSON FORMAT:
 
     function addCharacterRow() {
       const active = getActiveScenario();
-      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '', relationships: {} });
+      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', photos: [], personality: '', relationship: '', relationships: {} });
       renderCharacterCardsSetup();
     }
 
@@ -2069,11 +2531,6 @@ JSON FORMAT:
 
       active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
-      
-      const avatarInputVal = document.getElementById('userPersonaAvatar').value.trim();
-      if (!avatarInputVal.includes('(Uploaded)')) {
-        active.userPersona.avatar = avatarInputVal;
-      }
       active.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
 
       active.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
@@ -2225,12 +2682,10 @@ JSON FORMAT:
 
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
 
-      // Ensure every message has an ID
       (active.messages || []).forEach(m => {
         if (!m.id) m.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       });
 
-      // Prune saved branches that are older than 20 messages from history
       const cutoffIdx = Math.max(0, active.messages.length - 20);
       const recentIds = new Set(active.messages.slice(cutoffIdx).map(m => m.id));
       for (let k in messageBranches) {
@@ -2653,6 +3108,7 @@ TASK: Return a JSON object with:
           active.activeChapterArcs = null;
 
           active.messages.push({
+            id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
             isChapterDivider: true,
             text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -2926,6 +3382,42 @@ REQUIREMENTS:
       } catch (err) {
         showLoading(false);
         alert("Gemini API Error: " + err.message);
+      }
+    }
+
+    async function regenerateTurn(index) {
+      if (index <= 0) return;
+      skipTypewriter();
+      hideReplySuggestions();
+      showLoading(true, "Regenerating turn...");
+      const active = getActiveScenario();
+      try {
+        const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
+        const contents = sliced.map(m => {
+          const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
+          return {
+            role: isUserTurn ? 'user' : 'model',
+            parts: [{ text: `${m.speakerName}: ${m.text}` }]
+          };
+        });
+
+        if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
+          contents.push({
+            role: 'user',
+            parts: [{ text: `[System directive: Regenerate the next turn naturally.]` }]
+          });
+        }
+
+        const replyBlocks = await callGeminiApi(contents);
+        showLoading(false);
+
+        if (replyBlocks.length > 0) {
+          active.messages.splice(index);
+          await playSequentialTypewriter(replyBlocks);
+        }
+      } catch (err) {
+        showLoading(false);
+        alert("Retry error: " + err.message);
       }
     }
 
