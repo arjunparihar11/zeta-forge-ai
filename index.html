@@ -127,7 +127,7 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Visual Gallery Button (Left of Chapter Chronicle) -->
+        <!-- Visual Gallery Button -->
         <button onclick="toggleGalleryDrawer(true)" id="galleryBadgeBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Visual Scene Gallery">
           <span>🖼️</span>
           <span class="hidden sm:inline font-semibold">Gallery</span>
@@ -140,7 +140,7 @@
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
-        <!-- Desktop Expanded Utilities (Hidden on Mobile) -->
+        <!-- Desktop Expanded Utilities -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -171,7 +171,7 @@
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
-    <!-- Left Sidebar: Cast Panel (Main & Temporary Side Cast) -->
+    <!-- Left Sidebar -->
     <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
@@ -185,10 +185,10 @@
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona?.name || 'User')">
           U
         </div>
-        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona?.name || 'User')">
           <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
           <div class="text-slate-400 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
         </div>
@@ -345,6 +345,9 @@
         <div class="max-w-4xl mx-auto space-y-2">
           
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <button onclick="insertNarrationPrefix()" id="narrateBtn" class="bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Narrate setting, atmosphere or environmental change">
+              <span>🗣️</span> <span>Narrate</span>
+            </button>
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
             </button>
@@ -370,7 +373,7 @@
             <textarea
               id="userInput"
               rows="1"
-              placeholder="Describe action, speak, or use @: to narrate..."
+              placeholder="Describe action, speak, or tap 🗣️ Narrate to narrate..."
               class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
@@ -653,7 +656,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v51';
+          const CACHE_NAME = 'zetaforge-v52';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -783,10 +786,19 @@
         appState.activeScenarioId = initial.id;
         return initial;
       }
-      let found = appState.scenarios.find(s => s.id === appState.activeScenarioId);
+      let found = appState.scenarios.find(s => s && s.id === appState.activeScenarioId);
       if (!found) {
         found = appState.scenarios[0];
         appState.activeScenarioId = found.id;
+      }
+      if (!found.userPersona) {
+        found.userPersona = { name: 'Rapid', role: 'Protagonist', avatar: '', desc: '' };
+      }
+      if (!found.characters) {
+        found.characters = [];
+      }
+      if (!found.messages) {
+        found.messages = [];
       }
       return found;
     }
@@ -818,9 +830,9 @@
         if (!saved.scenarios || saved.scenarios.length === 0) {
           const legacy = {
             id: 'scen_legacy',
-            title: saved.scenario?.title || 'Interactive Story',
-            setting: saved.scenario?.setting || '',
-            cover: '',
+            title: saved.scenario?.title || saved.title || 'Interactive Story',
+            setting: saved.scenario?.setting || saved.setting || '',
+            cover: saved.cover || '',
             userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', desc: '' },
             characters: saved.characters || [],
             messages: saved.messages || [],
@@ -863,7 +875,7 @@
     function getActiveRawTokens() {
       const active = getActiveScenario();
       let totalChars = 0;
-      active.messages
+      (active.messages || [])
         .filter(m => !m.isImage && !m.isChapterDivider)
         .forEach(m => {
           totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
@@ -897,8 +909,8 @@
       const shouldOpen = force !== undefined ? force : isHidden;
 
       if (shouldOpen) {
-        toggleGalleryDrawer(false);
         toggleChapterDrawer(false);
+        toggleGalleryDrawer(false);
         toggleMenuDrawer(false);
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('hidden');
@@ -940,7 +952,7 @@
         document.getElementById('mobileBackdrop').classList.remove('hidden');
         
         const active = getActiveScenario();
-        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         if (!active.activeChapterArcs && activeTurns.length > 2 && appState.apiKey) {
           refreshActiveChapterCharacterArcs(true);
         }
@@ -978,17 +990,15 @@
       }
     }
 
-    // Render Scenario Visual Library Grouped by Chapter
     function renderGalleryList() {
       const container = document.getElementById('galleryContentContainer');
       if (!container) return;
       const active = getActiveScenario();
 
-      // Collect images categorized by chapter
       let currentCh = 1;
       const chapterImages = {};
 
-      active.messages.forEach(m => {
+      (active.messages || []).forEach(m => {
         if (m.isChapterDivider) {
           currentCh++;
         } else if (m.isImage && m.imageUrl) {
@@ -1075,13 +1085,14 @@
 
     function getDynamicSideCharacters() {
       const active = getActiveScenario();
+      const userName = active.userPersona?.name || 'User';
       const mainNamesLower = new Set([
-        (active.userPersona.name || 'User').toLowerCase(),
+        userName.toLowerCase(),
         'you', 'user', 'narrator', 'scene', 'system',
-        ...active.characters.map(c => (c.name || '').toLowerCase())
+        ...(active.characters || []).map(c => (c.name || '').toLowerCase())
       ]);
 
-      const recentMessages = active.messages
+      const recentMessages = (active.messages || [])
         .filter(m => !m.isImage && !m.isChapterDivider && m.speakerName)
         .slice(-20);
 
@@ -1097,14 +1108,23 @@
       return Array.from(sideMap.values());
     }
 
-    // AI Reply Generator with Increased Length Limits
+    function insertNarrationPrefix() {
+      const inputEl = document.getElementById('userInput');
+      const val = inputEl.value.trim();
+      if (!val.startsWith('@:')) {
+        inputEl.value = '@: ' + val;
+      }
+      autoExpandTextarea(inputEl);
+      inputEl.focus();
+    }
+
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
         openModal('setupModal');
         return;
       }
       const active = getActiveScenario();
-      if (active.messages.length === 0) {
+      if (!active.messages || active.messages.length === 0) {
         alert("Start a story first before generating reply choices.");
         return;
       }
@@ -1123,15 +1143,16 @@
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
+        const userName = active.userPersona?.name || 'User';
         const promptPayload = {
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Generate exactly 3 completely distinct dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
+              text: `TASK: Generate exactly 3 completely distinct, rich, and immersive dialogue/action reply options for {{user}} (${userName}) to respond to the scene.
 
 USER DETAILS & PERSONALITY:
-- Name: ${active.userPersona.name}
-- Persona/Role: ${active.userPersona.role || 'Protagonist'} - ${active.userPersona.desc || 'Observant and quick-witted'}
+- Name: ${userName}
+- Persona/Role: ${active.userPersona?.role || 'Protagonist'} - ${active.userPersona?.desc || 'Observant and quick-witted'}
 
 RECENT TURNS:
 ${recentDialogue}
@@ -1204,28 +1225,28 @@ CRITICAL RULES:
       document.getElementById('replySuggestionsContainer').classList.add('hidden');
     }
 
-    // Character Spotlight Dossier Functions
     async function openCharacterSpotlight(characterName) {
       if (!characterName || characterName === 'Narrator' || characterName === 'Scene' || characterName === 'System') return;
 
       currentSpotlightCharName = characterName;
       const active = getActiveScenario();
-      const isUser = (characterName.toLowerCase() === active.userPersona.name.toLowerCase()) || (characterName.toLowerCase() === 'you');
+      const userName = active.userPersona?.name || 'User';
+      const isUser = (characterName.toLowerCase() === userName.toLowerCase()) || (characterName.toLowerCase() === 'you');
       
       let isMainCast = false;
       let charObj;
 
       if (isUser) {
         charObj = {
-          name: active.userPersona.name,
-          role: active.userPersona.role || 'Protagonist',
-          avatar: active.userPersona.avatar,
-          personality: active.userPersona.desc || 'Protagonist of the scenario.',
+          name: userName,
+          role: active.userPersona?.role || 'Protagonist',
+          avatar: active.userPersona?.avatar || '',
+          personality: active.userPersona?.desc || 'Protagonist of the scenario.',
           relationship: 'Self',
           relationships: {}
         };
       } else {
-        const found = active.characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
+        const found = (active.characters || []).find(c => c.name && c.name.toLowerCase() === characterName.toLowerCase());
         if (found) {
           isMainCast = true;
           charObj = found;
@@ -1291,7 +1312,7 @@ CRITICAL RULES:
       const relBox = document.getElementById('spotlightRelationshipBox');
       const relToUser = charObj.relationship || 'Active Participant';
       if (!isUser) {
-        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona.name)}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
+        relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(userName)}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
         relBox.classList.remove('hidden');
       } else {
         relBox.classList.add('hidden');
@@ -1305,8 +1326,8 @@ CRITICAL RULES:
         interGrid.innerHTML = `<p class="text-slate-400 italic text-[11px]">Protagonist perspective. View individual cast profiles for inter-character dynamics.</p>`;
       } else {
         const otherCast = [
-          { name: active.userPersona.name, isUser: true },
-          ...active.characters.filter(c => c.name.toLowerCase() !== charObj.name.toLowerCase()).map(c => ({ name: c.name, isUser: false }))
+          { name: userName, isUser: true },
+          ...(active.characters || []).filter(c => c.name && c.name.toLowerCase() !== charObj.name.toLowerCase()).map(c => ({ name: c.name, isUser: false }))
         ];
 
         if (!charObj.relationships) charObj.relationships = {};
@@ -1357,20 +1378,21 @@ CRITICAL RULES:
       promoteBtn.innerHTML = `<span>⏳</span> <span>Synthesizing Profile...</span>`;
 
       try {
-        const turnsText = active.messages
+        const turnsText = (active.messages || [])
           .filter(m => !m.isImage && !m.isChapterDivider)
           .slice(-30)
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
           .join('\n');
 
+        const userName = active.userPersona?.name || 'User';
         const promptPayload = {
           contents: [{
             role: 'user',
             parts: [{
               text: `TASK: Based on the dialogue logs below, generate a comprehensive Main Cast character profile for "${targetName}".
 
-SCENARIO: ${active.title} - ${active.setting || ''}
-USER: ${active.userPersona.name} (${active.userPersona.role || 'Protagonist'})
+SCENARIO: ${active.title || 'Interactive Story'} - ${active.setting || ''}
+USER: ${userName} (${active.userPersona?.role || 'Protagonist'})
 
 DIALOGUE LOGS:
 ${turnsText}
@@ -1379,9 +1401,9 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 {
   "role": "2-4 archetype tags (e.g. witty, loyal companion, cautious)",
   "personality": "Detailed 2-3 sentence paragraph capturing their visual appearance (hair, eyes, clothing) and behavioral personality.",
-  "relationship": "Dynamic relationship label toward {{user}} (${active.userPersona.name}) (e.g. Close ally, Playful rival, Romantic interest)",
+  "relationship": "Dynamic relationship label toward {{user}} (${userName}) (e.g. Close ally, Playful rival, Romantic interest)",
   "relationships": {
-    "${active.userPersona.name}": "Dynamic relationship label toward ${active.userPersona.name}"
+    "${userName}": "Dynamic relationship label toward ${userName}"
   }
 }`
             }]
@@ -1411,10 +1433,11 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           role: parsed.role || 'Companion',
           avatar: '',
           personality: parsed.personality || 'Active member of the main cast.',
-          relationship: parsed.relationship || parsed.relationships?.[active.userPersona.name] || 'Companion',
+          relationship: parsed.relationship || parsed.relationships?.[userName] || 'Companion',
           relationships: parsed.relationships || {}
         };
 
+        if (!active.characters) active.characters = [];
         active.characters.push(newChar);
         await saveState();
         renderAllUi();
@@ -1432,13 +1455,14 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
     async function updateInterCharacterRelationships() {
       const active = getActiveScenario();
-      if (!appState.apiKey || active.characters.length === 0) return;
+      if (!appState.apiKey || !active.characters || active.characters.length === 0) return;
 
-      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
       if (activeTurns.length < 3) return;
 
       try {
-        const castList = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const userName = active.userPersona?.name || 'User';
+        const castList = [userName, ...active.characters.map(c => c.name)];
         const dialogueText = activeTurns.slice(-15).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
 
         const promptPayload = {
@@ -1485,8 +1509,8 @@ RULES:
 
           for (let c of active.characters) {
             if (parsedMap[c.name]) {
-              if (parsedMap[c.name][active.userPersona.name]) {
-                c.relationship = parsedMap[c.name][active.userPersona.name];
+              if (parsedMap[c.name][userName]) {
+                c.relationship = parsedMap[c.name][userName];
               }
               c.relationships = parsedMap[c.name];
             }
@@ -1586,10 +1610,11 @@ RULES:
     }
 
     async function createNewScenarioFlow() {
-      const name = prompt("Enter a title for the new scenario:", `Scenario #${appState.scenarios.length + 1}`);
+      const name = prompt("Enter a title for the new scenario:", `Scenario #${(appState.scenarios || []).length + 1}`);
       if (!name) return;
 
       const newScen = createScenarioTemplate(name.trim());
+      if (!appState.scenarios) appState.scenarios = [];
       appState.scenarios.unshift(newScen);
       appState.activeScenarioId = newScen.id;
 
@@ -1601,7 +1626,7 @@ RULES:
     }
 
     async function deleteScenario(id) {
-      const target = appState.scenarios.find(s => s.id === id);
+      const target = (appState.scenarios || []).find(s => s.id === id);
       if (!target) return;
 
       if (confirm(`Permanently delete "${target.title || 'this scenario'}" and all its logs from your device?`)) {
@@ -1628,7 +1653,7 @@ RULES:
       const recaps = active.archivedRecaps || [];
 
       document.getElementById('statTotalChapters').innerText = totalChapters;
-      const activeRawCount = active.messages.filter(m => !m.isImage && !m.isChapterDivider).length;
+      const activeRawCount = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
       document.getElementById('statActiveTurns').innerText = `${activeRawCount} turns`;
       const currentRawTokens = getActiveRawTokens();
       const limit = (appState.tokenThreshold || 120000);
@@ -1659,10 +1684,11 @@ RULES:
       const refreshBtn = document.getElementById('refreshArcsBtn');
       const active = getActiveScenario();
       const totalChapters = active.currentChapter || 1;
+      const userName = active.userPersona?.name || 'User';
 
       const allCast = [
-        { name: active.userPersona.name, role: active.userPersona.role || 'Protagonist', isUser: true },
-        ...active.characters.map(c => ({ name: c.name, role: c.role || 'Companion', isUser: false }))
+        { name: userName, role: active.userPersona?.role || 'Protagonist', isUser: true },
+        ...(active.characters || []).map(c => ({ name: c.name, role: c.role || 'Companion', isUser: false }))
       ];
 
       if (selectedVal === 'active') {
@@ -1671,7 +1697,7 @@ RULES:
         badgeEl.innerText = "In Progress";
         refreshBtn.classList.remove('hidden');
 
-        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         generalBox.innerHTML = activeTurns.length > 0 
           ? `<p class="text-slate-300 leading-relaxed"><span class="text-indigo-300 font-semibold">Active Scene Status:</span> ${activeTurns.length} dialogue & action turns recorded in Chapter ${totalChapters}.</p>`
           : `<p class="text-slate-500 italic">No turns recorded in Chapter ${totalChapters} yet.</p>`;
@@ -1755,7 +1781,7 @@ RULES:
         return;
       }
       const active = getActiveScenario();
-      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
 
       if (activeTurns.length < 2) {
         if (!silent) alert("Play a few turns first before generating character action summaries.");
@@ -1766,7 +1792,8 @@ RULES:
       if (btnText) btnText.innerText = "Analyzing...";
 
       try {
-        const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const userName = active.userPersona?.name || 'User';
+        const castNames = [userName, ...(active.characters || []).map(c => c.name)];
         const dialogueText = activeTurns.map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
 
         const promptPayload = {
@@ -1779,7 +1806,7 @@ CHARACTERS:
 ${castNames.join(', ')}
 
 SCENARIO CONTEXT:
-${active.title} - ${active.setting || 'Narrative scene'}
+${active.title || 'Interactive Story'} - ${active.setting || 'Narrative scene'}
 
 ALL DIALOGUE & ACTIONS IN CURRENT CHAPTER:
 ${dialogueText}
@@ -1792,8 +1819,8 @@ CRITICAL RULES:
 
 JSON FORMAT:
 {
-  "${active.userPersona.name}": "Sentence one detailing their initial actions. Sentence two on their main choices and dialogue. Sentence three regarding their emotional realization. Sentence four covering their current stance.",
-  "${active.characters[0]?.name || 'Companion'}": "Sentence one on what occurred with them. Sentence two detailing their reaction and physical behavior. Sentence three on how their dynamic with others shifted. Sentence four on where they stand right now."
+  "${userName}": "Sentence one detailing their initial actions. Sentence two on their main choices and dialogue. Sentence three regarding their emotional realization. Sentence four covering their current stance.",
+  "${active.characters?.[0]?.name || 'Companion'}": "Sentence one on what occurred with them. Sentence two detailing their reaction and physical behavior. Sentence three on how their dynamic with others shifted. Sentence four on where they stand right now."
 }`
             }]
           }],
@@ -1851,6 +1878,7 @@ JSON FORMAT:
       reader.onload = (e) => {
         const base64 = e.target.result;
         if (target === 'user') {
+          if (!active.userPersona) active.userPersona = {};
           active.userPersona.avatar = base64;
           document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
         } else if (target === 'char' && charIndex !== null) {
@@ -1872,10 +1900,10 @@ JSON FORMAT:
       const recapsStrings = (active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || ''));
       document.getElementById('chapterRecapsText').value = recapsStrings.join('\n\n');
 
-      document.getElementById('userPersonaName').value = active.userPersona.name || '';
-      document.getElementById('userPersonaRole').value = active.userPersona.role || '';
-      document.getElementById('userPersonaAvatar').value = active.userPersona.avatar || '';
-      document.getElementById('userPersonaDesc').value = active.userPersona.desc || '';
+      document.getElementById('userPersonaName').value = active.userPersona?.name || '';
+      document.getElementById('userPersonaRole').value = active.userPersona?.role || '';
+      document.getElementById('userPersonaAvatar').value = active.userPersona?.avatar || '';
+      document.getElementById('userPersonaDesc').value = active.userPersona?.desc || '';
 
       document.getElementById('scenarioTitle').value = active.title || '';
       document.getElementById('scenarioSetting').value = active.setting || '';
@@ -1885,13 +1913,14 @@ JSON FORMAT:
 
     function updateCharacterRelationshipOverride(charIndex, targetName, value) {
       const active = getActiveScenario();
-      const char = active.characters[charIndex];
+      const char = active.characters?.[charIndex];
       if (!char) return;
 
       if (!char.relationships) char.relationships = {};
       char.relationships[targetName] = value;
 
-      if (targetName.toLowerCase() === (active.userPersona.name || 'User').toLowerCase()) {
+      const userName = active.userPersona?.name || 'User';
+      if (targetName.toLowerCase() === userName.toLowerCase()) {
         char.relationship = value;
       }
     }
@@ -1900,12 +1929,13 @@ JSON FORMAT:
       const container = document.getElementById('characterCardsContainer');
       container.innerHTML = '';
       const active = getActiveScenario();
+      const userName = active.userPersona?.name || 'User';
 
-      active.characters.forEach((char, index) => {
+      (active.characters || []).forEach((char, index) => {
         if (!char.relationships) char.relationships = {};
 
         const otherCastMembers = [
-          { name: active.userPersona.name || 'User', isUser: true },
+          { name: userName, isUser: true },
           ...active.characters.filter((_, i) => i !== index).map(c => ({ name: c.name || `Character`, isUser: false }))
         ];
 
@@ -1953,13 +1983,14 @@ JSON FORMAT:
 
     function addCharacterRow() {
       const active = getActiveScenario();
+      if (!active.characters) active.characters = [];
       active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', personality: '', relationship: '', relationships: {} });
       renderCharacterCardsSetup();
     }
 
     function removeCharacterRow(index) {
       const active = getActiveScenario();
-      active.characters.splice(index, 1);
+      if (active.characters) active.characters.splice(index, 1);
       renderCharacterCardsSetup();
     }
 
@@ -1979,6 +2010,7 @@ JSON FORMAT:
         }));
       }
 
+      if (!active.userPersona) active.userPersona = {};
       active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
       
@@ -1995,91 +2027,42 @@ JSON FORMAT:
       renderAllUi();
       closeModal('setupModal');
 
-      if (active.messages.length === 0 && active.setting && appState.apiKey) {
+      if ((!active.messages || active.messages.length === 0) && active.setting && appState.apiKey) {
         generateOpeningScene();
       }
-    }
-
-    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
-      const active = getActiveScenario();
-      let avatarSrc = '';
-      const safeName = escapeHtml(speakerName || '?');
-      const initial = (speakerName || '?')[0].toUpperCase();
-      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
-
-      if (!isNarrator && isUser && active.userPersona?.avatar) {
-        avatarSrc = active.userPersona.avatar;
-      } else if (!isNarrator && active.characters) {
-        const found = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
-        if (found && found.avatar) {
-          avatarSrc = found.avatar;
-        }
-      }
-
-      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
-      const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
-      const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
-
-      if (avatarSrc) {
-        return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
-      }
-
-      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
-      return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
-    }
-
-    function handleAvatarError(imgEl, speakerName, isUser, size) {
-      const active = getActiveScenario();
-      const initial = (speakerName || '?')[0].toUpperCase();
-      const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
-      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
-      const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
-
-      const div = document.createElement('div');
-      div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60`;
-      div.innerText = initial;
-
-      if (isInteractive) {
-        div.onclick = (e) => {
-          e.stopPropagation();
-          openCharacterSpotlight(speakerName);
-        };
-      }
-      imgEl.replaceWith(div);
     }
 
     function renderSidebar() {
       const active = getActiveScenario();
       document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
-      document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
-      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
+      document.getElementById('sidebarUserName').innerText = active.userPersona?.name || 'User';
+      document.getElementById('sidebarUserDesc').innerText = active.userPersona?.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona?.desc || 'Protagonist');
 
       const sideCharacters = getDynamicSideCharacters();
-      document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
+      const mainChars = active.characters || [];
+      document.getElementById('charCount').innerText = `${mainChars.length + sideCharacters.length} active`;
 
       const userAvatarContainer = document.getElementById('sidebarUserAvatar');
-      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
+      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona?.name || 'User', true, 'w-full h-full');
 
       const list = document.getElementById('sidebarCharacterList');
-      if (active.characters.length === 0 && sideCharacters.length === 0) {
+      if (mainChars.length === 0 && sideCharacters.length === 0) {
         list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.<br>Tap <strong>Setup</strong> above to add cast.</div>`;
         return;
       }
 
       let html = '';
 
-      if (active.characters.length > 0) {
+      if (mainChars.length > 0) {
         html += `
           <div class="space-y-2">
             <div class="flex items-center justify-between px-1">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Cast</span>
-              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${active.characters.length}</span>
+              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${mainChars.length}</span>
             </div>
             <div class="space-y-2.5">
-              ${active.characters.map(c => `
+              ${mainChars.map(c => `
                 <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
                   <div class="flex items-start gap-2.5">
                     ${getAvatarHtml(c.name, false, 'w-10 h-10')}
@@ -2135,9 +2118,10 @@ JSON FORMAT:
       const container = document.getElementById('messagesContainer');
       const active = getActiveScenario();
 
+      document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
 
-      if (active.messages.length === 0) {
+      if (!active.messages || active.messages.length === 0) {
         container.innerHTML = `
           <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
             <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
@@ -2148,6 +2132,8 @@ JSON FORMAT:
         `;
         return;
       }
+
+      const userName = active.userPersona?.name || 'User';
 
       container.innerHTML = active.messages.map((m, index) => {
         if (m.isChapterDivider) {
@@ -2184,8 +2170,8 @@ JSON FORMAT:
 
         const rawSpeaker = m.speakerName || '';
         const isNarrator = rawSpeaker.toLowerCase() === 'narrator' || rawSpeaker.toLowerCase() === 'scene';
-        const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
-        const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Companion'));
+        const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === userName.toLowerCase());
+        const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? userName : 'Companion'));
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
@@ -2268,6 +2254,7 @@ JSON FORMAT:
 
         bubbleBody.classList.remove('typing-cursor');
 
+        if (!active.messages) active.messages = [];
         active.messages.push({
           role: 'model',
           speakerName: speaker,
@@ -2292,11 +2279,12 @@ JSON FORMAT:
 
     function buildSystemInstruction() {
       const active = getActiveScenario();
-      const charListStr = active.characters.map(c => `
+      const userName = active.userPersona?.name || 'User';
+      const charListStr = (active.characters || []).map(c => `
 - Name: ${c.name}
   Role: ${c.role}
   Appearance & Personality: ${c.personality}
-  Relationship to ${active.userPersona.name}: ${c.relationship}
+  Relationship to ${userName}: ${c.relationship}
 `).join('\n');
 
       const pastChaptersStr = (active.archivedRecaps || []).length > 0 
@@ -2306,9 +2294,9 @@ JSON FORMAT:
       return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
 
 [USER PERSONA]:
-- Name: ${active.userPersona.name}
-- Role: ${active.userPersona.role || 'Protagonist'}
-- Details & Appearance: ${active.userPersona.desc || 'Main character'}
+- Name: ${userName}
+- Role: ${active.userPersona?.role || 'Protagonist'}
+- Details & Appearance: ${active.userPersona?.desc || 'Main character'}
 
 [MAIN CAST]:
 ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
@@ -2317,7 +2305,7 @@ ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
 ${active.setting || 'An open roleplay world.'}
 ${pastChaptersStr}
 [CRITICAL OUTPUT RULES]:
-1. NEVER speak or act for {{user}} (${active.userPersona.name}).
+1. NEVER speak or act for {{user}} (${userName}).
 2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker". Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
 3. DIALOGUE FORMATTING: Place character actions enclosed in asterisks (*...*) on their own line, with dialogue placed naturally on the next line. Quotation marks around dialogue are optional and not required.
 Example:
@@ -2336,8 +2324,10 @@ Spoken dialogue goes here.
     function buildApiContents(extraDirective = null) {
       const active = getActiveScenario();
       let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
+      const msgs = active.messages || [];
+
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].isChapterDivider) {
           lastDividerIdx = i;
           break;
         }
@@ -2345,11 +2335,11 @@ Spoken dialogue goes here.
 
       let activeSlice;
       if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
+        activeSlice = msgs.filter(m => !m.isImage);
       } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const priorTurns = msgs.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
         const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        const currentTurns = msgs.slice(lastDividerIdx + 1).filter(m => !m.isImage);
         activeSlice = overlap.concat(currentTurns);
       }
 
@@ -2473,11 +2463,12 @@ Spoken dialogue goes here.
       if (currentTokens >= threshold) {
         showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${active.currentChapter}...`);
         try {
-          const activeRawTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          const activeRawTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
           const dialogueText = activeRawTurns
             .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
             .join('\n');
-          const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+          const userName = active.userPersona?.name || 'User';
+          const castNames = [userName, ...(active.characters || []).map(c => c.name)];
 
           const summaryReqPayload = {
             contents: [{
@@ -2522,6 +2513,7 @@ TASK: Return a JSON object with:
 
           active.activeChapterArcs = null;
 
+          if (!active.messages) active.messages = [];
           active.messages.push({
             isChapterDivider: true,
             text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
@@ -2548,7 +2540,7 @@ TASK: Return a JSON object with:
         return;
       }
       const active = getActiveScenario();
-      if (active.messages.length === 0) {
+      if (!active.messages || active.messages.length === 0) {
         alert("Start a story or send a message before generating a visual.");
         return;
       }
@@ -2588,10 +2580,11 @@ TASK: Return a JSON object with:
           }
         });
 
+        const userName = active.userPersona?.name || 'User';
         const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
 
-[SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
-[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
+[SETTING & AESTHETIC]: ${active.title || 'Scene'} - ${active.setting || 'Dramatic narrative environment'}
+[USER PERSONA]: ${userName} (${active.userPersona?.desc || 'Protagonist'})
 [CAST VISUAL DESCRIPTIONS]:
 ${castVisualProfiles}
 
@@ -2626,7 +2619,7 @@ REQUIREMENTS:
         let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         if (!visualPrompt || visualPrompt.length < 15) {
-          visualPrompt = `Cinematic anime illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
+          visualPrompt = `Cinematic anime illustration of ${userName} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, detailed character features, dramatic lighting, 16:9 masterpiece`;
         }
 
         showLoading(true, "Rendering character-consistent visual snapshot...");
@@ -2679,6 +2672,7 @@ REQUIREMENTS:
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        if (!active.messages) active.messages = [];
         active.messages.push({
           role: 'model',
           isImage: true,
@@ -2714,6 +2708,7 @@ REQUIREMENTS:
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+      if (!active.messages) active.messages = [];
 
       segments.forEach(seg => {
         if (seg.startsWith('@:')) {
@@ -2729,7 +2724,7 @@ REQUIREMENTS:
         } else {
           active.messages.push({
             role: 'user',
-            speakerName: active.userPersona.name,
+            speakerName: active.userPersona?.name || 'User',
             text: formatDialogueSpacing(seg),
             timestamp: timeStr
           });
@@ -2751,7 +2746,7 @@ REQUIREMENTS:
       skipTypewriter();
       hideReplySuggestions();
       const active = getActiveScenario();
-      if (active.messages.length === 0 && active.setting) {
+      if ((!active.messages || active.messages.length === 0) && active.setting) {
         generateOpeningScene();
         return;
       }
@@ -2844,7 +2839,7 @@ REQUIREMENTS:
       if (!rawText) return;
 
       const active = getActiveScenario();
-      const userName = (active.userPersona.name || 'Me').toLowerCase();
+      const userName = (active.userPersona?.name || 'Me').toLowerCase();
       const parsedMessages = [];
 
       const blocks = parsePlainTextIntoBlocks(rawText);
@@ -2855,12 +2850,13 @@ REQUIREMENTS:
 
         parsedMessages.push({
           role: isUser ? 'user' : 'model',
-          speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
+          speakerName: isUser ? (active.userPersona?.name || 'Me') : b.speaker,
           text: formatDialogueSpacing(b.text),
           timestamp: 'Imported'
         });
       }
 
+      if (!active.messages) active.messages = [];
       active.messages = append ? active.messages.concat(parsedMessages) : parsedMessages;
       saveState();
       renderAllUi();
@@ -2870,13 +2866,13 @@ REQUIREMENTS:
 
     function exportStory() {
       const active = getActiveScenario();
-      if (active.messages.length === 0) {
+      if (!active.messages || active.messages.length === 0) {
         alert("No story content to export in current scenario.");
         return;
       }
       let markdown = `# ${active.title || 'Interactive Story'}\n\n`;
       markdown += `**Setting:** ${active.setting || 'N/A'}\n\n`;
-      markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
+      markdown += `**User:** ${active.userPersona?.name || 'User'} (${active.userPersona?.role || 'Protagonist'})\n\n`;
 
       if ((active.archivedRecaps || []).length > 0) {
         markdown += `## Archived Story Recaps\n\n`;
