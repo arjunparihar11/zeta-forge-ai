@@ -127,20 +127,17 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Image Library Button -->
         <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
           <span>🖼️</span>
           <span class="hidden sm:inline font-semibold">Gallery</span>
         </button>
 
-        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
-        <!-- Desktop Expanded Utilities -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -314,7 +311,7 @@
         </div>
       </div>
 
-      <!-- Typing / Generating Indicator -->
+      <!-- Typing Indicator -->
       <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
@@ -322,27 +319,25 @@
         <span class="ml-1 text-slate-400 text-xs" id="typingText">Characters are replying...</span>
       </div>
 
-      <!-- Bottom Chat Bar -->
+      <!-- Bottom Chat Bar (Swapped Suggest & Visualize) -->
       <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <!-- Narrator Mode Toggle Button -->
             <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
               <span>📜</span> <span id="narrateToggleText">Narrate</span>
             </button>
-            <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
-              <span>🖼️</span> <span>Visualize</span>
-            </button>
             <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>💡</span> <span>Suggest</span>
+            </button>
+            <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>🖼️</span> <span>Visualize</span>
             </button>
             <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>⏩</span> <span>Continue</span>
             </button>
           </div>
 
-          <!-- Dynamic Vertical Reply Suggestions Stack -->
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
             <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
               <span class="font-semibold text-indigo-300">💡 Tap an option to insert into text box:</span>
@@ -391,7 +386,7 @@
     </div>
   </div>
 
-  <!-- Center Screen: Character Spotlight Dossier Modal -->
+  <!-- Character Spotlight Dossier Modal -->
   <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <button onclick="closeCharacterSpotlight()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
@@ -656,7 +651,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v52';
+          const CACHE_NAME = 'zetaforge-v53';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -773,6 +768,8 @@
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
+    let messageBranches = {};
+    let editingMessageId = null;
 
     function toggleNarrateMode() {
       isNarrateModeActive = !isNarrateModeActive;
@@ -1013,7 +1010,6 @@
       closeLightbox();
     }
 
-    // Image Library Grouped by Chapter
     function openImageLibraryModal() {
       const active = getActiveScenario();
       const container = document.getElementById('imageLibraryContainer');
@@ -1207,6 +1203,93 @@ CRITICAL RULES:
 
     function hideReplySuggestions() {
       document.getElementById('replySuggestionsContainer').classList.add('hidden');
+    }
+
+    // Branch Editing & Undo Logic
+    function startEditMessage(id) {
+      editingMessageId = id;
+      renderMessages();
+    }
+
+    function cancelEditMessage() {
+      editingMessageId = null;
+      renderMessages();
+    }
+
+    async function saveEditMessage(id) {
+      const active = getActiveScenario();
+      const idx = active.messages.findIndex(m => m.id === id);
+      if (idx === -1) return;
+
+      const textareaEl = document.getElementById(`edit-textarea-${id}`);
+      if (!textareaEl) return;
+      const newText = textareaEl.value.trim();
+      if (!newText) return;
+
+      // Save branch snapshot of entire message history prior to truncation
+      messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
+
+      // Update edited turn and delete all turns below it
+      active.messages[idx].text = formatDialogueSpacing(newText);
+      active.messages = active.messages.slice(0, idx + 1);
+
+      editingMessageId = null;
+      await saveState();
+      renderAllUi();
+
+      // If user message was edited, prompt new response seamlessly
+      if (active.messages[idx].role === 'user') {
+        await triggerAiResponse();
+        await checkAndTriggerChapterArchival();
+      }
+    }
+
+    async function undoBranch(id) {
+      const active = getActiveScenario();
+      if (messageBranches[id]) {
+        active.messages = JSON.parse(JSON.stringify(messageBranches[id]));
+        delete messageBranches[id];
+        await saveState();
+        renderAllUi();
+      }
+    }
+
+    async function retryLastTurn() {
+      skipTypewriter();
+      hideReplySuggestions();
+      const active = getActiveScenario();
+      if (active.messages.length === 0) return;
+
+      showLoading(true, "Regenerating from last user turn with variation...");
+
+      // Find the index of the latest user turn
+      let lastUserIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        const msg = active.messages[i];
+        const isUserTurn = msg.role === 'user' && msg.speakerName?.toLowerCase() !== 'narrator' && msg.speakerName?.toLowerCase() !== 'scene';
+        if (isUserTurn) {
+          lastUserIdx = i;
+          break;
+        }
+      }
+
+      const lastModelMsg = active.messages[active.messages.length - 1];
+      const branchKey = (lastUserIdx !== -1 && active.messages[lastUserIdx]?.id) ? active.messages[lastUserIdx].id : (lastModelMsg.id || 'last_turn');
+
+      // Save original branch snapshot for undo
+      messageBranches[branchKey] = JSON.parse(JSON.stringify(active.messages));
+
+      if (lastUserIdx !== -1) {
+        active.messages = active.messages.slice(0, lastUserIdx + 1);
+        await saveState();
+        renderMessages();
+        await triggerAiResponse("[System directive: Regenerate the response with a distinct, fresh direction and variation from prior generations.]");
+      } else {
+        active.messages = [];
+        await saveState();
+        renderMessages();
+        await generateOpeningScene();
+      }
     }
 
     // Character Spotlight Dossier Functions
@@ -2005,7 +2088,6 @@ JSON FORMAT:
       }
     }
 
-    // Avatar Renderer with side-cast styling and narrator exclusion
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -2143,6 +2225,20 @@ JSON FORMAT:
 
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
 
+      // Ensure every message has an ID
+      (active.messages || []).forEach(m => {
+        if (!m.id) m.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      });
+
+      // Prune saved branches that are older than 20 messages from history
+      const cutoffIdx = Math.max(0, active.messages.length - 20);
+      const recentIds = new Set(active.messages.slice(cutoffIdx).map(m => m.id));
+      for (let k in messageBranches) {
+        if (!recentIds.has(k)) {
+          delete messageBranches[k];
+        }
+      }
+
       if (active.messages.length === 0) {
         container.innerHTML = `
           <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
@@ -2196,22 +2292,49 @@ JSON FORMAT:
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
         const renderedHtml = marked.parse(cleanContent);
+        const isEditingThis = editingMessageId === m.id;
+        const hasBranchSnapshot = Boolean(messageBranches[m.id]);
+        const isMostRecentMessage = (index === active.messages.length - 1) && !isUser && !m.isImage && !m.isChapterDivider;
 
         return `
           <div id="msg-${index}" class="flex gap-2.5 sm:gap-3.5 group ${isUser ? 'justify-end' : 'justify-start'}">
             ${!isUser ? avatarHtml : ''}
-            <div class="max-w-[88%] sm:max-w-[80%]">
+            <div class="max-w-[88%] sm:max-w-[80%] w-full">
               <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
                 <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
-              <div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
-                ${renderedHtml}
-              </div>
-              <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
-                ${!isUser ? `<button onclick="regenerateTurn(${index})" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>` : ''}
-                <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button>
-              </div>
+              
+              ${isEditingThis ? `
+                <div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg">
+                  <textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text || '')}</textarea>
+                  <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
+                    <span>⚠️ Saving will delete subsequent messages & branch timeline</span>
+                    <div class="flex gap-1.5">
+                      <button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button>
+                      <button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button>
+                    </div>
+                  </div>
+                </div>
+              ` : `
+                <div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser ? 'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none' : (isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">
+                  ${renderedHtml}
+                </div>
+              `}
+
+              ${!isEditingThis ? `
+                <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}">
+                  ${hasBranchSnapshot ? `
+                    <button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400 hover:text-amber-300 font-medium flex items-center gap-0.5 transition active:scale-95" title="Undo branch edit/retry">↩️ Undo</button>
+                  ` : `
+                    <button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400 transition" title="Edit text and branch timeline">✏️ Edit</button>
+                  `}
+                  ${isMostRecentMessage ? `
+                    <button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400 transition active:scale-95" title="Regenerate turn with variation">🔄 Retry</button>
+                  ` : ''}
+                  <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button>
+                </div>
+              ` : ''}
             </div>
             ${isUser ? avatarHtml : ''}
           </div>
@@ -2237,6 +2360,7 @@ JSON FORMAT:
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
         const fullText = formatDialogueSpacing((block.text || '').trim());
+        const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
@@ -2275,6 +2399,7 @@ JSON FORMAT:
         bubbleBody.classList.remove('typing-cursor');
 
         active.messages.push({
+          id: msgId,
           role: 'model',
           speakerName: speaker,
           text: fullText,
@@ -2684,6 +2809,7 @@ REQUIREMENTS:
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         active.messages.push({
+          id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
           role: 'model',
           isImage: true,
           imageUrl: fullDataUrl,
@@ -2726,10 +2852,12 @@ REQUIREMENTS:
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
 
       segments.forEach(seg => {
+        const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         if (seg.startsWith('@:')) {
           const cleanNarration = seg.replace(/^@:\s*/, '').trim();
           if (cleanNarration) {
             active.messages.push({
+              id: msgId,
               role: 'model',
               speakerName: 'Narrator',
               text: cleanNarration.startsWith('*') ? cleanNarration : `*${cleanNarration}*`,
@@ -2738,6 +2866,7 @@ REQUIREMENTS:
           }
         } else {
           active.messages.push({
+            id: msgId,
             role: 'user',
             speakerName: active.userPersona.name,
             text: formatDialogueSpacing(seg),
@@ -2800,42 +2929,6 @@ REQUIREMENTS:
       }
     }
 
-    async function regenerateTurn(index) {
-      if (index <= 0) return;
-      skipTypewriter();
-      hideReplySuggestions();
-      showLoading(true, "Regenerating turn...");
-      const active = getActiveScenario();
-      try {
-        const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
-        const contents = sliced.map(m => {
-          const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
-          return {
-            role: isUserTurn ? 'user' : 'model',
-            parts: [{ text: `${m.speakerName}: ${m.text}` }]
-          };
-        });
-
-        if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
-          contents.push({
-            role: 'user',
-            parts: [{ text: `[System directive: Regenerate the next turn naturally.]` }]
-          });
-        }
-
-        const replyBlocks = await callGeminiApi(contents);
-        showLoading(false);
-
-        if (replyBlocks.length > 0) {
-          active.messages.splice(index);
-          await playSequentialTypewriter(replyBlocks);
-        }
-      } catch (err) {
-        showLoading(false);
-        alert("Retry error: " + err.message);
-      }
-    }
-
     async function deleteMessage(index) {
       if (confirm("Delete this entry?")) {
         const active = getActiveScenario();
@@ -2863,6 +2956,7 @@ REQUIREMENTS:
         const isUser = speakerLower === 'me' || speakerLower === 'you' || speakerLower === userName;
 
         parsedMessages.push({
+          id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
           role: isUser ? 'user' : 'model',
           speakerName: isUser ? (active.userPersona.name || 'Me') : b.speaker,
           text: formatDialogueSpacing(b.text),
