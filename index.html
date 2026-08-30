@@ -127,12 +127,20 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <!-- Image Library Button (Left of Chapter Chronicle) -->
+        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
+          <span>🖼️</span>
+          <span class="hidden sm:inline font-semibold">Gallery</span>
+        </button>
+
+        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
+        <!-- Desktop Expanded Utilities -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -360,6 +368,24 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Image Library Modal (Grouped by Chapter) -->
+  <div id="imageLibraryModal" onclick="closeImageLibraryModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🖼️ Scenario Image Library</h2>
+        <button onclick="closeImageLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 scroll-touch" id="imageLibraryContainer">
+        <!-- Dynamically filled with scenario images labeled by chapter -->
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeImageLibraryModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close Library</button>
+      </div>
+    </div>
   </div>
 
   <!-- Center Screen: Character Spotlight Dossier Modal -->
@@ -627,7 +653,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v50';
+          const CACHE_NAME = 'zetaforge-v51';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -768,6 +794,7 @@
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
       closeAllDrawers();
+      closeImageLibraryModal();
       closeCharacterSpotlight();
       closeCharacterPhotoModal();
       closeLightbox();
@@ -964,6 +991,72 @@
       renderScenariosList();
       alert(`🖼️ Set this image as the scenario preview cover!`);
       closeLightbox();
+    }
+
+    // Image Library Grouped by Chapter
+    function openImageLibraryModal() {
+      const active = getActiveScenario();
+      const container = document.getElementById('imageLibraryContainer');
+      closeAllDrawers();
+
+      let currentChap = 1;
+      const chapterBuckets = {};
+
+      (active.messages || []).forEach(m => {
+        if (m.isChapterDivider) {
+          currentChap++;
+        } else if (m.isImage && m.imageUrl) {
+          if (!chapterBuckets[currentChap]) {
+            chapterBuckets[currentChap] = [];
+          }
+          chapterBuckets[currentChap].push(m);
+        }
+      });
+
+      const chapterKeys = Object.keys(chapterBuckets).sort((a, b) => parseInt(b) - parseInt(a));
+
+      if (chapterKeys.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400 space-y-2">
+            <div class="text-4xl">🖼️</div>
+            <p class="text-sm font-semibold text-white">No images generated yet</p>
+            <p class="text-xs text-slate-500">Tap <strong>🖼️ Visualize</strong> during your story to generate scene snapshots.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = chapterKeys.map(chKey => {
+          const images = chapterBuckets[chKey];
+          return `
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 pb-1 border-b border-slate-800">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">📖 Chapter ${chKey}</span>
+                <span class="text-[10px] text-slate-500 font-mono">(${images.length} ${images.length === 1 ? 'image' : 'images'})</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                ${images.map(img => `
+                  <div onclick="openLightbox('${escapeJsString(img.imageUrl)}', '${escapeJsString(img.text || img.prompt || '')}')" class="group relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-indigo-500 cursor-pointer shadow transition active:scale-95">
+                    <img src="${img.imageUrl}" alt="Scene Snapshot" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-end p-2">
+                      <p class="text-[10px] text-slate-200 line-clamp-2 italic leading-tight">${escapeHtml(img.text || img.prompt || 'Scene Snapshot')}</p>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const modal = document.getElementById('imageLibraryModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeImageLibraryModal(event) {
+      if (event && event.target && event.target.id !== 'imageLibraryModal') return;
+      const modal = document.getElementById('imageLibraryModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
 
     function getDynamicSideCharacters() {
@@ -1893,7 +1986,6 @@ JSON FORMAT:
       }
     }
 
-    // Avatar Renderer with side-cast styling and narrator exclusion
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       let avatarSrc = '';
@@ -2254,7 +2346,6 @@ Spoken dialogue goes here.
         };
       });
 
-      // If background directive supplied, append as user turn
       if (extraDirective) {
         contents.push({
           role: 'user',
@@ -2262,7 +2353,6 @@ Spoken dialogue goes here.
         });
       }
 
-      // Guarantee the request ends with a user turn to avoid API rejection
       if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
         contents.push({
           role: 'user',
