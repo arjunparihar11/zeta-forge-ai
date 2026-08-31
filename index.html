@@ -127,26 +127,22 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Visual Novel / Chat Mode Switcher Button -->
         <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
           <span id="viewModeIcon">🎭</span>
           <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
         </button>
 
-        <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
         <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
           <span>🖼️</span>
           <span>Gallery</span>
         </button>
 
-        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
-        <!-- Desktop Expanded Utilities -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -644,13 +640,22 @@
             </label>
           </div>
 
+          <!-- Background Removal Toggle Switch for Sprite Sheets -->
+          <div class="flex items-center justify-between p-2.5 bg-slate-900/90 rounded-lg border border-slate-700/80 text-xs text-slate-300">
+            <label for="spriteBgRemoveToggle" class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="spriteBgRemoveToggle" class="w-4 h-4 rounded bg-zetaInput border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer" checked />
+              <span class="font-semibold text-indigo-200">Auto-Remove Background on Sprite Sheet</span>
+            </label>
+            <span class="text-[10px] text-slate-400 hidden sm:inline">(Uncheck if sheet is already a transparent PNG)</span>
+          </div>
+
           <div class="flex gap-1.5 pt-0.5">
             <input type="text" id="avatarManagerUrlInput" placeholder="Or paste image URL..." class="flex-1 bg-zetaInput border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
             <button onclick="addAvatarFromUrlInput()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
           </div>
 
           <p class="text-[10px] text-slate-400 leading-tight">
-            Sprite sheets (4×4 grid) automatically extract 16 transparent emotion poses, label them with expressions, and strip checkerboard backgrounds with zero-halo perimeter matting.
+            Sprite sheets (4×4 grid) automatically extract 16 individual emotion poses and label them. Toggle background removal depending on whether your image uses checkerboard/solid backdrops or is already transparent.
           </p>
         </div>
 
@@ -897,7 +902,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v60';
+          const CACHE_NAME = 'zetaforge-v61';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -965,7 +970,6 @@
       }
     }
 
-    // Default Simulation Template with Bob
     function createScenarioTemplate(title = 'Simulation') {
       return {
         id: 'scen_' + Date.now(),
@@ -1301,7 +1305,6 @@
       closeLightbox();
     }
 
-    // Dynamic Emotion Sprite Selector
     function getCharacterActiveAvatar(char) {
       if (!char) return '';
       const photos = (char.photos || []).map(normalizePhoto);
@@ -1320,7 +1323,6 @@
       return matched ? matched.src : (char.avatar || photos[0]?.src || '');
     }
 
-    // Client-Side Image Compression Engine
     function compressImageFile(file, maxDimension = 1024, quality = 0.82) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1360,7 +1362,6 @@
       });
     }
 
-    // Enhanced Checkerboard & White Tone Detector
     function isCheckerboardColor(r, g, b) {
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
@@ -1662,8 +1663,13 @@
       const targetObj = getPhotoTargetObject();
       if (!targetObj) return;
 
+      const bgRemoveToggle = document.getElementById('spriteBgRemoveToggle');
+      const shouldRemoveBg = bgRemoveToggle ? bgRemoveToggle.checked : true;
+
       const countEl = document.getElementById('avatarManagerCount');
-      if (countEl) countEl.innerText = "Extracting & De-fringing 16 Sprites...";
+      if (countEl) {
+        countEl.innerText = shouldRemoveBg ? "Extracting & De-fringing 16 Sprites..." : "Extracting 16 Sprites...";
+      }
 
       try {
         const img = await new Promise((resolve, reject) => {
@@ -1720,9 +1726,11 @@
             ctx.clearRect(0, 0, cellWidth, cellHeight);
             ctx.drawImage(img, col * cellWidth, row * cellHeight, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
 
-            const imgData = ctx.getImageData(0, 0, cellWidth, cellHeight);
-            removeBackgroundFromPixelData(imgData.data, cellWidth, cellHeight);
-            ctx.putImageData(imgData, 0, 0);
+            if (shouldRemoveBg) {
+              const imgData = ctx.getImageData(0, 0, cellWidth, cellHeight);
+              removeBackgroundFromPixelData(imgData.data, cellWidth, cellHeight);
+              ctx.putImageData(imgData, 0, 0);
+            }
 
             let spriteDataUrl;
             if (cellWidth !== exportWidth || cellHeight !== exportHeight) {
@@ -1753,7 +1761,7 @@
         renderAvatarManagerGallery();
         renderCharacterCardsSetup();
         renderSidebar();
-        alert(`✨ Successfully extracted 16 clean, alpha-feathered emotion sprites for ${targetObj.name || 'character'}!`);
+        alert(`✨ Successfully sliced and imported 16 emotion sprites for ${targetObj.name || 'character'}!`);
       } catch (err) {
         alert("Sprite sheet error: " + err.message);
       } finally {
@@ -2151,6 +2159,7 @@
         const fullDataUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
 
@@ -2919,6 +2928,25 @@ JSON FORMAT:
       const modal = document.getElementById(id);
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+    }
+
+    function handleImageUpload(event, target, charIndex = null) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const active = getActiveScenario();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        if (target === 'user') {
+          active.userPersona.avatar = base64;
+          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
+        } else if (target === 'char' && charIndex !== null) {
+          active.characters[charIndex].avatar = base64;
+          renderCharacterCardsSetup();
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
     function syncModalForm() {
