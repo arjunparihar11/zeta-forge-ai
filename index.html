@@ -966,7 +966,7 @@
       }
     }
 
-    function createScenarioTemplate(title = 'New Scenario') {
+    function createScenarioTemplate(title = 'Simulation') {
       return {
         id: 'scen_' + Date.now(),
         title: title,
@@ -976,34 +976,15 @@
         artStyle: 'Anime',
         vnBackground: '',
         userPersona: {
-          name: 'Rapid',
-          role: 'Protagonist',
+          name: 'Bob',
+          role: 'Middle-aged businessman',
           avatar: '',
           photos: [],
-          mood: 'Focused',
-          desc: 'Quick-witted, observant, and direct.'
+          mood: 'Aware',
+          desc: 'Bob is a middle aged businessman who is aware that he is a test subject in a simulation.'
         },
-        characters: [
-          {
-            id: 'char_1',
-            name: 'Rena',
-            role: 'tsundere, confident, arrogant',
-            avatar: '',
-            photos: [],
-            mood: 'Confident',
-            personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
-            relationship: 'Companion',
-            relationships: {}
-          }
-        ],
-        lorebook: [
-          {
-            id: 'lore_1',
-            title: 'Veridia City',
-            keywords: 'veridia, city, capital, downtown',
-            content: 'The sprawling, high-tech metropolitan hub where the central narrative and district clashes take place.'
-          }
-        ],
+        characters: [],
+        lorebook: [],
         messages: [],
         archivedRecaps: [],
         currentChapter: 1,
@@ -1079,7 +1060,7 @@
 
     function ensureActiveScenario() {
       if (!Array.isArray(appState.scenarios) || appState.scenarios.length === 0) {
-        const initial = createScenarioTemplate('Sleepover Dare');
+        const initial = createScenarioTemplate('Simulation');
         appState.scenarios = [initial];
         appState.activeScenarioId = initial.id;
         return initial;
@@ -1147,7 +1128,7 @@
             viewMode: 'chat',
             artStyle: 'Anime',
             vnBackground: '',
-            userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', photos: [], mood: 'Focused', desc: '' },
+            userPersona: saved.userPersona || { name: 'Bob', role: 'Middle-aged businessman', avatar: '', photos: [], mood: 'Aware', desc: 'Bob is a middle aged businessman who is aware that he is a test subject in a simulation.' },
             characters: saved.characters || [],
             lorebook: [],
             messages: saved.messages || [],
@@ -1168,7 +1149,7 @@
           appState = { ...appState, ...saved };
         }
       } else {
-        const defaultScen = createScenarioTemplate('Sleepover Dare');
+        const defaultScen = createScenarioTemplate('Simulation');
         appState.scenarios = [defaultScen];
         appState.activeScenarioId = defaultScen.id;
       }
