@@ -191,17 +191,17 @@
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name); event.stopPropagation();">
           U
         </div>
-        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name); event.stopPropagation();">
           <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
           <div class="text-slate-400 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
         </div>
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access (With Mobile Gallery Button) -->
+    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
       <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
@@ -209,7 +209,6 @@
           <h2 class="text-xs font-bold uppercase tracking-wider text-white">Chapter Chronicle</h2>
         </div>
         <div class="flex items-center gap-1.5">
-          <!-- Mobile-Only Gallery Button in Chronicle Header -->
           <button onclick="openImageLibraryModal()" class="md:hidden bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow" title="Scenario Image Gallery">
             <span>🖼️</span> <span>Gallery</span>
           </button>
@@ -336,7 +335,7 @@
         <div id="vnBackgroundLayer" class="absolute inset-0 bg-cover bg-center transition-all duration-700 opacity-60 filter brightness-[0.7] blur-[1px]"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-zetaBg via-transparent to-black/50 pointer-events-none"></div>
 
-        <!-- Transparent Left / Right Navigation Tap Zones (Above Textbox, Below Top Bar) -->
+        <!-- Transparent Left / Right Navigation Tap Zones -->
         <div class="absolute inset-0 top-12 bottom-36 flex z-10 pointer-events-auto">
           <div onclick="handleVnStageTap('prev')" class="w-1/2 h-full cursor-pointer select-none" title="Previous turn (Tap Left)"></div>
           <div onclick="handleVnStageTap('next')" class="w-1/2 h-full cursor-pointer select-none" title="Next turn / Advance (Tap Right)"></div>
@@ -898,7 +897,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v59';
+          const CACHE_NAME = 'zetaforge-v60';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -966,11 +965,12 @@
       }
     }
 
-    function createScenarioTemplate(title = 'New Scenario') {
+    // Default Simulation Template with Bob
+    function createScenarioTemplate(title = 'Simulation') {
       return {
         id: 'scen_' + Date.now(),
         title: title,
-        setting: '',
+        setting: 'A mysterious virtual simulation chamber where parameters and reality are tested and observed.',
         cover: '',
         viewMode: 'chat',
         artStyle: 'Anime / Visual Novel',
@@ -986,22 +986,22 @@
         characters: [
           {
             id: 'char_1',
-            name: 'Rena',
-            role: 'tsundere, confident, arrogant',
+            name: 'Bob',
+            role: 'self aware test subject',
             avatar: '',
             photos: [],
-            mood: 'Confident',
-            personality: '22 Years Old. Full name Sarena Brightwell. Wavy auburn hair, sharp green eyes, confident posture.',
-            relationship: 'Companion',
+            mood: 'Curious',
+            personality: 'A sentient, self-aware test subject trapped inside the simulation. Highly observant, philosophical, and constantly probing the boundaries of his artificial environment.',
+            relationship: 'Subject / Observer',
             relationships: {}
           }
         ],
         lorebook: [
           {
             id: 'lore_1',
-            title: 'Veridia City',
-            keywords: 'veridia, city, capital, downtown',
-            content: 'The sprawling, high-tech metropolitan hub where the central narrative and district clashes take place.'
+            title: 'The Simulation Matrix',
+            keywords: 'simulation, matrix, system, chamber, protocol',
+            content: 'The contained digital construct where simulated realities and sentient anomalies are tested under observation.'
           }
         ],
         messages: [],
@@ -1079,7 +1079,7 @@
 
     function getActiveScenario() {
       if (!appState.scenarios || appState.scenarios.length === 0) {
-        const initial = createScenarioTemplate('Sleepover Dare');
+        const initial = createScenarioTemplate('Simulation');
         appState.scenarios = [initial];
         appState.activeScenarioId = initial.id;
         return initial;
@@ -1122,7 +1122,7 @@
         if (!saved.scenarios || saved.scenarios.length === 0) {
           const legacy = {
             id: 'scen_legacy',
-            title: saved.scenario?.title || 'Interactive Story',
+            title: saved.scenario?.title || 'Simulation',
             setting: saved.scenario?.setting || '',
             cover: '',
             viewMode: 'chat',
@@ -1149,7 +1149,7 @@
           appState = { ...appState, ...saved };
         }
       } else {
-        const defaultScen = createScenarioTemplate('Sleepover Dare');
+        const defaultScen = createScenarioTemplate('Simulation');
         appState.scenarios = [defaultScen];
         appState.activeScenarioId = defaultScen.id;
       }
@@ -1914,7 +1914,7 @@
       return `\n[WORLD CODEX & DYNAMIC LOREBOOK INJECTIONS]:\n` + matchedEntries.map(e => `- ${e.title}: ${e.content}`).join('\n') + `\n`;
     }
 
-    // Visual Novel Stage View Engine with Left/Right Taps & Auto-Forward
+    // Visual Novel Stage View Engine
     function toggleStoryViewMode() {
       const active = getActiveScenario();
       active.viewMode = active.viewMode === 'vn' ? 'chat' : 'vn';
@@ -2064,7 +2064,7 @@
       if (isUser) {
         charObj = active.userPersona;
       } else if (!isNarrator) {
-        charObj = active.characters.find(c => c.name.toLowerCase() === speakerName.toLowerCase());
+        charObj = active.characters.find(c => (c.name || '').toLowerCase() === speakerName.toLowerCase());
       }
 
       if (charObj && charObj.mood) {
@@ -2077,7 +2077,7 @@
       const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
-          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}')" />
+          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();" />
         `;
       } else {
         stageBox.innerHTML = '';
@@ -2151,7 +2151,6 @@
         const fullDataUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
 
@@ -2174,6 +2173,8 @@
       const footerBar = document.getElementById('spotlightFooterBar');
       const active = getActiveScenario();
 
+      if (!viewBody || !editBody || !toggleBtn || !footerBar) return;
+
       isSpotlightEditing = force !== undefined ? force : !isSpotlightEditing;
 
       if (isSpotlightEditing) {
@@ -2182,8 +2183,8 @@
         editBody.classList.remove('hidden');
         toggleBtn.innerText = '👁️ View';
 
-        const isUser = (currentSpotlightCharName.toLowerCase() === active.userPersona.name.toLowerCase()) || (currentSpotlightCharName.toLowerCase() === 'you');
-        let charObj = isUser ? active.userPersona : active.characters.find(c => c.name.toLowerCase() === currentSpotlightCharName.toLowerCase());
+        const isUser = ((currentSpotlightCharName || '').toLowerCase() === (active.userPersona?.name || '').toLowerCase()) || ((currentSpotlightCharName || '').toLowerCase() === 'you');
+        let charObj = isUser ? active.userPersona : (active.characters || []).find(c => (c.name || '').toLowerCase() === (currentSpotlightCharName || '').toLowerCase());
 
         if (!charObj) {
           charObj = { name: currentSpotlightCharName, role: 'Side Character', mood: 'Neutral', personality: '', relationship: 'Companion' };
@@ -2204,8 +2205,8 @@
 
     async function saveSpotlightEdits() {
       const active = getActiveScenario();
-      const isUser = (currentSpotlightCharName.toLowerCase() === active.userPersona.name.toLowerCase()) || (currentSpotlightCharName.toLowerCase() === 'you');
-      let charObj = isUser ? active.userPersona : active.characters.find(c => c.name.toLowerCase() === currentSpotlightCharName.toLowerCase());
+      const isUser = ((currentSpotlightCharName || '').toLowerCase() === (active.userPersona?.name || '').toLowerCase()) || ((currentSpotlightCharName || '').toLowerCase() === 'you');
+      let charObj = isUser ? active.userPersona : (active.characters || []).find(c => (c.name || '').toLowerCase() === (currentSpotlightCharName || '').toLowerCase());
 
       if (!charObj) {
         charObj = { id: 'char_' + Date.now(), name: currentSpotlightCharName, photos: [] };
@@ -2228,217 +2229,181 @@
       if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
-    function getDynamicSideCharacters() {
+    // Character Spotlight Open & Close
+    async function openCharacterSpotlight(characterName) {
+      if (!characterName || characterName === 'Narrator' || characterName === 'Scene' || characterName === 'System') return;
+
+      currentSpotlightCharName = characterName;
+      isSpotlightEditing = false;
+
       const active = getActiveScenario();
-      const mainNamesLower = new Set([
-        (active.userPersona.name || 'User').toLowerCase(),
-        'you', 'user', 'narrator', 'scene', 'system',
-        ...active.characters.map(c => (c.name || '').toLowerCase())
-      ]);
+      const isUser = ((characterName || '').toLowerCase() === (active.userPersona?.name || '').toLowerCase()) || ((characterName || '').toLowerCase() === 'you');
+      
+      let isMainCast = false;
+      let charObj;
 
-      const recentMessages = active.messages
-        .filter(m => !m.isImage && !m.isChapterDivider && m.speakerName)
-        .slice(-20);
-
-      const sideMap = new Map();
-      recentMessages.forEach(m => {
-        const name = m.speakerName.trim();
-        const lower = name.toLowerCase();
-        if (!mainNamesLower.has(lower) && name.length > 1 && !sideMap.has(lower)) {
-          sideMap.set(lower, name);
-        }
-      });
-
-      return Array.from(sideMap.values());
-    }
-
-    // AI Reply Generator
-    async function generateReplySuggestions() {
-      if (!appState.apiKey) {
-        openModal('setupModal');
-        return;
-      }
-      const active = getActiveScenario();
-      if (active.messages.length === 0) {
-        alert("Start a story first before generating reply choices.");
-        return;
-      }
-
-      const btn = document.getElementById('suggestRepliesBtn');
-      const container = document.getElementById('replySuggestionsContainer');
-      const list = document.getElementById('replySuggestionsList');
-
-      btn.disabled = true;
-      btn.innerHTML = `<span>⏳</span> <span>Suggest</span>`;
-
-      try {
-        const recentDialogue = active.messages
-          .filter(m => !m.isImage && !m.isChapterDivider)
-          .slice(-8)
-          .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
-          .join('\n');
-
-        const promptPayload = {
-          contents: [{
-            role: 'user',
-            parts: [{
-              text: `TASK: Generate exactly 3 completely distinct, rich, and immersive dialogue/action reply options for {{user}} (${active.userPersona.name}) to respond to the scene.
-
-USER DETAILS & PERSONALITY:
-- Name: ${active.userPersona.name}
-- Persona/Role: ${active.userPersona.role || 'Protagonist'} - ${active.userPersona.desc || 'Observant and quick-witted'}
-
-RECENT TURNS:
-${recentDialogue}
-
-CRITICAL RULES:
-1. Make each option distinctly different in tone, intention, and direction (e.g., Option A: witty/teasing reaction, Option B: deep/vulnerable emotional step, Option C: bold proactive question or narrative-driving action).
-2. FORMATTING: Separate actions in asterisks from dialogue with an actual newline break. Do NOT put quotation marks around spoken dialogue.
-3. LENGTH: Make each reply detailed and expressive (between 30 to 60 words). Allow full narrative depth.
-4. Output STRICTLY a JSON array of 3 strings:
-[
-  "*Detailed Action*\\nRich dialogue response option 1 without quotes",
-  "*Detailed Action*\\nRich dialogue response option 2 without quotes",
-  "*Detailed Action*\\nRich dialogue response option 3 without quotes"
-]`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.85,
-            maxOutputTokens: 650,
-            responseMimeType: "application/json"
-          }
+      if (isUser) {
+        charObj = {
+          name: active.userPersona?.name || 'User',
+          role: active.userPersona?.role || 'Protagonist',
+          avatar: active.userPersona?.avatar || '',
+          photos: active.userPersona?.photos || [],
+          mood: active.userPersona?.mood || 'Focused',
+          personality: active.userPersona?.desc || 'Protagonist of the scenario.',
+          relationship: 'Self',
+          relationships: {}
         };
-
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptPayload)
-        });
-
-        if (!res.ok) throw new Error("Failed to generate suggestion paths.");
-        const data = await res.json();
-        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        const choices = JSON.parse(rawJson.trim());
-
-        if (Array.isArray(choices) && choices.length > 0) {
-          activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
-
-          list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
-            <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
-              <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold pointer-events-none">
-                <span>Option ${idx + 1}</span>
-                <span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert ✍️</span>
-              </div>
-              <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
-            </button>
-          `).join('');
-
-          container.classList.remove('hidden');
-        }
-      } catch (err) {
-        alert("Reply Suggestion Notice: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<span>💡</span> <span>Suggest</span>`;
-      }
-    }
-
-    function applySuggestedReply(index) {
-      if (activeSuggestedReplies && activeSuggestedReplies[index] !== undefined) {
-        const inputEl = document.getElementById('userInput');
-        inputEl.value = activeSuggestedReplies[index];
-        autoExpandTextarea(inputEl);
-        inputEl.focus();
-      }
-      hideReplySuggestions();
-    }
-
-    function hideReplySuggestions() {
-      document.getElementById('replySuggestionsContainer').classList.add('hidden');
-    }
-
-    // Branch Editing & Undo Logic
-    function startEditMessage(id) {
-      editingMessageId = id;
-      renderMessages();
-    }
-
-    function cancelEditMessage() {
-      editingMessageId = null;
-      renderMessages();
-    }
-
-    async function saveEditMessage(id) {
-      const active = getActiveScenario();
-      const idx = active.messages.findIndex(m => m.id === id);
-      if (idx === -1) return;
-
-      const textareaEl = document.getElementById(`edit-textarea-${id}`);
-      if (!textareaEl) return;
-      const newText = textareaEl.value.trim();
-      if (!newText) return;
-
-      messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
-
-      active.messages[idx].text = formatDialogueSpacing(newText);
-      active.messages = active.messages.slice(0, idx + 1);
-
-      editingMessageId = null;
-      await saveState();
-      renderAllUi();
-
-      if (active.messages[idx].role === 'user') {
-        await triggerAiResponse();
-        await checkAndTriggerChapterArchival();
-      }
-    }
-
-    async function undoBranch(id) {
-      const active = getActiveScenario();
-      if (messageBranches[id]) {
-        active.messages = JSON.parse(JSON.stringify(messageBranches[id]));
-        delete messageBranches[id];
-        await saveState();
-        renderAllUi();
-      }
-    }
-
-    async function retryLastTurn() {
-      skipTypewriter();
-      hideReplySuggestions();
-      const active = getActiveScenario();
-      if (active.messages.length === 0) return;
-
-      showLoading(true, "Regenerating from last user turn with variation...");
-
-      let lastUserIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        const msg = active.messages[i];
-        const isUserTurn = msg.role === 'user' && msg.speakerName?.toLowerCase() !== 'narrator' && msg.speakerName?.toLowerCase() !== 'scene';
-        if (isUserTurn) {
-          lastUserIdx = i;
-          break;
-        }
-      }
-
-      const lastModelMsg = active.messages[active.messages.length - 1];
-      const branchKey = (lastUserIdx !== -1 && active.messages[lastUserIdx]?.id) ? active.messages[lastUserIdx].id : (lastModelMsg.id || 'last_turn');
-
-      messageBranches[branchKey] = JSON.parse(JSON.stringify(active.messages));
-
-      if (lastUserIdx !== -1) {
-        active.messages = active.messages.slice(0, lastUserIdx + 1);
-        await saveState();
-        renderMessages();
-        await triggerAiResponse("[System directive: Regenerate the response with a distinct, fresh direction and variation from prior generations.]");
       } else {
-        active.messages = [];
-        await saveState();
-        renderMessages();
-        await generateOpeningScene();
+        const found = (active.characters || []).find(c => (c.name || '').toLowerCase() === (characterName || '').toLowerCase());
+        if (found) {
+          isMainCast = true;
+          charObj = found;
+        } else {
+          isMainCast = false;
+          charObj = {
+            name: characterName,
+            role: 'Side Character',
+            avatar: '',
+            photos: [],
+            mood: 'Neutral',
+            personality: 'Currently active in the ongoing scene.',
+            relationship: 'Story Participant',
+            relationships: {}
+          };
+        }
       }
+
+      const nameEl = document.getElementById('spotlightName');
+      if (nameEl) nameEl.innerText = charObj.name || characterName;
+      
+      const badgeEl = document.getElementById('spotlightCastTierBadge');
+      if (badgeEl) {
+        if (isUser) {
+          badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-indigo-950 text-indigo-300 border border-indigo-700/60";
+          badgeEl.innerText = "Protagonist";
+        } else if (isMainCast) {
+          badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60";
+          badgeEl.innerText = "Main Cast";
+        } else {
+          badgeEl.className = "text-[9px] px-2 py-0.5 rounded font-semibold bg-amber-950 text-amber-300 border border-amber-800/60";
+          badgeEl.innerText = "Side Character";
+        }
+      }
+
+      const moodBadge = document.getElementById('spotlightMoodBadge');
+      if (moodBadge) {
+        moodBadge.innerHTML = `<span>🎭 Mood:</span> <span class="text-amber-200">${escapeHtml(charObj.mood || 'Neutral')}</span>`;
+      }
+
+      const promoteContainer = document.getElementById('spotlightPromoteContainer');
+      if (promoteContainer) {
+        if (!isUser && !isMainCast) {
+          promoteContainer.classList.remove('hidden');
+        } else {
+          promoteContainer.classList.add('hidden');
+        }
+      }
+
+      const avatarBox = document.getElementById('spotlightAvatarBox');
+      if (avatarBox) {
+        const activeDisplayAvatar = getCharacterActiveAvatar(charObj);
+        if (activeDisplayAvatar) {
+          avatarBox.innerHTML = `
+            <img src="${activeDisplayAvatar}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-cover shadow" />
+            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition backdrop-blur-xs text-white text-xs font-semibold">🔍 Enlarge</div>
+          `;
+          avatarBox.onclick = () => openCharacterPhotoModal(activeDisplayAvatar, charObj.name);
+        } else {
+          const bg = isUser ? 'bg-indigo-600' : (isMainCast ? 'bg-emerald-700' : 'bg-slate-700 text-amber-300');
+          avatarBox.innerHTML = `<div class="w-full h-full ${bg} flex items-center justify-center text-4xl font-bold text-white shadow">${((charObj.name || '?')[0] || '?').toUpperCase()}</div>`;
+          avatarBox.onclick = null;
+        }
+      }
+
+      const roleTagsBox = document.getElementById('spotlightRoleTags');
+      if (roleTagsBox) {
+        if (charObj.role) {
+          const tags = charObj.role.split(',').map(t => t.trim()).filter(Boolean);
+          roleTagsBox.innerHTML = tags.map(t => `
+            <span class="text-[10px] bg-slate-800 text-indigo-300 border border-slate-700/80 px-2 py-0.5 rounded-md font-medium">
+              ${escapeHtml(t)}
+            </span>
+          `).join('');
+        } else {
+          roleTagsBox.innerHTML = `<span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Character</span>`;
+        }
+      }
+
+      const relBox = document.getElementById('spotlightRelationshipBox');
+      if (relBox) {
+        const relToUser = charObj.relationship || 'Active Participant';
+        if (!isUser) {
+          relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona?.name || 'User')}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
+          relBox.classList.remove('hidden');
+        } else {
+          relBox.classList.add('hidden');
+        }
+      }
+
+      const personaBox = document.getElementById('spotlightPersonaText');
+      if (personaBox) {
+        personaBox.innerHTML = marked.parse(charObj.personality || 'No specific traits recorded.');
+      }
+
+      const interGrid = document.getElementById('spotlightInterCharacterGrid');
+      if (interGrid) {
+        if (isUser) {
+          interGrid.innerHTML = `<p class="text-slate-400 italic text-[11px]">Protagonist perspective. View individual cast profiles for inter-character dynamics.</p>`;
+        } else {
+          const otherCast = [
+            { name: active.userPersona?.name || 'User', isUser: true },
+            ...(active.characters || []).filter(c => (c.name || '').toLowerCase() !== (charObj.name || '').toLowerCase()).map(c => ({ name: c.name, isUser: false }))
+          ];
+
+          if (!charObj.relationships) charObj.relationships = {};
+
+          interGrid.innerHTML = otherCast.map(other => {
+            const dyn = charObj.relationships[other.name] || (other.isUser ? (charObj.relationship || 'Neutral') : 'Acquaintance / Neutral');
+            return `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 rounded-lg border border-slate-800 text-[11px]">
+                <span class="font-semibold text-indigo-200 flex items-center gap-1.5">👤 ${escapeHtml(other.name)}</span>
+                <span class="text-slate-300 italic px-2 py-0.5 bg-slate-800 rounded border border-slate-700/50">${escapeHtml(dyn)}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      const chBadge = document.getElementById('spotlightChapterBadge');
+      if (chBadge) chBadge.innerText = `Ch. ${active.currentChapter || 1}`;
+
+      const arcBox = document.getElementById('spotlightArcText');
+      if (arcBox) {
+        const cachedArc = (active.activeChapterArcs || {})[charObj.name];
+        if (cachedArc) {
+          arcBox.innerHTML = marked.parse(cachedArc);
+        } else {
+          arcBox.innerHTML = `<p class="italic text-slate-400">Action summary not yet analyzed for Chapter ${active.currentChapter || 1}. Open Chapter Chronicle to synthesize full story arcs.</p>`;
+        }
+      }
+
+      toggleSpotlightEditMode(false);
+
+      const modal = document.getElementById('characterSpotlightModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeCharacterSpotlight(event) {
+      if (event && event.target && event.target !== document.getElementById('characterSpotlightModal')) return;
+      const modal = document.getElementById('characterSpotlightModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      toggleSpotlightEditMode(false);
     }
 
     async function promoteSideCharacterToMain() {
@@ -2719,7 +2684,7 @@ RULES:
         appState.scenarios = appState.scenarios.filter(s => s.id !== id);
 
         if (appState.scenarios.length === 0) {
-          const fresh = createScenarioTemplate('New Scenario');
+          const fresh = createScenarioTemplate('Simulation');
           appState.scenarios = [fresh];
           appState.activeScenarioId = fresh.id;
         } else if (appState.activeScenarioId === id) {
@@ -2800,10 +2765,10 @@ RULES:
             <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl space-y-2.5 shadow-sm">
               <div class="flex items-start gap-3">
                 ${avatarHtml}
-                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
-                  <div class="flex items-center gap-1.5">
+                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}'); event.stopPropagation();">
+                  <div class="flex items-center justify-between gap-1">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
-                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(member.mood || 'Neutral')}</span>
+                    <span class="text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.2 rounded font-medium truncate shrink-0">🎭 ${escapeHtml(member.mood || 'Neutral')}</span>
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -2843,7 +2808,7 @@ RULES:
             <div class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl space-y-2.5 shadow-sm">
               <div class="flex items-start gap-3">
                 ${avatarHtml}
-                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
+                <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}'); event.stopPropagation();">
                   <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -2907,7 +2872,7 @@ CRITICAL RULES:
 JSON FORMAT:
 {
   "${active.userPersona.name}": "Sentence one detailing their initial actions. Sentence two on their main choices and dialogue. Sentence three regarding their emotional realization. Sentence four covering their current stance.",
-  "${active.characters[0]?.name || 'Companion'}": "Sentence one on what occurred with them. Sentence two detailing their reaction and physical behavior. Sentence three on how their dynamic with others shifted. Sentence four on where they stand right now."
+  "${active.characters[0]?.name || 'Bob'}": "Sentence one on what occurred with them. Sentence two detailing their reaction and physical behavior. Sentence three on how their dynamic with others shifted. Sentence four on where they stand right now."
 }`
             }]
           }],
@@ -2954,25 +2919,6 @@ JSON FORMAT:
       const modal = document.getElementById(id);
       modal.classList.add('hidden');
       modal.classList.remove('flex');
-    }
-
-    function handleImageUpload(event, target, charIndex = null) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const active = getActiveScenario();
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target.result;
-        if (target === 'user') {
-          active.userPersona.avatar = base64;
-          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
-        } else if (target === 'char' && charIndex !== null) {
-          active.characters[charIndex].avatar = base64;
-          renderCharacterCardsSetup();
-        }
-      };
-      reader.readAsDataURL(file);
     }
 
     function syncModalForm() {
@@ -3052,7 +2998,7 @@ JSON FORMAT:
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="getActiveScenario().characters[${index}].name = this.value; renderCharacterCardsSetup();" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Role / Archetype Tags (e.g. self aware test subject)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
           </div>
           <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
 
@@ -3116,7 +3062,7 @@ JSON FORMAT:
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
       active.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
 
-      active.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
+      active.title = document.getElementById('scenarioTitle').value.trim() || 'Simulation';
       active.setting = document.getElementById('scenarioSetting').value.trim();
 
       await saveState();
@@ -3136,7 +3082,7 @@ JSON FORMAT:
 
       let charObj = null;
       if (!isNarrator) {
-        if (isUser || (speakerName || '').toLowerCase() === (active.userPersona.name || '').toLowerCase()) {
+        if (isUser || (speakerName || '').toLowerCase() === (active.userPersona?.name || '').toLowerCase()) {
           charObj = active.userPersona;
         } else if (active.characters) {
           charObj = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
@@ -3152,7 +3098,7 @@ JSON FORMAT:
         return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
       }
 
-      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const isMain = (active.characters || []).some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
       const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
@@ -3161,7 +3107,7 @@ JSON FORMAT:
       const active = getActiveScenario();
       const initial = (speakerName || '?')[0].toUpperCase();
       const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
-      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
+      const isMain = (active.characters || []).some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
       const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
 
@@ -3180,7 +3126,7 @@ JSON FORMAT:
 
     function renderSidebar() {
       const active = getActiveScenario();
-      document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
+      document.getElementById('headerScenarioTitle').innerText = active.title || 'Simulation';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
       document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
       document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
@@ -3211,7 +3157,7 @@ JSON FORMAT:
                 <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
                   <div class="flex items-start gap-2.5">
                     ${getAvatarHtml(c.name, false, 'w-10 h-10')}
-                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}'); event.stopPropagation();">
                       <div class="flex items-center justify-between gap-1">
                         <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
                         <span class="text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.2 rounded font-medium truncate shrink-0">🎭 ${escapeHtml(c.mood || 'Neutral')}</span>
@@ -3242,7 +3188,7 @@ JSON FORMAT:
             </div>
             <div class="space-y-2">
               ${sideCharacters.map(name => `
-                <div class="p-2.5 bg-slate-900/80 rounded-xl border border-dashed border-slate-700/80 hover:border-indigo-500/60 transition flex items-center justify-between gap-2.5 cursor-pointer group" onclick="openCharacterSpotlight('${escapeJsString(name)}')">
+                <div class="p-2.5 bg-slate-900/80 rounded-xl border border-dashed border-slate-700/80 hover:border-indigo-500/60 transition flex items-center justify-between gap-2.5 cursor-pointer group" onclick="openCharacterSpotlight('${escapeJsString(name)}'); event.stopPropagation();">
                   <div class="flex items-center gap-2.5 overflow-hidden min-w-0">
                     ${getAvatarHtml(name, false, 'w-8 h-8')}
                     <div class="overflow-hidden">
@@ -3341,7 +3287,7 @@ JSON FORMAT:
             ${!isUser ? avatarHtml : ''}
             <div class="max-w-[88%] sm:max-w-[80%] w-full">
               <div class="flex items-center gap-2 mb-1 ${isUser ? 'justify-end' : 'justify-start'}">
-                <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
+                <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}'); event.stopPropagation();" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser ? 'text-indigo-400' : (isNarrator ? 'text-amber-300' : 'text-slate-200')}">${escapeHtml(speaker)}</span>
                 <span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp || ''}</span>
               </div>
               
@@ -3413,7 +3359,7 @@ JSON FORMAT:
           ${avatarHtml}
           <div class="max-w-[88%] sm:max-w-[80%]">
             <div class="flex items-center gap-2 mb-1 justify-start">
-              <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
+              <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}'); event.stopPropagation();" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
               <span class="text-[9px] sm:text-[10px] text-slate-500">${timeStr}</span>
             </div>
             <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm">
@@ -4081,7 +4027,7 @@ REQUIREMENTS:
         alert("No story content to export in current scenario.");
         return;
       }
-      let markdown = `# ${active.title || 'Interactive Story'}\n\n`;
+      let markdown = `# ${active.title || 'Simulation'}\n\n`;
       markdown += `**Setting:** ${active.setting || 'N/A'}\n\n`;
       markdown += `**Presentation:** ${active.viewMode === 'vn' ? 'Visual Novel Stage' : 'Messenger Feed'} (${active.artStyle || 'Anime'})\n\n`;
       markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
@@ -4208,3 +4154,4 @@ REQUIREMENTS:
   </script>
 </body>
 </html>
+
