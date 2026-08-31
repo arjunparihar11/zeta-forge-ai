@@ -512,10 +512,6 @@
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-3 border-b border-slate-800">
           <div id="spotlightAvatarBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-800 border-2 border-indigo-500/50 shadow-xl shrink-0 flex items-center justify-center text-4xl font-bold text-indigo-300 cursor-pointer active:scale-95 transition group relative" title="Tap for windowed full preview">
           </div>
-          <div class="flex sm:flex-col gap-2 shrink-0">
-            <button type="button" onclick="generateSpotlightCharacterPhoto()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✨ Photo</button>
-            <button type="button" onclick="generateSpotlightCharacterSpriteSheet()" class="bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">🎞️ Sheet</button>
-          </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
             <div class="flex items-center justify-center sm:justify-start gap-2">
               <h3 id="spotlightName" class="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">Character Name</h3>
@@ -547,23 +543,9 @@
 
         <div class="space-y-1.5">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span>🎭</span> Persona
+            <span>🎭</span> Persona & Visual Profile
           </span>
           <div id="spotlightPersonaText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-          </div>
-        </div>
-        <div class="space-y-1.5">
-          <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-            <span>👁️</span> Visual Profile
-          </span>
-          <div id="spotlightVisualProfileText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
-          </div>
-        </div>
-        <div class="space-y-1.5">
-          <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <span>👔</span> Current Outfit
-          </span>
-          <div id="spotlightOutfitText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
         </div>
 
@@ -605,16 +587,8 @@
           </div>
         </div>
         <div class="space-y-1">
-          <label class="text-[11px] font-semibold text-slate-400">Persona</label>
-          <textarea id="spotlightEditPersona" rows="3" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
-        </div>
-        <div class="space-y-1">
-          <label class="text-[11px] font-semibold text-slate-400">Visual Profile</label>
-          <textarea id="spotlightEditVisualProfile" rows="3" placeholder="Hair, eyes, face, body, clothing, physical traits... Used for visual generation." class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
-        </div>
-        <div class="space-y-1">
-          <label class="text-[11px] font-semibold text-slate-400">Current Outfit</label>
-          <select id="spotlightEditOutfit" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></select>
+          <label class="text-[11px] font-semibold text-slate-400">Appearance & Personality</label>
+          <textarea id="spotlightEditPersonality" rows="3" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Relationship to User</label>
@@ -676,15 +650,8 @@
             <button onclick="addAvatarFromUrlInput()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
           </div>
 
-          <label class="flex items-center justify-between gap-3 p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg cursor-pointer">
-            <span class="text-[10px] text-slate-300 leading-tight">
-              <strong class="text-white">Remove sprite-sheet background</strong><br>
-              Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet. Turn off to keep the original cell background and remove it manually later.
-            </span>
-            <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="w-4 h-4 accent-indigo-500 shrink-0" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
-          </label>
           <p class="text-[10px] text-slate-400 leading-tight">
-            Sprite sheets (4×4 grid) automatically extract 16 emotion poses and label them with expression names.
+            Sprite sheets (4×4 grid) automatically extract 16 transparent emotion poses, label them with expressions, and strip checkerboard backgrounds with zero-halo perimeter matting.
           </p>
         </div>
 
@@ -778,8 +745,6 @@
         <div class="space-y-2.5">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
-            <button type="button" onclick="generateCharacterPhoto('user')" class="bg-slate-800 hover:bg-emerald-700 text-emerald-300 border border-slate-700 text-[10px] px-2 py-1.5 rounded-lg">✨ Photo</button>
-            <button type="button" onclick="generateCharacterSpriteSheet('user')" class="bg-slate-800 hover:bg-amber-700 text-amber-300 border border-slate-700 text-[10px] px-2 py-1.5 rounded-lg">🎞️ Sheet</button>
             <button type="button" onclick="openAvatarManager('user')" id="userPhotoManagerBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
               <span>🖼️</span> <span>Photos (0)</span>
             </button>
@@ -788,18 +753,7 @@
             <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
           </div>
-          <label class="block text-[11px] font-semibold text-slate-400">Persona</label>
-          <textarea id="userPersonaPersona" rows="2" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
-          <label class="block text-[11px] font-semibold text-slate-400">Visual Profile</label>
-          <textarea id="userPersonaVisualProfile" rows="2" placeholder="Physical appearance, hair, eyes, clothing, body, visual traits..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
-          <div class="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
-            <div class="flex items-center justify-between"><span class="text-[10px] font-bold uppercase tracking-wider text-amber-300">👔 Outfits</span><button type="button" onclick="addUserOutfit()" class="text-[10px] bg-slate-800 hover:bg-indigo-600 text-indigo-300 hover:text-white px-2 py-1 rounded">+ Add Outfit</button></div>
-            <div class="flex items-center gap-2">
-              <label class="text-[10px] text-slate-400 shrink-0">Current:</label>
-              <select id="userCurrentOutfit" onchange="setUserCurrentOutfit(this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white"></select>
-            </div>
-            <div id="userOutfitsSetup" class="space-y-2"></div>
-          </div>
+          <textarea id="userPersonaDesc" rows="2" placeholder="Persona visual appearance, hair, clothing style, tone..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
         </div>
 
         <hr class="border-slate-800" />
@@ -1027,11 +981,7 @@
           avatar: '',
           photos: [],
           mood: 'Aware',
-          persona: 'Bob is a middle aged businessman who is aware that he is a test subject in a simulation.',
-          visualProfile: 'Middle-aged businessman; professional, understated business attire; realistic adult proportions.',
-          desc: 'Bob is a middle aged businessman who is aware that he is a test subject in a simulation.',
-          outfits: [],
-          currentOutfitId: ''
+          desc: 'Bob is a middle aged businessman who is aware that he is a test subject in a simulation.'
         },
         characters: [],
         lorebook: [],
@@ -1039,7 +989,6 @@
         archivedRecaps: [],
         currentChapter: 1,
         activeChapterArcs: null,
-        sideCharacterProfiles: {},
         updatedAt: Date.now()
       };
     }
@@ -1049,7 +998,6 @@
       model: 'gemini-3.6-flash',
       temperature: 0.85,
       tokenThreshold: 120000,
-      removeSpriteSheetBackground: true,
       activeScenarioId: 'default_scen',
       scenarios: []
     };
@@ -1187,7 +1135,6 @@
             archivedRecaps: saved.archivedRecaps || [],
             currentChapter: saved.currentChapter || 1,
             activeChapterArcs: null,
-            sideCharacterProfiles: {},
             updatedAt: Date.now()
           };
           appState = {
@@ -1212,21 +1159,7 @@
       // Normalize older saved art-style labels after loading.
       appState.scenarios.forEach(s => {
         if (s.artStyle === 'Anime / Visual Novel' || !s.artStyle) s.artStyle = 'Anime';
-        if (typeof s.removeSpriteSheetBackground !== 'boolean') s.removeSpriteSheetBackground = true;
-        if (!s.userPersona) s.userPersona = createScenarioTemplate('Simulation').userPersona;
-        s.userPersona.persona = s.userPersona.persona || s.userPersona.desc || '';
-        s.userPersona.visualProfile = s.userPersona.visualProfile || s.userPersona.desc || '';
-        s.userPersona.outfits = Array.isArray(s.userPersona.outfits) ? s.userPersona.outfits : [];
-        s.userPersona.currentOutfitId = s.userPersona.currentOutfitId || '';
-        if (!s.sideCharacterProfiles) s.sideCharacterProfiles = {};
-        (s.characters || []).forEach(c => {
-          c.persona = c.persona || c.personality || '';
-          c.visualProfile = c.visualProfile || '';
-          c.outfits = Array.isArray(c.outfits) ? c.outfits : [];
-          c.currentOutfitId = c.currentOutfitId || '';
-        });
       });
-      if (typeof appState.removeSpriteSheetBackground !== 'boolean') appState.removeSpriteSheetBackground = true;
 
       localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
     }
@@ -1387,13 +1320,13 @@
     }
 
     // Visual Novel avatar: select an expression sprite that matches the current mood.
-    function getCharacterActiveAvatar(char, moodOverride = null) {
+    function getCharacterActiveAvatar(char) {
       if (!char) return '';
       const defaultAvatar = getCharacterDefaultAvatar(char);
       const photos = (char.photos || []).map(normalizePhoto);
       if (photos.length === 0) return defaultAvatar;
 
-      const currentMood = ((moodOverride !== null ? moodOverride : char.mood) || '').trim().toLowerCase();
+      const currentMood = (char.mood || '').trim().toLowerCase();
       if (!currentMood) return defaultAvatar;
 
       const normalizedMood = currentMood.replace(/[^a-z0-9]/g, '');
@@ -1711,218 +1644,6 @@
       saveState();
     }
 
-    function setSpriteSheetBackgroundRemoval(enabled) {
-      const active = getActiveScenario();
-      active.removeSpriteSheetBackground = !!enabled;
-      saveState();
-    }
-
-    function getCharacterPersona(char) {
-      return char?.persona || char?.personality || char?.desc || '';
-    }
-
-    function getCharacterVisualProfile(char) {
-      return char?.visualProfile || char?.desc || char?.personality || 'Standard appearance';
-    }
-
-    function getCharacterOutfits(char) {
-      if (!Array.isArray(char.outfits)) char.outfits = [];
-      return char.outfits;
-    }
-
-    function getCurrentOutfit(char) {
-      const outfits = getCharacterOutfits(char);
-      return outfits.find(o => o.id === char.currentOutfitId) || null;
-    }
-
-    function getOutfitSystemInstruction(char) {
-      const outfits = getCharacterOutfits(char);
-      if (!outfits.length) return 'No predefined outfits.';
-      return outfits.map(o => `- ${o.name || 'Outfit'} | Trigger words: ${o.triggers || 'none'} | Description: ${o.description || ''}`).join('\n');
-    }
-
-    function getCurrentOutfitDescription(char) {
-      const outfit = getCurrentOutfit(char);
-      return outfit ? `${outfit.name || 'Current outfit'}: ${outfit.description || ''}` : 'No specific outfit selected; use the visual profile.';
-    }
-
-    function addCharacterOutfit(index) {
-      const char = getActiveScenario().characters[index];
-      if (!char) return;
-      getCharacterOutfits(char).push({ id: 'outfit_' + Date.now(), name: 'New Outfit', triggers: '', description: '' });
-      renderCharacterCardsSetup();
-    }
-
-    function updateCharacterOutfit(index, outfitIndex, field, value) {
-      const char = getActiveScenario().characters[index];
-      if (!char || !char.outfits?.[outfitIndex]) return;
-      char.outfits[outfitIndex][field] = value;
-      if (field === 'name') renderCharacterCardsSetup();
-    }
-
-    function removeCharacterOutfit(index, outfitIndex) {
-      const char = getActiveScenario().characters[index];
-      if (!char || !char.outfits?.[outfitIndex]) return;
-      const removed = char.outfits.splice(outfitIndex, 1)[0];
-      if (char.currentOutfitId === removed.id) char.currentOutfitId = '';
-      renderCharacterCardsSetup();
-    }
-
-    function setCharacterCurrentOutfit(index, outfitId) {
-      const char = getActiveScenario().characters[index];
-      if (!char) return;
-      char.currentOutfitId = outfitId || '';
-      saveState();
-    }
-
-    function addUserOutfit() {
-      const user = getActiveScenario().userPersona;
-      getCharacterOutfits(user).push({ id: 'outfit_' + Date.now(), name: 'New Outfit', triggers: '', description: '' });
-      renderUserOutfitsSetup();
-    }
-
-    function setUserCurrentOutfit(outfitId) {
-      const user = getActiveScenario().userPersona;
-      user.currentOutfitId = outfitId || '';
-      saveState();
-    }
-
-    function renderUserOutfitsSetup() {
-      const container = document.getElementById('userOutfitsSetup');
-      if (!container) return;
-      const user = getActiveScenario().userPersona;
-      const outfits = getCharacterOutfits(user);
-      const select = document.getElementById('userCurrentOutfit');
-      if (select) select.innerHTML = `<option value="">No specific outfit</option>` + outfits.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name || 'Outfit')}</option>`).join('');
-      if (select) select.value = user.currentOutfitId || '';
-      container.innerHTML = outfits.map((o, i) => `
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input value="${escapeHtml(o.name || '')}" placeholder="Outfit name" oninput="updateUserOutfit(${i}, 'name', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" />
-          <input value="${escapeHtml(o.triggers || '')}" placeholder="Trigger words" oninput="updateUserOutfit(${i}, 'triggers', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-indigo-200" />
-          <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateUserOutfit(${i}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeUserOutfit(${i})" class="px-2 text-rose-400 bg-slate-900 rounded">✕</button></div>
-        </div>`).join('') || '<div class="text-[10px] text-slate-500">No outfits added.</div>';
-    }
-
-    function updateUserOutfit(index, field, value) {
-      const user = getActiveScenario().userPersona;
-      if (!user.outfits?.[index]) return;
-      user.outfits[index][field] = value;
-      if (field === 'name') renderUserOutfitsSetup();
-    }
-
-    function removeUserOutfit(index) {
-      const user = getActiveScenario().userPersona;
-      if (!user.outfits?.[index]) return;
-      const removed = user.outfits.splice(index, 1)[0];
-      if (user.currentOutfitId === removed.id) user.currentOutfitId = '';
-      renderUserOutfitsSetup();
-    }
-
-    function buildCharacterVisualGenerationPrompt(char, rawLogs = '') {
-      const active = getActiveScenario();
-      const outfit = getCurrentOutfitDescription(char);
-      return `Create a single high-quality character portrait/reference image for the visual novel scenario "${active.title}".
-Character: ${char.name || 'Unnamed character'}.
-Persona: ${getCharacterPersona(char)}
-Visual Profile: ${getCharacterVisualProfile(char)}
-Current Outfit: ${outfit}
-Art Style: ${active.artStyle || 'Anime'}.
-Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
-Preserve the character's described physical identity consistently. Show the full character clearly, with a clean simple background suitable for later sprite-sheet generation. Do not invent contradictory physical traits.`;
-    }
-
-    async function generateCharacterImageData(prompt, referenceSrc = '') {
-      if (!appState.apiKey) throw new Error('Add a Google Gemini API key in Setup first.');
-      const parts = [];
-      if (referenceSrc && referenceSrc.startsWith('data:image')) {
-        const mime = referenceSrc.split(';')[0].split(':')[1];
-        const data = referenceSrc.split(',')[1];
-        parts.push({ inlineData: { mimeType: mime, data } });
-      }
-      parts.push({ text: prompt });
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } }) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error?.message || `Image generation failed (${res.status}).`);
-      const partsOut = data.candidates?.[0]?.content?.parts || [];
-      const imagePart = partsOut.find(p => p.inlineData?.data);
-      if (!imagePart) throw new Error('The image model did not return an image.');
-      return `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`;
-    }
-
-    function getCharacterReferencePhoto(char) {
-      return getCharacterDefaultAvatar(char) || (char.photos || []).map(normalizePhoto).find(p => p.src)?.src || '';
-    }
-
-    async function generateCharacterPhoto(target) {
-      const active = getActiveScenario();
-      const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
-      if (!char) return;
-      const sideName = typeof target === 'string' && target !== 'user' ? target : '';
-      let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
-      if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
-      showLoading(true, `Generating ${char.name || 'character'} photo...`);
-      try {
-        const src = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs), getCharacterReferencePhoto(char));
-        if (!Array.isArray(char.photos)) char.photos = [];
-        char.photos.unshift({ src, caption: 'Default' });
-        char.avatar = src;
-        if (!active.characters.includes(char) && !char.isUser) { if (!active.sideCharacterProfiles) active.sideCharacterProfiles = {}; active.sideCharacterProfiles[(char.name || '').toLowerCase()] = char; }
-        await saveState();
-        renderAllUi();
-        syncModalForm();
-        if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (char.name || '').toLowerCase()) openCharacterSpotlight(char.name);
-      } catch (err) { alert('Character photo error: ' + err.message); }
-      finally { showLoading(false); }
-    }
-
-    async function generateCharacterSpriteSheet(target) {
-      const active = getActiveScenario();
-      const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
-      if (!char) return;
-      const reference = getCharacterReferencePhoto(char);
-      const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${getCurrentOutfitDescription(char)}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
-      const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the attached character reference. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets. All character sprites must maintain absolute physical identity consistency, matching the face, hair, and base outfit of the provided reference. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
-Generate a 4x4 grid of 16 distinct sprites, organized into four rows with four sprites each. Each sprite must be clearly separated and spaced apart on the transparent canvas for easy asset slicing.
-Row 1: Neutral, Happy, Sad, Angry.
-Row 2: Confident, Thinking, Surprised, Tired/Bored.
-Row 3: Embarrassed, Shy, Flirtatious/Attracted, Touched.
-Row 4: Smug/Teasing, Hurt/Defeated, Determined/Ready, Disgusted/Aversion.
-${variantLines}
-All 16 sprites must be generated on a single clean image with a fully transparent alpha-channel background, consistent lighting, distinct spacing, and no fake white or grey checkerboard. If true transparency cannot be produced, use a single bright, uniform chroma background that can be easily removed. Do not use a fake transparency grid.`;
-      showLoading(true, `Generating ${char.name || 'character'} sprite sheet...`);
-      try {
-        const src = await generateCharacterImageData(prompt, reference);
-        await ingestSpriteSheetDataUrl(src, char, active.removeSpriteSheetBackground !== false);
-        await saveState();
-        renderAllUi();
-        syncModalForm();
-        alert(`✨ Sprite sheet generated and 16 expression sprites extracted for ${char.name || 'character'}.`);
-      } catch (err) { alert('Sprite sheet generation error: ' + err.message); }
-      finally { showLoading(false); }
-    }
-
-    async function ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBackground = true) {
-      const img = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = dataUrl; });
-      const cellWidth = Math.floor(img.naturalWidth / 4), cellHeight = Math.floor(img.naturalHeight / 4);
-      if (cellWidth <= 0 || cellHeight <= 0) throw new Error('Invalid sprite sheet dimensions.');
-      const maxCellDimension = 1024;
-      let exportWidth = cellWidth, exportHeight = cellHeight;
-      if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) { if (exportWidth > exportHeight) { exportHeight = Math.round(exportHeight * maxCellDimension / exportWidth); exportWidth = maxCellDimension; } else { exportWidth = Math.round(exportWidth * maxCellDimension / exportHeight); exportHeight = maxCellDimension; } }
-      const cellCanvas = document.createElement('canvas'); cellCanvas.width = cellWidth; cellCanvas.height = cellHeight;
-      const ctx = cellCanvas.getContext('2d', { willReadFrequently: true });
-      const downscaleCanvas = document.createElement('canvas'); downscaleCanvas.width = exportWidth; downscaleCanvas.height = exportHeight; const downscaleCtx = downscaleCanvas.getContext('2d');
-      const extractedPhotos = [];
-      for (let row=0; row<4; row++) for (let col=0; col<4; col++) {
-        const index=row*4+col; const emotionSlug=SPRITE_EMOTIONS[index] || `sprite_${index+1}`;
-        ctx.clearRect(0,0,cellWidth,cellHeight); ctx.drawImage(img,col*cellWidth,row*cellHeight,cellWidth,cellHeight,0,0,cellWidth,cellHeight);
-        if (removeBackground) { const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); removeBackgroundFromPixelData(imgData.data,cellWidth,cellHeight); ctx.putImageData(imgData,0,0); }
-        let spriteDataUrl; if (cellWidth!==exportWidth || cellHeight!==exportHeight) { downscaleCtx.clearRect(0,0,exportWidth,exportHeight); downscaleCtx.imageSmoothingEnabled=true; downscaleCtx.imageSmoothingQuality='high'; downscaleCtx.drawImage(cellCanvas,0,0,exportWidth,exportHeight); spriteDataUrl=downscaleCanvas.toDataURL('image/png'); } else spriteDataUrl=cellCanvas.toDataURL('image/png');
-        extractedPhotos.push({src:spriteDataUrl,caption:formatEmotionLabel(emotionSlug)});
-      }
-      if (!targetObj.photos) targetObj.photos=[]; targetObj.photos=extractedPhotos.concat(targetObj.photos); if (!targetObj.avatar && extractedPhotos[0]) targetObj.avatar=extractedPhotos[0].src;
-    }
-
     async function handleAvatarManagerUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1955,19 +1676,107 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     async function handleSpriteSheetUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
+
       const targetObj = getPhotoTargetObject();
       if (!targetObj) return;
-      const active = getActiveScenario();
-      const removeBg = active.removeSpriteSheetBackground !== false;
+
       const countEl = document.getElementById('avatarManagerCount');
-      if (countEl) countEl.innerText = 'Extracting 16 Sprites...';
+      if (countEl) countEl.innerText = "Extracting & De-fringing 16 Sprites...";
+
       try {
-        const dataUrl = await new Promise((resolve, reject) => { const reader=new FileReader(); reader.onload=e=>resolve(e.target.result); reader.onerror=reject; reader.readAsDataURL(file); });
-        await ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBg);
-        await saveState(); renderAvatarManagerGallery(); renderCharacterCardsSetup(); renderSidebar();
-        alert(`✨ Successfully extracted 16 sprites for ${targetObj.name || 'character'}${removeBg ? ' with background removal' : ' without background removal'}!`);
-      } catch (err) { alert('Sprite sheet error: ' + err.message); }
-      finally { event.target.value=''; }
+        const img = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = e.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const cellWidth = Math.floor(img.naturalWidth / 4);
+        const cellHeight = Math.floor(img.naturalHeight / 4);
+
+        if (cellWidth <= 0 || cellHeight <= 0) {
+          throw new Error("Invalid sprite sheet dimensions.");
+        }
+
+        const maxCellDimension = 1024;
+        let exportWidth = cellWidth;
+        let exportHeight = cellHeight;
+
+        if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) {
+          if (exportWidth > exportHeight) {
+            exportHeight = Math.round((exportHeight * maxCellDimension) / exportWidth);
+            exportWidth = maxCellDimension;
+          } else {
+            exportWidth = Math.round((exportWidth * maxCellDimension) / exportHeight);
+            exportHeight = maxCellDimension;
+          }
+        }
+
+        const cellCanvas = document.createElement('canvas');
+        cellCanvas.width = cellWidth;
+        cellCanvas.height = cellHeight;
+        const ctx = cellCanvas.getContext('2d', { willReadFrequently: true });
+
+        const downscaleCanvas = document.createElement('canvas');
+        downscaleCanvas.width = exportWidth;
+        downscaleCanvas.height = exportHeight;
+        const downscaleCtx = downscaleCanvas.getContext('2d');
+
+        const extractedPhotos = [];
+
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 4; col++) {
+            const index = row * 4 + col;
+            const emotionSlug = SPRITE_EMOTIONS[index] || `sprite_${index + 1}`;
+            const emotionCaption = formatEmotionLabel(emotionSlug);
+
+            ctx.clearRect(0, 0, cellWidth, cellHeight);
+            ctx.drawImage(img, col * cellWidth, row * cellHeight, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+
+            const imgData = ctx.getImageData(0, 0, cellWidth, cellHeight);
+            removeBackgroundFromPixelData(imgData.data, cellWidth, cellHeight);
+            ctx.putImageData(imgData, 0, 0);
+
+            let spriteDataUrl;
+            if (cellWidth !== exportWidth || cellHeight !== exportHeight) {
+              downscaleCtx.clearRect(0, 0, exportWidth, exportHeight);
+              downscaleCtx.imageSmoothingEnabled = true;
+              downscaleCtx.imageSmoothingQuality = 'high';
+              downscaleCtx.drawImage(cellCanvas, 0, 0, exportWidth, exportHeight);
+              spriteDataUrl = downscaleCanvas.toDataURL('image/png');
+            } else {
+              spriteDataUrl = cellCanvas.toDataURL('image/png');
+            }
+
+            extractedPhotos.push({
+              src: spriteDataUrl,
+              caption: emotionCaption
+            });
+          }
+        }
+
+        if (!targetObj.photos) targetObj.photos = [];
+        targetObj.photos = extractedPhotos.concat(targetObj.photos);
+
+        if (!targetObj.avatar && extractedPhotos.length > 0) {
+          targetObj.avatar = extractedPhotos[0].src;
+        }
+
+        await saveState();
+        renderAvatarManagerGallery();
+        renderCharacterCardsSetup();
+        renderSidebar();
+        alert(`✨ Successfully extracted 16 clean, alpha-feathered emotion sprites for ${targetObj.name || 'character'}!`);
+      } catch (err) {
+        alert("Sprite sheet error: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
     }
 
     async function addAvatarFromUrlInput() {
@@ -2277,13 +2086,13 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       }
 
       if (charObj && charObj.mood) {
-        moodBadge.innerText = `🎭 ${turn.mood || charObj.mood}`;
+        moodBadge.innerText = `🎭 ${charObj.mood}`;
         moodBadge.classList.remove('hidden');
       } else {
         moodBadge.classList.add('hidden');
       }
 
-      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, turn.mood || charObj.mood) : '';
+      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
           <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}')" />
@@ -2420,17 +2229,17 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         editBody.classList.remove('hidden');
         toggleBtn.innerText = '👁️ View';
 
-        const found = findCharacterForSpotlight(currentSpotlightCharName);
-        const isUser = !!found?.isUser;
-        let charObj = found?.obj || { name: currentSpotlightCharName, role: 'Side Character', mood: 'Neutral', persona: '', visualProfile: '', personality: '', relationship: 'Companion', outfits: [], currentOutfitId: '' };
+        const isUser = (currentSpotlightCharName.toLowerCase() === active.userPersona.name.toLowerCase()) || (currentSpotlightCharName.toLowerCase() === 'you');
+        let charObj = isUser ? active.userPersona : active.characters.find(c => c.name.toLowerCase() === currentSpotlightCharName.toLowerCase());
+
+        if (!charObj) {
+          charObj = { name: currentSpotlightCharName, role: 'Side Character', mood: 'Neutral', personality: '', relationship: 'Companion' };
+        }
 
         document.getElementById('spotlightEditName').value = charObj.name || '';
         document.getElementById('spotlightEditRole').value = charObj.role || '';
         document.getElementById('spotlightEditMood').value = charObj.mood || 'Neutral';
-        document.getElementById('spotlightEditPersona').value = getCharacterPersona(charObj);
-        document.getElementById('spotlightEditVisualProfile').value = getCharacterVisualProfile(charObj);
-        const outfitSelect = document.getElementById('spotlightEditOutfit');
-        outfitSelect.innerHTML = `<option value="">No specific outfit</option>` + getCharacterOutfits(charObj).map(o => `<option value="${escapeHtml(o.id)}" ${charObj.currentOutfitId === o.id ? 'selected' : ''}>${escapeHtml(o.name || 'Outfit')}</option>`).join('');
+        document.getElementById('spotlightEditPersonality').value = charObj.personality || '';
         document.getElementById('spotlightEditRelationship').value = charObj.relationship || '';
       } else {
         editBody.classList.add('hidden');
@@ -2442,27 +2251,19 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
     async function saveSpotlightEdits() {
       const active = getActiveScenario();
-      const found = findCharacterForSpotlight(currentSpotlightCharName);
-      const isUser = !!found?.isUser;
-      let charObj = found?.obj;
+      const isUser = (currentSpotlightCharName.toLowerCase() === active.userPersona.name.toLowerCase()) || (currentSpotlightCharName.toLowerCase() === 'you');
+      let charObj = isUser ? active.userPersona : active.characters.find(c => c.name.toLowerCase() === currentSpotlightCharName.toLowerCase());
 
       if (!charObj) {
-        charObj = { id: 'char_' + Date.now(), name: currentSpotlightCharName, photos: [], persona: '', visualProfile: '', personality: '', outfits: [], currentOutfitId: '' };
+        charObj = { id: 'char_' + Date.now(), name: currentSpotlightCharName, photos: [] };
         active.characters.push(charObj);
       }
 
       charObj.name = document.getElementById('spotlightEditName').value.trim() || charObj.name;
       charObj.role = document.getElementById('spotlightEditRole').value.trim();
       charObj.mood = document.getElementById('spotlightEditMood').value.trim() || 'Neutral';
-      charObj.persona = document.getElementById('spotlightEditPersona').value.trim();
-      charObj.visualProfile = document.getElementById('spotlightEditVisualProfile').value.trim();
-      charObj.personality = charObj.persona;
-      charObj.currentOutfitId = document.getElementById('spotlightEditOutfit').value || '';
+      charObj.personality = document.getElementById('spotlightEditPersonality').value.trim();
       charObj.relationship = document.getElementById('spotlightEditRelationship').value.trim();
-      if (found?.isSide) {
-        if (!active.sideCharacterProfiles) active.sideCharacterProfiles = {};
-        active.sideCharacterProfiles[(charObj.name || '').toLowerCase()] = charObj;
-      }
 
       currentSpotlightCharName = charObj.name;
       await saveState();
@@ -2722,8 +2523,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 {
   "role": "2-4 archetype tags (e.g. witty, loyal companion, cautious)",
   "mood": "Initial mood (e.g. Confident, Cheerful, Guarded)",
-  "persona": "Detailed 2-3 sentence paragraph capturing personality, motivations, history, and lore important to the story.",
-  "visualProfile": "Detailed physical appearance including face, hair, eyes, body, clothing, and other visual traits used for image generation.",
+  "personality": "Detailed 2-3 sentence paragraph capturing their visual appearance (hair, eyes, clothing) and behavioral personality.",
   "relationship": "Dynamic relationship label toward {{user}} (${active.userPersona.name}) (e.g. Close ally, Playful rival, Romantic interest)",
   "relationships": {
     "${active.userPersona.name}": "Dynamic relationship label toward ${active.userPersona.name}"
@@ -2757,11 +2557,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           mood: parsed.mood || 'Neutral',
           avatar: '',
           photos: [],
-          persona: parsed.persona || parsed.personality || 'Active member of the main cast.',
-          visualProfile: parsed.visualProfile || parsed.personality || '',
-          personality: parsed.persona || parsed.personality || 'Active member of the main cast.',
-          outfits: [],
-          currentOutfitId: '',
+          personality: parsed.personality || 'Active member of the main cast.',
           relationship: parsed.relationship || parsed.relationships?.[active.userPersona.name] || 'Companion',
           relationships: parsed.relationships || {}
         };
@@ -2781,102 +2577,38 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
       }
     }
 
-    function detectSignificantRelationshipEvent(messages) {
-      const turns = (messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.text);
-      if (!turns.length) return null;
-
-      // Only relationship-changing events should trigger a relationship analysis.
-      // Ordinary conversation, time passing, or a few messages of non-interaction
-      // must never cause a stable relationship (especially family relationships)
-      // to decay into "Stranger" or "Acquaintance".
-      const recent = turns.slice(-12).map(m => `${m.speakerName || ''}: ${m.text}`).join('\n');
-      const lower = recent.toLowerCase();
-
-      const eventPatterns = [
-        /\b(ask|asked|asking|asks)\s+(?:them|her|him|you|me)?\s*(?:out|to (?:be|go out|date|marry|move in))\b/,
-        /\b(want|wants|wanted|would you)\s+to\s+(?:date|marry|be (?:my|together|a couple)|go out)\b/,
-        /\b(officially|now)\s+(?:dating|together|a couple|engaged|married)\b/,
-        /\b(started|start|began)\s+dating\b/,
-        /\b(broke up|breakup|break-up|ended (?:our|the) relationship|called it quits)\b/,
-        /\b(divorc|separat(?:e|ed|ion))\w*\b/,
-        /\b(major|huge|serious|massive|explosive|violent)\s+(?:fight|argument|fallout|confrontation)\b/,
-        /\b(fought|fight|argued|argument|confronted)\b[\s\S]{0,100}\b(hate|betray|betrayed|betrayal|leave|done|never speak)\b/,
-        /\b(betray|betrayed|betrayal|backstab|backstabbed)\w*\b/,
-        /\b(disowned|disown|cut ties|cut them off|cut her off|cut him off|cut me off)\b/,
-        /\b(reconciled|reconcile|made up|forgave|forgiven|forgiveness)\b/,
-        /\b(adopted|adopt|adoption|became (?:his|her|their) (?:mother|father|parent|sibling))\b/,
-        /\b(learned|revealed|reveal|discovered|discover)\b[\s\S]{0,100}\b(is|was|are|were)\b[\s\S]{0,60}\b(mother|father|mom|dad|sister|brother|daughter|son|parent|child|wife|husband|fianc|family)\b/,
-        /\b(proposed|proposal|engagement|engaged|married|marriage|wedding)\b/,
-        /\b(declared|confessed|confession)\b[\s\S]{0,80}\b(love|feelings|romantic|relationship)\b/,
-        /\b(relationship|relations)\b[\s\S]{0,60}\b(changed|change|over|ended|official|serious)\b/
-      ];
-
-      for (const pattern of eventPatterns) {
-        if (pattern.test(lower)) {
-          return { type: 'significant', text: recent, fingerprint: turns.slice(-6).map(m => `${m.id || ''}:${m.text}`).join('|') };
-        }
-      }
-      return null;
-    }
-
-    async function updateInterCharacterRelationships(force = false) {
+    async function updateInterCharacterRelationships() {
       const active = getActiveScenario();
       if (!appState.apiKey || active.characters.length === 0) return;
 
       const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
       if (activeTurns.length < 3) return;
 
-      const event = force ? {
-        type: 'significant',
-        text: activeTurns.slice(-20).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n'),
-        fingerprint: activeTurns.slice(-6).map(m => `${m.id || ''}:${m.text}`).join('|')
-      } : detectSignificantRelationshipEvent(active.messages);
-
-      // Relationship state is intentionally sticky. Do not run the relationship
-      // analyzer after ordinary turns; this prevents family/friend relationships
-      // from decaying simply because characters have not interacted recently.
-      if (!event) return;
-      if (active.relationshipState && active.relationshipState.lastUpdateFingerprint === event.fingerprint) return;
-
       try {
         const castList = [active.userPersona.name, ...active.characters.map(c => c.name)];
-        const dialogueText = activeTurns.slice(-20).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
-        const existingRelationships = [active.userPersona, ...active.characters].map(c => {
-          const rels = c.relationships || {};
-          return `${c.name}: relationship to ${active.userPersona.name} = ${c.relationship || 'Unspecified'}; other relationships = ${JSON.stringify(rels)}`;
-        }).join('\n');
+        const dialogueText = activeTurns.slice(-15).map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
 
         const promptPayload = {
           contents: [{
             role: 'user',
             parts: [{
-              text: `TASK: Update character relationships ONLY because a significant relationship-changing event has occurred.
+              text: `TASK: Analyze current story interactions and update dynamic relationship and mood labels for all characters.
 
 CAST MEMBERS:
 ${castList.join(', ')}
 
-EXISTING RELATIONSHIP STATE (AUTHORITATIVE BASELINE):
-${existingRelationships}
-
-RECENT STORY:
+RECENT DIALOGUE:
 ${dialogueText}
 
-IMPORTANT RULES:
-1. This analysis was triggered by a significant event. Identify only relationships that were actually changed by that event.
-2. PRESERVE all existing relationships unless the story clearly establishes that the significant event changed them.
-3. NEVER downgrade a stable family relationship (mother, father, sister, brother, daughter, son, parent, child, spouse, etc.) merely because the characters have not interacted recently. Family relationships remain intact unless the story explicitly changes that fact.
-4. Do NOT use "Stranger", "Acquaintance", or similar weak labels to replace an established relationship just because evidence is limited.
-5. Do NOT invent relationship changes from ordinary dialogue, mood, distance, silence, or lack of recent interaction.
-6. A relationship may change for events such as dating/asking someone out, a breakup, reconciliation, a major fight or betrayal, a revealed family connection, marriage/engagement, adoption, disowning/cutting ties, or another clearly consequential event.
-7. Return the complete current relationship map, but copy unchanged relationships exactly from the existing baseline.
-8. Mood is NOT a relationship. Do not alter mood in this operation.
-9. Return STRICTLY JSON:
+RULES:
+1. For each character, define their current emotional mood (e.g. Happy, Angry, Flustered, Smug, Thinking, Sad, Confident) and dynamic relationship label toward EVERY OTHER character.
+2. Return STRICTLY a JSON object:
 {
   "characters": {
     "CharacterName": {
-      "relationship": "Relationship toward ${active.userPersona.name}",
+      "mood": "Emotion mood tag",
       "relationships": {
-        "OtherCharacterName": "Current relationship label"
+        "OtherCharacterName": "Relationship Label"
       }
     }
   }
@@ -2884,8 +2616,8 @@ IMPORTANT RULES:
             }]
           }],
           generationConfig: {
-            temperature: 0.15,
-            maxOutputTokens: 1200,
+            temperature: 0.4,
+            maxOutputTokens: 900,
             responseMimeType: "application/json"
           }
         };
@@ -2904,37 +2636,24 @@ IMPORTANT RULES:
           const charMap = parsedData.characters || parsedData;
 
           for (let c of active.characters) {
-            if (!charMap[c.name]) continue;
-            const result = charMap[c.name];
-            const relMap = result.relationships || {};
-
-            // Never replace the existing relationship map with an incomplete AI map.
-            // Only explicit values returned for an existing cast member are applied.
-            if (!c.relationships) c.relationships = {};
-            for (const otherName of castList) {
-              if (otherName === c.name) continue;
-              if (Object.prototype.hasOwnProperty.call(relMap, otherName) && String(relMap[otherName] || '').trim()) {
-                c.relationships[otherName] = String(relMap[otherName]).trim();
+            if (charMap[c.name]) {
+              if (charMap[c.name].mood) c.mood = charMap[c.name].mood;
+              const relMap = charMap[c.name].relationships || charMap[c.name];
+              if (relMap[active.userPersona.name]) {
+                c.relationship = relMap[active.userPersona.name];
               }
-            }
-
-            if (Object.prototype.hasOwnProperty.call(result, 'relationship') && String(result.relationship || '').trim()) {
-              c.relationship = String(result.relationship).trim();
-            } else if (c.relationships[active.userPersona.name]) {
-              c.relationship = c.relationships[active.userPersona.name];
+              c.relationships = relMap;
             }
           }
-
-          active.relationshipState = active.relationshipState || {};
-          active.relationshipState.lastUpdateFingerprint = event.fingerprint;
-          active.relationshipState.lastUpdateAt = Date.now();
-          active.relationshipState.lastEventType = event.type;
+          if (charMap[active.userPersona.name]?.mood) {
+            active.userPersona.mood = charMap[active.userPersona.name].mood;
+          }
           await saveState();
           renderSidebar();
           if (active.viewMode === 'vn') renderVnTurn(false);
         }
       } catch (e) {
-        console.warn("Significant relationship sync notice:", e);
+        console.warn("Relationship & mood sync notice:", e);
       }
     }
 
@@ -2985,43 +2704,24 @@ IMPORTANT RULES:
       // Preserve a usable dossier for a side character discovered in the transcript.
       const sideName = getDynamicSideCharacters().find(n => n.toLowerCase() === normalized);
       if (sideName) {
-        if (!active.sideCharacterProfiles) active.sideCharacterProfiles = {};
-        const key = sideName.toLowerCase();
-        const obj = active.sideCharacterProfiles[key] || {
-          id: 'side_' + sideName, name: sideName, role: 'Side Character', mood: 'Neutral', avatar: '', photos: [],
-          persona: 'A side character currently present in the story.', visualProfile: '', personality: 'A side character currently present in the story.',
-          relationship: 'Companion', relationships: {}, outfits: [], currentOutfitId: ''
+        return {
+          obj: {
+            id: 'side_' + sideName,
+            name: sideName,
+            role: 'Side Character',
+            mood: 'Neutral',
+            avatar: '',
+            photos: [],
+            personality: 'A side character currently present in the story.',
+            relationship: 'Companion',
+            relationships: {}
+          },
+          isUser: false,
+          isSide: true
         };
-        active.sideCharacterProfiles[key] = obj;
-        return { obj, isUser: false, isSide: true };
       }
 
       return null;
-    }
-
-    function getCurrentSpotlightCharacter() {
-      const found = findCharacterForSpotlight(currentSpotlightCharName);
-      return found || null;
-    }
-
-    async function generateSpotlightCharacterPhoto() {
-      const found = getCurrentSpotlightCharacter();
-      if (!found) return;
-      if (found.isUser) return generateCharacterPhoto('user');
-      if (found.isSide) return generateCharacterPhoto(found.obj);
-      const active = getActiveScenario();
-      const idx = active.characters.indexOf(found.obj);
-      if (idx >= 0) return generateCharacterPhoto(idx);
-    }
-
-    async function generateSpotlightCharacterSpriteSheet() {
-      const found = getCurrentSpotlightCharacter();
-      if (!found) return;
-      if (found.isUser) return generateCharacterSpriteSheet('user');
-      if (found.isSide) return generateCharacterSpriteSheet(found.obj);
-      const active = getActiveScenario();
-      const idx = active.characters.indexOf(found.obj);
-      if (idx >= 0) return generateCharacterSpriteSheet(idx);
     }
 
     function openCharacterSpotlight(name) {
@@ -3037,9 +2737,7 @@ IMPORTANT RULES:
       const role = charObj.role || (found.isUser ? 'Protagonist' : 'Companion');
       const mood = charObj.mood || 'Neutral';
       const relationship = charObj.relationship || (found.isUser ? 'Self' : 'Companion');
-      const persona = getCharacterPersona(charObj) || 'No persona has been written yet.';
-      const visualProfile = getCharacterVisualProfile(charObj) || 'No visual profile has been written yet.';
-      const currentOutfit = getCurrentOutfitDescription(charObj);
+      const persona = charObj.personality || charObj.desc || 'No visual/personality profile has been written yet.';
       const currentChapter = active.currentChapter || 1;
       const arc = (active.activeChapterArcs || {})[charObj.name] ||
         `No current chapter arc has been analyzed yet. Open Chapter Chronicle and choose Re-Analyze to generate one.`;
@@ -3059,8 +2757,6 @@ IMPORTANT RULES:
       document.getElementById('spotlightMoodBadge').innerHTML = `🎭 ${escapeHtml(mood)}`;
       document.getElementById('spotlightRelationshipBox').innerHTML = `🔗 ${escapeHtml(relationship)}`;
       document.getElementById('spotlightPersonaText').innerHTML = marked.parse(persona);
-      document.getElementById('spotlightVisualProfileText').innerHTML = marked.parse(visualProfile);
-      document.getElementById('spotlightOutfitText').innerHTML = marked.parse(currentOutfit);
       document.getElementById('spotlightChapterBadge').innerText = `Ch. ${currentChapter}`;
       document.getElementById('spotlightArcText').innerHTML = marked.parse(arc);
 
@@ -3522,15 +3218,7 @@ JSON FORMAT:
 
       document.getElementById('userPersonaName').value = active.userPersona.name || '';
       document.getElementById('userPersonaRole').value = active.userPersona.role || '';
-      const userPersonaEl = document.getElementById('userPersonaPersona');
-      const userVisualEl = document.getElementById('userPersonaVisualProfile');
-      if (userPersonaEl) userPersonaEl.value = active.userPersona.persona || active.userPersona.desc || '';
-      if (userVisualEl) userVisualEl.value = active.userPersona.visualProfile || active.userPersona.desc || '';
-      const spriteToggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
-      if (spriteToggle) spriteToggle.checked = active.removeSpriteSheetBackground !== false;
-      renderUserOutfitsSetup();
-      const userOutfitSelect = document.getElementById('userCurrentOutfit');
-      if (userOutfitSelect) userOutfitSelect.value = active.userPersona.currentOutfitId || '';
+      document.getElementById('userPersonaDesc').value = active.userPersona.desc || '';
 
       const userPhotosCount = (active.userPersona.photos || []).length;
       const userPhotoBtn = document.getElementById('userPhotoManagerBtn');
@@ -3586,8 +3274,6 @@ JSON FORMAT:
               <button type="button" onclick="openAvatarManager('char', ${index})" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1">
                 <span>🖼️</span> <span>Photos (${char.photos.length})</span>
               </button>
-              <button type="button" onclick="generateCharacterPhoto(${index})" class="bg-slate-800 hover:bg-emerald-700 text-emerald-300 border border-slate-700 text-[10px] px-2 py-1 rounded-lg">✨ Photo</button>
-              <button type="button" onclick="generateCharacterSpriteSheet(${index})" class="bg-slate-800 hover:bg-amber-700 text-amber-300 border border-slate-700 text-[10px] px-2 py-1 rounded-lg">🎞️ Sheet</button>
               <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
             </div>
           </div>
@@ -3595,36 +3281,7 @@ JSON FORMAT:
             <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="getActiveScenario().characters[${index}].name = this.value; renderCharacterCardsSetup();" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
             <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] font-semibold text-indigo-300 mb-1">Persona</label>
-              <textarea placeholder="Personality, motivations, history, important lore..." oninput="getActiveScenario().characters[${index}].persona = this.value" rows="3" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.persona || char.personality || '')}</textarea>
-            </div>
-            <div>
-              <label class="block text-[10px] font-semibold text-indigo-300 mb-1">Visual Profile</label>
-              <textarea placeholder="Hair, eyes, face, body, clothing, visual traits..." oninput="getActiveScenario().characters[${index}].visualProfile = this.value" rows="3" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.visualProfile || '')}</textarea>
-            </div>
-          </div>
-          <div class="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-300">👔 Outfits</span>
-              <div class="flex items-center gap-2">
-                <select onchange="setCharacterCurrentOutfit(${index}, this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1 text-[10px] text-white">
-                  <option value="">No specific outfit</option>
-                  ${(char.outfits || []).map(o => `<option value="${escapeHtml(o.id)}" ${char.currentOutfitId === o.id ? 'selected' : ''}>${escapeHtml(o.name || 'Outfit')}</option>`).join('')}
-                </select>
-                <button type="button" onclick="addCharacterOutfit(${index})" class="text-[10px] bg-slate-800 hover:bg-indigo-600 text-indigo-300 hover:text-white px-2 py-1 rounded">+ Add</button>
-              </div>
-            </div>
-            <div class="space-y-2">
-              ${(char.outfits || []).map((o, oi) => `
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <input value="${escapeHtml(o.name || '')}" placeholder="Outfit name" oninput="updateCharacterOutfit(${index}, ${oi}, 'name', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" />
-                  <input value="${escapeHtml(o.triggers || '')}" placeholder="Trigger words" oninput="updateCharacterOutfit(${index}, ${oi}, 'triggers', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-indigo-200" />
-                  <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateCharacterOutfit(${index}, ${oi}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeCharacterOutfit(${index}, ${oi})" class="px-2 text-rose-400 bg-slate-900 rounded">✕</button></div>
-                </div>`).join('')}
-            </div>
-          </div>
+          <textarea placeholder="Visual appearance (hair, eyes, clothing style) and personality..." oninput="getActiveScenario().characters[${index}].personality = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(char.personality)}</textarea>
 
           <div class="pt-2 border-t border-slate-800/80 space-y-2">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">🔗 Relationships to Other Cast (Manual Override)</span>
@@ -3653,7 +3310,7 @@ JSON FORMAT:
 
     function addCharacterRow() {
       const active = getActiveScenario();
-      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', photos: [], mood: 'Neutral', persona: '', visualProfile: '', personality: '', relationship: '', relationships: {}, outfits: [], currentOutfitId: '' });
+      active.characters.push({ id: 'char_' + Date.now(), name: '', role: '', avatar: '', photos: [], mood: 'Neutral', personality: '', relationship: '', relationships: {} });
       renderCharacterCardsSetup();
     }
 
@@ -3672,7 +3329,6 @@ JSON FORMAT:
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
       active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
-      active.removeSpriteSheetBackground = document.getElementById('spriteSheetRemoveBackgroundToggle')?.checked !== false;
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
       if (rawRecap) {
@@ -3685,9 +3341,7 @@ JSON FORMAT:
 
       active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
-      active.userPersona.desc = (document.getElementById('userPersonaVisualProfile')?.value || active.userPersona.visualProfile || '').trim();
-      active.userPersona.persona = (document.getElementById('userPersonaPersona')?.value || active.userPersona.desc).trim();
-      active.userPersona.visualProfile = (document.getElementById('userPersonaVisualProfile')?.value || active.userPersona.desc).trim();
+      active.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
 
       active.title = document.getElementById('scenarioTitle').value.trim() || 'Untitled Story';
       active.setting = document.getElementById('scenarioSetting').value.trim();
@@ -3756,7 +3410,7 @@ JSON FORMAT:
       document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
       document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
-      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${getCharacterPersona(active.userPersona)}` : (getCharacterPersona(active.userPersona) || 'Protagonist');
+      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
 
       const sideCharacters = getDynamicSideCharacters();
       document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
@@ -4073,7 +3727,6 @@ JSON FORMAT:
         renderVnTurn(false);
       }
       updateInterCharacterRelationships();
-      autoUpdateLorebookFromStory();
     }
 
     function buildSystemInstruction() {
@@ -4082,11 +3735,7 @@ JSON FORMAT:
 - Name: ${c.name}
   Role: ${c.role}
   Current Mood: ${c.mood || 'Neutral'}
-  Persona: ${getCharacterPersona(c)}
-  Visual Profile: ${getCharacterVisualProfile(c)}
-  Current Outfit: ${getCurrentOutfitDescription(c)}
-  Outfit Options & Trigger Words:
-${getOutfitSystemInstruction(c)}
+  Appearance & Personality: ${c.personality}
   Relationship to ${active.userPersona.name}: ${c.relationship}
 `).join('\n');
 
@@ -4102,16 +3751,10 @@ ${getOutfitSystemInstruction(c)}
 - Name: ${active.userPersona.name}
 - Role: ${active.userPersona.role || 'Protagonist'}
 - Current Mood: ${active.userPersona.mood || 'Focused'}
-- Persona: ${getCharacterPersona(active.userPersona) || 'Main character'}
-- Visual Profile: ${getCharacterVisualProfile(active.userPersona)}
-- Current Outfit: ${getCurrentOutfitDescription(active.userPersona)}
-- Outfit Options & Trigger Words:
-${getOutfitSystemInstruction(active.userPersona)}
+- Details & Appearance: ${active.userPersona.desc || 'Main character'}
 
 [MAIN CAST]:
 ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
-
-[OUTFIT RULE]: When a scene explicitly matches an outfit's trigger words, use that outfit. Otherwise preserve each character's Current Outfit when one is selected. Do not change a manually selected Current Outfit without a story reason.
 
 [WORLD & SCENARIO]:
 ${active.setting || 'An open roleplay world.'}
@@ -4345,39 +3988,6 @@ TASK: Return a JSON object with:
       }
     }
 
-    let lorebookAutoUpdateRunning = false;
-    async function autoUpdateLorebookFromStory() {
-      if (lorebookAutoUpdateRunning || !appState.apiKey) return;
-      const active = getActiveScenario();
-      const storyMessages = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-24);
-      if (storyMessages.length < 6) return;
-      const totalStoryTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
-      if (totalStoryTurns % 3 !== 0) return;
-      lorebookAutoUpdateRunning = true;
-      try {
-        const transcript = storyMessages.map(m => `${m.speakerName || m.role || 'Speaker'}: ${m.text}`).join('\n');
-        const existing = (active.lorebook || []).map(l => `${l.title} | ${l.keywords} | ${l.content}`).join('\n');
-        const prompt = `Analyze this latest story transcript for persistent facts that should be remembered in a lorebook. Extract only durable, story-important information: locations, rules, character facts, relationships, objects, secrets, factions, major events, promises, injuries, discoveries, or continuity details. Avoid temporary dialogue and redundant entries. Return ONLY JSON array objects with title, keywords, content. Existing lorebook: ${existing || 'none'}\nTranscript:\n${transcript}`;
-        const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:900}})});
-        const data=await res.json().catch(()=>({}));
-        const text=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const clean=text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
-        let entries=[]; try { entries=JSON.parse(clean); } catch(e) { entries=[]; }
-        if (!Array.isArray(entries)) entries=[];
-        if (!active.lorebook) active.lorebook=[];
-        entries.slice(0,8).forEach(e=>{
-          if (!e?.title || !e?.content) return;
-          const key=(e.title+' '+(e.keywords||'')).toLowerCase();
-          const duplicate=active.lorebook.some(l=>((l.title||'')+' '+(l.keywords||'')).toLowerCase()===key || (l.title||'').toLowerCase()===e.title.toLowerCase());
-          if (!duplicate) active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:String(e.keywords||e.title).slice(0,240),content:String(e.content).slice(0,1200),autoGenerated:true});
-        });
-        await saveState();
-        renderLorebookSetup();
-      } catch(e) { console.warn('Automatic lorebook update skipped:',e); }
-      finally { lorebookAutoUpdateRunning=false; }
-    }
-
     async function generateSceneImage() {
       if (!appState.apiKey) {
         openModal('setupModal');
@@ -4401,11 +4011,7 @@ TASK: Return a JSON object with:
         const castVisualProfiles = (active.characters || []).map(c => `
 - ${c.name}:
   Role & Archetypes: ${c.role || 'Companion'}
-  Persona: ${getCharacterPersona(c) || 'Standard persona'}
-  Visual Profile: ${getCharacterVisualProfile(c)}
-  Current Outfit: ${getCurrentOutfitDescription(c)}
-  Outfit Options & Trigger Words:
-${getOutfitSystemInstruction(c)}`
+  Visual & Attire: ${c.personality || 'Standard appearance'}`
         ).join('\n');
 
         const promptParts = [];
@@ -4434,10 +4040,7 @@ ${getOutfitSystemInstruction(c)}`
 
 [SETTING & AESTHETIC]: ${active.title} - ${active.setting || 'Dramatic narrative environment'}
 [ART STYLE PRESET]: ${artStylePreset}
-[USER PERSONA]: ${active.userPersona.name}
-Persona: ${getCharacterPersona(active.userPersona) || 'Protagonist'}
-Visual Profile: ${getCharacterVisualProfile(active.userPersona)}
-Current Outfit: ${getCurrentOutfitDescription(active.userPersona)}
+[USER PERSONA]: ${active.userPersona.name} (${active.userPersona.desc || 'Protagonist'})
 [CAST VISUAL DESCRIPTIONS]:
 ${castVisualProfiles}
 
