@@ -728,7 +728,7 @@
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">Default Visual Art Style</label>
               <select id="artStyleSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs">
-                <option value="Anime / Visual Novel">Anime / Visual Novel</option>
+                <option value="Anime">Anime</option>
                 <option value="Cinematic Semi-Realistic">Cinematic Semi-Realistic</option>
                 <option value="Cyberpunk Neon">Cyberpunk Neon</option>
                 <option value="Dark Fantasy Oil Painting">Dark Fantasy Oil Painting</option>
@@ -898,7 +898,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v59';
+          const CACHE_NAME = 'zetaforge-v60';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -973,7 +973,7 @@
         setting: '',
         cover: '',
         viewMode: 'chat',
-        artStyle: 'Anime / Visual Novel',
+        artStyle: 'Anime',
         vnBackground: '',
         userPersona: {
           name: 'Rapid',
@@ -1077,23 +1077,39 @@
       }
     }
 
-    function getActiveScenario() {
-      if (!appState.scenarios || appState.scenarios.length === 0) {
+    function ensureActiveScenario() {
+      if (!Array.isArray(appState.scenarios) || appState.scenarios.length === 0) {
         const initial = createScenarioTemplate('Sleepover Dare');
         appState.scenarios = [initial];
         appState.activeScenarioId = initial.id;
         return initial;
       }
+
       let found = appState.scenarios.find(s => s.id === appState.activeScenarioId);
+
+      // Recover a previously selected scenario if the active id was lost/stale.
+      if (!found) {
+        const rememberedId = localStorage.getItem('zetaforge_active_scenario');
+        found = appState.scenarios.find(s => s.id === rememberedId);
+      }
+
       if (!found) {
         found = appState.scenarios[0];
-        appState.activeScenarioId = found.id;
       }
+
+      appState.activeScenarioId = found.id;
+      if (!found.artStyle) found.artStyle = 'Anime';
+      if (!found.viewMode) found.viewMode = 'chat';
       return found;
+    }
+
+    function getActiveScenario() {
+      return ensureActiveScenario();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
+      ensureActiveScenario();
       closeAllDrawers();
       closeImageLibraryModal();
       closeAvatarManagerModal();
@@ -1110,6 +1126,9 @@
     async function saveState() {
       const active = getActiveScenario();
       if (active) active.updatedAt = Date.now();
+      if (appState.activeScenarioId) {
+        localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
+      }
       await saveStateDb(appState);
     }
 
@@ -1126,7 +1145,7 @@
             setting: saved.scenario?.setting || '',
             cover: '',
             viewMode: 'chat',
-            artStyle: 'Anime / Visual Novel',
+            artStyle: 'Anime',
             vnBackground: '',
             userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', photos: [], mood: 'Focused', desc: '' },
             characters: saved.characters || [],
@@ -1153,9 +1172,19 @@
         appState.scenarios = [defaultScen];
         appState.activeScenarioId = defaultScen.id;
       }
+
+      ensureActiveScenario();
+
+      // Normalize older saved art-style labels after loading.
+      appState.scenarios.forEach(s => {
+        if (s.artStyle === 'Anime / Visual Novel' || !s.artStyle) s.artStyle = 'Anime';
+      });
+
+      localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
     }
 
     function renderAllUi() {
+      ensureActiveScenario();
       renderSidebar();
       renderMessages();
       populateChapterChronicle();
@@ -1301,23 +1330,31 @@
       closeLightbox();
     }
 
-    // Dynamic Emotion Sprite Selector
+    // Main-menu/chat avatar: always use the character's explicitly selected default image.
+    function getCharacterDefaultAvatar(char) {
+      if (!char) return '';
+      if (char.avatar) return char.avatar;
+      const photos = (char.photos || []).map(normalizePhoto);
+      return photos[0]?.src || '';
+    }
+
+    // Visual Novel avatar: select an expression sprite that matches the current mood.
     function getCharacterActiveAvatar(char) {
       if (!char) return '';
+      const defaultAvatar = getCharacterDefaultAvatar(char);
       const photos = (char.photos || []).map(normalizePhoto);
-      if (photos.length === 0) return char.avatar || '';
+      if (photos.length === 0) return defaultAvatar;
 
       const currentMood = (char.mood || '').trim().toLowerCase();
-      if (!currentMood) return char.avatar || photos[0]?.src || '';
+      if (!currentMood) return defaultAvatar;
 
       const normalizedMood = currentMood.replace(/[^a-z0-9]/g, '');
-
       const matched = photos.find(p => {
         const cap = (p.caption || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cap.includes(normalizedMood) || normalizedMood.includes(cap);
+        return cap && (cap.includes(normalizedMood) || normalizedMood.includes(cap));
       });
 
-      return matched ? matched.src : (char.avatar || photos[0]?.src || '');
+      return matched ? matched.src : defaultAvatar;
     }
 
     // Client-Side Image Compression Engine
@@ -2140,20 +2177,49 @@
       btn.innerHTML = `<span>⏳</span> <span>Generating...</span>`;
 
       try {
-        const promptText = `Cinematic wide 16:9 scenic background illustration of ${active.title}, ${active.setting || 'detailed environment atmosphere'}, empty room or landscape scene, ${active.artStyle || 'anime aesthetic'}, masterpiece background wallpaper, no characters, high resolution`;
-        const cleanPrompt = encodeURIComponent(promptText);
-        const renderUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${Date.now()}`;
+        const promptText = `Cinematic wide 16:9 scenic background illustration of ${active.title}, ${active.setting || 'detailed environment atmosphere'}, empty room or landscape scene, ${active.artStyle || 'Anime'} aesthetic, masterpiece background wallpaper, no characters, high resolution`;
 
-        const imgBlobRes = await fetch(renderUrl);
-        if (!imgBlobRes.ok) throw new Error("Image renderer network error.");
-        const blob = await imgBlobRes.blob();
+        let fullDataUrl = null;
 
-        const fullDataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
+        // Use the same Gemini image-generation path as the working scene visualizer.
+        // This avoids the legacy image.pollinations.ai fetch that was causing the
+        // "Image renderer network error" in VN mode.
+        try {
+          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const imagePayload = {
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+          };
+
+          const imageRes = await fetch(imageEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(imagePayload)
+          });
+
+          if (imageRes.ok) {
+            const imgData = await imageRes.json();
+            const parts = imgData.candidates?.[0]?.content?.parts || [];
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                fullDataUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                break;
+              }
+            }
+          } else {
+            console.warn("Gemini VN backdrop generation returned", imageRes.status);
+          }
+        } catch (geminiErr) {
+          console.warn("Gemini VN backdrop generation bypassed:", geminiErr);
+        }
+
+        // Last-resort browser-rendered URL. Do not fetch this URL from JS:
+        // the old image.pollinations.ai fetch was the source of the network/CORS
+        // error. The current Pollinations endpoint is gen.pollinations.ai/image.
+        if (!fullDataUrl) {
+          const cleanPrompt = encodeURIComponent(promptText);
+          fullDataUrl = `https://gen.pollinations.ai/image/${cleanPrompt}?model=flux&width=1280&height=720&nologo=true&seed=${Date.now()}`;
+        }
 
         active.vnBackground = fullDataUrl;
         await saveState();
@@ -2637,6 +2703,173 @@ RULES:
       modal.classList.remove('flex');
     }
 
+
+    // Character Spotlight ----------------------------------------------------
+    function findCharacterForSpotlight(name) {
+      const active = getActiveScenario();
+      if (!name) return null;
+
+      const normalized = String(name).trim().toLowerCase();
+      if (normalized === 'you' || normalized === 'user' ||
+          normalized === (active.userPersona.name || '').trim().toLowerCase()) {
+        return { obj: active.userPersona, isUser: true };
+      }
+
+      const main = (active.characters || []).find(c =>
+        (c.name || '').trim().toLowerCase() === normalized
+      );
+      if (main) return { obj: main, isUser: false };
+
+      // Preserve a usable dossier for a side character discovered in the transcript.
+      const sideName = getDynamicSideCharacters().find(n => n.toLowerCase() === normalized);
+      if (sideName) {
+        return {
+          obj: {
+            id: 'side_' + sideName,
+            name: sideName,
+            role: 'Side Character',
+            mood: 'Neutral',
+            avatar: '',
+            photos: [],
+            personality: 'A side character currently present in the story.',
+            relationship: 'Companion',
+            relationships: {}
+          },
+          isUser: false,
+          isSide: true
+        };
+      }
+
+      return null;
+    }
+
+    function openCharacterSpotlight(name) {
+      const found = findCharacterForSpotlight(name);
+      if (!found) return;
+
+      currentSpotlightCharName = found.obj.name || name;
+      isSpotlightEditing = false;
+
+      const active = getActiveScenario();
+      const charObj = found.obj;
+      const avatarSrc = getCharacterDefaultAvatar(charObj);
+      const role = charObj.role || (found.isUser ? 'Protagonist' : 'Companion');
+      const mood = charObj.mood || 'Neutral';
+      const relationship = charObj.relationship || (found.isUser ? 'Self' : 'Companion');
+      const persona = charObj.personality || charObj.desc || 'No visual/personality profile has been written yet.';
+      const currentChapter = active.currentChapter || 1;
+      const arc = (active.activeChapterArcs || {})[charObj.name] ||
+        `No current chapter arc has been analyzed yet. Open Chapter Chronicle and choose Re-Analyze to generate one.`;
+
+      const avatarBox = document.getElementById('spotlightAvatarBox');
+      avatarBox.innerHTML = avatarSrc
+        ? `<img src="${avatarSrc}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-contain bg-slate-950 cursor-pointer" onclick="openCharacterPhotoModal('${escapeJsString(avatarSrc)}','${escapeJsString(charObj.name)}')" />`
+        : `<span>${escapeHtml((charObj.name || '?')[0].toUpperCase())}</span>`;
+      avatarBox.onclick = avatarSrc
+        ? () => openCharacterPhotoModal(avatarSrc, charObj.name)
+        : null;
+
+      document.getElementById('spotlightName').innerText = charObj.name || 'Character';
+      document.getElementById('spotlightRoleTags').innerHTML =
+        role.split(',').map(x => x.trim()).filter(Boolean)
+          .map(x => `<span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded">${escapeHtml(x)}</span>`).join('');
+      document.getElementById('spotlightMoodBadge').innerHTML = `🎭 ${escapeHtml(mood)}`;
+      document.getElementById('spotlightRelationshipBox').innerHTML = `🔗 ${escapeHtml(relationship)}`;
+      document.getElementById('spotlightPersonaText').innerHTML = marked.parse(persona);
+      document.getElementById('spotlightChapterBadge').innerText = `Ch. ${currentChapter}`;
+      document.getElementById('spotlightArcText').innerHTML = marked.parse(arc);
+
+      const relGrid = document.getElementById('spotlightInterCharacterGrid');
+      const relationshipMap = charObj.relationships || {};
+      const members = [
+        { name: active.userPersona.name, obj: active.userPersona },
+        ...(active.characters || [])
+      ].filter(member => member.name && member.name.toLowerCase() !== charObj.name?.toLowerCase());
+
+      if (members.length === 0) {
+        relGrid.innerHTML = `<div class="text-xs text-slate-500 italic">No other cast relationships recorded.</div>`;
+      } else {
+        relGrid.innerHTML = members.map(member => {
+          const rel = relationshipMap[member.name] ||
+            (member.name.toLowerCase() === active.userPersona.name.toLowerCase() ? charObj.relationship : 'Acquaintance / Neutral');
+          return `<div class="flex items-center justify-between gap-2 p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg">
+            <span class="text-xs text-slate-300 truncate">${escapeHtml(member.name)}</span>
+            <span class="text-[10px] text-indigo-300 text-right">${escapeHtml(rel || 'Acquaintance / Neutral')}</span>
+          </div>`;
+        }).join('');
+      }
+
+      const promote = document.getElementById('spotlightPromoteContainer');
+      promote.classList.toggle('hidden', !found.isSide);
+
+      document.getElementById('spotlightEditToggleBtn').classList.toggle('hidden', false);
+      document.getElementById('spotlightViewBody').classList.remove('hidden');
+      document.getElementById('spotlightEditBody').classList.add('hidden');
+      document.getElementById('spotlightFooterBar').classList.remove('hidden');
+      document.getElementById('spotlightEditToggleBtn').innerText = '✏️ Edit';
+
+      const modal = document.getElementById('characterSpotlightModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeCharacterSpotlight(event) {
+      if (event && event.target && event.target.id !== 'characterSpotlightModal') return;
+      const modal = document.getElementById('characterSpotlightModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      isSpotlightEditing = false;
+    }
+
+    // Scenario Image Gallery -------------------------------------------------
+    function openImageLibraryModal() {
+      renderImageLibrary();
+      const modal = document.getElementById('imageLibraryModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeImageLibraryModal(event) {
+      if (event && event.target && event.target.id !== 'imageLibraryModal') return;
+      const modal = document.getElementById('imageLibraryModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderImageLibrary() {
+      const container = document.getElementById('imageLibraryContainer');
+      if (!container) return;
+      const active = getActiveScenario();
+      const images = (active.messages || []).filter(m => m.isImage && m.imageUrl);
+
+      if (images.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-500 text-xs">
+            No scene images have been generated in this scenario yet.
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = images.slice().reverse().map((m, reverseIndex) => {
+        const originalIndex = active.messages.indexOf(m);
+        return `
+          <div class="bg-zetaCard border border-slate-800 rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-semibold text-indigo-300">Scene Visual ${images.length - reverseIndex}</span>
+              <span class="text-[10px] text-slate-500">${escapeHtml(m.timestamp || '')}</span>
+            </div>
+            <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
+              onclick="openLightbox('${escapeJsString(m.imageUrl)}','${escapeJsString(m.text || m.prompt || 'Scene Visual')}')">
+              <img src="${m.imageUrl}" alt="Scene visual" class="w-full aspect-video object-cover" />
+            </button>
+            ${m.text ? `<p class="text-[11px] text-slate-400 leading-relaxed">${escapeHtml(m.text)}</p>` : ''}
+            <button type="button" onclick="deleteMessage(${originalIndex})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button>
+          </div>`;
+      }).join('');
+    }
+
     function renderScenariosList() {
       const container = document.getElementById('scenariosListContainer');
       const badge = document.getElementById('scenariosCountBadge');
@@ -2685,15 +2918,28 @@ RULES:
     }
 
     async function switchScenario(id) {
+      const target = appState.scenarios.find(s => s.id === id);
+      if (!target) return;
+
       if (id === appState.activeScenarioId) {
         toggleMenuDrawer(false);
         return;
       }
+
+      // Change the active scenario first and repaint immediately. Persistence happens after
+      // the UI switch so the old scenario can never remain visible while IndexedDB writes.
+      skipTypewriter();
       appState.activeScenarioId = id;
-      await saveState();
+      localStorage.setItem('zetaforge_active_scenario', id);
+      currentVnIndex = 0;
+      messageBranches = {};
+      editingMessageId = null;
+
       renderAllUi();
       syncModalForm();
       toggleMenuDrawer(false);
+
+      await saveState();
     }
 
     async function createNewScenarioFlow() {
@@ -2984,7 +3230,7 @@ JSON FORMAT:
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
 
       document.getElementById('viewModeSelect').value = active.viewMode || 'chat';
-      document.getElementById('artStyleSelect').value = active.artStyle || 'Anime / Visual Novel';
+      document.getElementById('artStyleSelect').value = active.artStyle || 'Anime';
 
       const recapsStrings = (active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || ''));
       document.getElementById('chapterRecapsText').value = recapsStrings.join('\n\n');
@@ -3101,7 +3347,7 @@ JSON FORMAT:
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
-      active.artStyle = document.getElementById('artStyleSelect').value || 'Anime / Visual Novel';
+      active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
       if (rawRecap) {
@@ -3143,7 +3389,7 @@ JSON FORMAT:
         }
       }
 
-      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
+      const avatarSrc = charObj ? getCharacterDefaultAvatar(charObj) : '';
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
       const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
@@ -3398,33 +3644,52 @@ JSON FORMAT:
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
         const fullText = formatDialogueSpacing((block.text || '').trim());
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
+        // Apply the mood before rendering this individual turn so VN expression
+        // selection happens per reply rather than once after the whole batch.
         if (block.mood && !isNarrator) {
-          const charObj = active.characters.find(c => c.name.toLowerCase() === speaker.toLowerCase());
+          const charObj = speaker.toLowerCase() === active.userPersona.name.toLowerCase()
+            ? active.userPersona
+            : active.characters.find(c => c.name.toLowerCase() === speaker.toLowerCase());
           if (charObj) charObj.mood = block.mood;
         }
 
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
         wrapper.innerHTML = `
-          ${avatarHtml}
+          ${getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9')}
           <div class="max-w-[88%] sm:max-w-[80%]">
             <div class="flex items-center gap-2 mb-1 justify-start">
               <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
               <span class="text-[9px] sm:text-[10px] text-slate-500">${timeStr}</span>
             </div>
-            <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm">
-            </div>
+            <div class="bubble-body rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert typing-cursor ${isNarrator ? 'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic' : 'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none'} shadow-sm"></div>
           </div>
         `;
         container.appendChild(wrapper);
         container.scrollTop = container.scrollHeight;
 
-        const bubbleBody = wrapper.querySelector('.bubble-body');
+        // Insert the active VN turn immediately. This makes every character's
+        // portrait/expression change as soon as that character starts replying.
+        let liveMessage = null;
+        if (active.viewMode === 'vn') {
+          liveMessage = {
+            id: msgId,
+            role: 'model',
+            speakerName: speaker,
+            text: fullText,
+            timestamp: timeStr,
+            mood: block.mood || ''
+          };
+          active.messages.push(liveMessage);
+          const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          currentVnIndex = validTurns.length - 1;
+          renderVnTurn(false);
+        }
 
+        const bubbleBody = wrapper.querySelector('.bubble-body');
         let visibleChars = 0;
         const totalChars = fullText.length;
         const step = 3;
@@ -3438,18 +3703,31 @@ JSON FORMAT:
           }
 
           bubbleBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
+
+          // Keep the VN dialogue in sync while this exact character is speaking.
+          if (liveMessage) {
+            liveMessage.text = fullText.slice(0, visibleChars);
+            const dialogueBody = document.getElementById('vnDialogueBody');
+            if (dialogueBody) dialogueBody.innerHTML = marked.parse(liveMessage.text);
+          }
+
           container.scrollTop = container.scrollHeight;
         }
 
         bubbleBody.classList.remove('typing-cursor');
 
-        active.messages.push({
-          id: msgId,
-          role: 'model',
-          speakerName: speaker,
-          text: fullText,
-          timestamp: timeStr
-        });
+        if (!liveMessage) {
+          active.messages.push({
+            id: msgId,
+            role: 'model',
+            speakerName: speaker,
+            text: fullText,
+            timestamp: timeStr,
+            mood: block.mood || ''
+          });
+        } else {
+          liveMessage.text = fullText;
+        }
 
         if (!activeTypewriter.skipFlag) {
           await new Promise(r => setTimeout(r, 220));
@@ -3465,7 +3743,7 @@ JSON FORMAT:
       if (active.viewMode === 'vn') {
         const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = validTurns.length - 1;
-        renderVnTurn(true);
+        renderVnTurn(false);
       }
       updateInterCharacterRelationships();
     }
@@ -3775,7 +4053,7 @@ TASK: Return a JSON object with:
           }
         });
 
-        const artStylePreset = active.artStyle || 'Anime / Visual Novel';
+        const artStylePreset = active.artStyle || 'Anime';
 
         const promptText = `TASK: Generate a highly specific 16:9 cinematic illustration prompt based on this story scene and the characters' physical descriptions and attached reference photos.
 
