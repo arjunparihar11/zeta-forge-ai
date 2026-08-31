@@ -93,7 +93,7 @@
     }
     .prose em { color: #94a3b8; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
     .prose strong { color: #f8fafc; }
-    textarea, input, select { -webkit-appearance: none; }
+    textarea, input:not([type="checkbox"]):not([type="radio"]), select { -webkit-appearance: none; }
 
     .typing-cursor::after {
       content: '▋';
@@ -127,22 +127,26 @@
       </div>
 
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <!-- Visual Novel / Chat Mode Switcher Button -->
         <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
           <span id="viewModeIcon">🎭</span>
           <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
         </button>
 
+        <!-- Desktop Only Gallery Button -->
         <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
           <span>🖼️</span>
           <span>Gallery</span>
         </button>
 
+        <!-- Chapter Badge Button -->
         <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
           <span>📖</span>
           <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
           <span class="text-[10px] text-indigo-400">▾</span>
         </button>
 
+        <!-- Desktop Expanded Utilities -->
         <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
           <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
             <span>➕</span> <span>New</span>
@@ -641,12 +645,14 @@
           </div>
 
           <!-- Background Removal Toggle Switch for Sprite Sheets -->
-          <div class="flex items-center justify-between p-2.5 bg-slate-900/90 rounded-lg border border-slate-700/80 text-xs text-slate-300">
-            <label for="spriteBgRemoveToggle" class="flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" id="spriteBgRemoveToggle" class="w-4 h-4 rounded bg-zetaInput border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer" checked />
+          <div onclick="toggleSpriteBgRemoval()" class="flex items-center justify-between p-2.5 bg-slate-900/90 rounded-lg border border-slate-700/80 text-xs text-slate-300 cursor-pointer select-none">
+            <div class="flex items-center gap-2.5">
+              <div id="spriteBgRemoveSwitch" class="w-9 h-5 bg-indigo-600 rounded-full p-0.5 transition-colors relative">
+                <div id="spriteBgRemoveKnob" class="w-4 h-4 bg-white rounded-full shadow-md transform translate-x-4 transition-transform"></div>
+              </div>
               <span class="font-semibold text-indigo-200">Auto-Remove Background on Sprite Sheet</span>
-            </label>
-            <span class="text-[10px] text-slate-400 hidden sm:inline">(Uncheck if sheet is already a transparent PNG)</span>
+            </div>
+            <span class="text-[10px] text-slate-400 hidden sm:inline">(Turn off if sheet is already a transparent PNG)</span>
           </div>
 
           <div class="flex gap-1.5 pt-0.5">
@@ -970,6 +976,7 @@
       }
     }
 
+    // Default Simulation Template with Bob
     function createScenarioTemplate(title = 'Simulation') {
       return {
         id: 'scen_' + Date.now(),
@@ -1039,6 +1046,7 @@
     let vnAutoTimeout = null;
 
     let isNarrateModeActive = false;
+    let spriteBgRemovalEnabled = true;
     let activeSuggestedReplies = [];
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
@@ -1055,6 +1063,20 @@
       '09_embarrassed', '10_shy', '11_flirtatious', '12_touched',
       '13_smug_teasing', '14_hurt_defeated', '15_determined', '16_disgusted'
     ];
+
+    function toggleSpriteBgRemoval() {
+      spriteBgRemovalEnabled = !spriteBgRemovalEnabled;
+      const sw = document.getElementById('spriteBgRemoveSwitch');
+      const knob = document.getElementById('spriteBgRemoveKnob');
+      if (!sw || !knob) return;
+      if (spriteBgRemovalEnabled) {
+        sw.className = "w-9 h-5 bg-indigo-600 rounded-full p-0.5 transition-colors relative";
+        knob.className = "w-4 h-4 bg-white rounded-full shadow-md transform translate-x-4 transition-transform";
+      } else {
+        sw.className = "w-9 h-5 bg-slate-700 rounded-full p-0.5 transition-colors relative";
+        knob.className = "w-4 h-4 bg-slate-300 rounded-full shadow-md transform translate-x-0 transition-transform";
+      }
+    }
 
     function toggleNarrateMode() {
       isNarrateModeActive = !isNarrateModeActive;
@@ -1305,6 +1327,7 @@
       closeLightbox();
     }
 
+    // Dynamic Emotion Sprite Selector
     function getCharacterActiveAvatar(char) {
       if (!char) return '';
       const photos = (char.photos || []).map(normalizePhoto);
@@ -1663,8 +1686,7 @@
       const targetObj = getPhotoTargetObject();
       if (!targetObj) return;
 
-      const bgRemoveToggle = document.getElementById('spriteBgRemoveToggle');
-      const shouldRemoveBg = bgRemoveToggle ? bgRemoveToggle.checked : true;
+      const shouldRemoveBg = spriteBgRemovalEnabled;
 
       const countEl = document.getElementById('avatarManagerCount');
       if (countEl) {
