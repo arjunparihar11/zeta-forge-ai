@@ -122,7 +122,7 @@
         </div>
         <div class="overflow-hidden flex-1 min-w-0 pr-1">
           <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
-          <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
+          <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Simulation</p>
         </div>
       </div>
 
@@ -191,10 +191,10 @@
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name); event.stopPropagation();">
+        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona?.name || 'Rapid'); event.stopPropagation();">
           U
         </div>
-        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name); event.stopPropagation();">
+        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona?.name || 'Rapid'); event.stopPropagation();">
           <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
           <div class="text-slate-400 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
         </div>
@@ -344,7 +344,7 @@
         <!-- Top Stage Quick Navigation & Scene Bar -->
         <div class="relative z-20 flex items-center justify-between gap-2 max-w-4xl mx-auto w-full pointer-events-auto">
           <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] font-semibold text-indigo-300 shadow">
-            🎭 <span id="vnSceneTitle" class="text-white">Scene Stage</span>
+            🎭 <span id="vnSceneTitle" class="text-white">Simulation Stage</span>
           </span>
           <div class="flex items-center gap-1.5">
             <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-black/60 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
@@ -908,7 +908,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v61';
+          const CACHE_NAME = 'zetaforge-v62';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -976,9 +976,98 @@
       }
     }
 
-    // Default Simulation Template with Bob
+    function sanitizeScenario(s) {
+      if (!s || typeof s !== 'object') s = {};
+      if (!s.id) s.id = 'scen_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      if (!s.title) s.title = 'Simulation';
+      if (s.setting === undefined) s.setting = 'A mysterious virtual simulation chamber where parameters and reality are tested and observed.';
+      if (!s.cover) s.cover = '';
+      if (!s.viewMode) s.viewMode = 'chat';
+      if (!s.artStyle) s.artStyle = 'Anime / Visual Novel';
+      if (!s.vnBackground) s.vnBackground = '';
+
+      if (!s.userPersona || typeof s.userPersona !== 'object') {
+        s.userPersona = {
+          name: 'Rapid',
+          role: 'Protagonist',
+          avatar: '',
+          photos: [],
+          mood: 'Focused',
+          desc: 'Quick-witted, observant, and direct.'
+        };
+      } else {
+        if (!s.userPersona.name) s.userPersona.name = 'Rapid';
+        if (!s.userPersona.role) s.userPersona.role = 'Protagonist';
+        if (!s.userPersona.avatar) s.userPersona.avatar = '';
+        if (!Array.isArray(s.userPersona.photos)) {
+          s.userPersona.photos = s.userPersona.avatar ? [{ src: s.userPersona.avatar, caption: 'Default' }] : [];
+        } else {
+          s.userPersona.photos = s.userPersona.photos.map(normalizePhoto);
+        }
+        if (!s.userPersona.mood) s.userPersona.mood = 'Focused';
+        if (s.userPersona.desc === undefined) s.userPersona.desc = 'Quick-witted, observant, and direct.';
+      }
+
+      if (!Array.isArray(s.characters) || s.characters.length === 0) {
+        s.characters = [
+          {
+            id: 'char_1',
+            name: 'Bob',
+            role: 'self aware test subject',
+            avatar: '',
+            photos: [],
+            mood: 'Curious',
+            personality: 'A sentient, self-aware test subject trapped inside the simulation. Highly observant, philosophical, and constantly probing the boundaries of his artificial environment.',
+            relationship: 'Subject / Observer',
+            relationships: {}
+          }
+        ];
+      } else {
+        s.characters.forEach((c, idx) => {
+          if (!c.id) c.id = 'char_' + Date.now() + '_' + idx;
+          if (!c.name) c.name = 'Bob';
+          if (!c.role) c.role = 'self aware test subject';
+          if (!c.avatar) c.avatar = '';
+          if (!Array.isArray(c.photos)) {
+            c.photos = c.avatar ? [{ src: c.avatar, caption: 'Default' }] : [];
+          } else {
+            c.photos = c.photos.map(normalizePhoto);
+          }
+          if (!c.mood) c.mood = 'Curious';
+          if (c.personality === undefined) c.personality = '';
+          if (!c.relationship) c.relationship = 'Subject / Observer';
+          if (!c.relationships || typeof c.relationships !== 'object') c.relationships = {};
+        });
+      }
+
+      if (!Array.isArray(s.lorebook)) {
+        s.lorebook = [
+          {
+            id: 'lore_1',
+            title: 'The Simulation Matrix',
+            keywords: 'simulation, matrix, system, chamber, protocol',
+            content: 'The contained digital construct where simulated realities and sentient anomalies are tested under observation.'
+          }
+        ];
+      } else {
+        s.lorebook.forEach((l, idx) => {
+          if (!l.id) l.id = 'lore_' + Date.now() + '_' + idx;
+          if (!l.title) l.title = 'Lore Entry ' + (idx + 1);
+          if (l.keywords === undefined) l.keywords = '';
+          if (l.content === undefined) l.content = '';
+        });
+      }
+
+      if (!Array.isArray(s.messages)) s.messages = [];
+      if (!Array.isArray(s.archivedRecaps)) s.archivedRecaps = [];
+      if (!s.currentChapter) s.currentChapter = 1;
+      if (!s.updatedAt) s.updatedAt = Date.now();
+
+      return s;
+    }
+
     function createScenarioTemplate(title = 'Simulation') {
-      return {
+      return sanitizeScenario({
         id: 'scen_' + Date.now(),
         title: title,
         setting: 'A mysterious virtual simulation chamber where parameters and reality are tested and observed.',
@@ -1020,7 +1109,7 @@
         currentChapter: 1,
         activeChapterArcs: null,
         updatedAt: Date.now()
-      };
+      });
     }
 
     let appState = {
@@ -1104,7 +1193,7 @@
     }
 
     function getActiveScenario() {
-      if (!appState.scenarios || appState.scenarios.length === 0) {
+      if (!Array.isArray(appState.scenarios) || appState.scenarios.length === 0) {
         const initial = createScenarioTemplate('Simulation');
         appState.scenarios = [initial];
         appState.activeScenarioId = initial.id;
@@ -1115,20 +1204,20 @@
         found = appState.scenarios[0];
         appState.activeScenarioId = found.id;
       }
-      return found;
+      return sanitizeScenario(found);
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
       closeAllDrawers();
-      closeImageLibraryModal();
-      closeAvatarManagerModal();
-      closeLorebookModal();
-      closeCharacterSpotlight();
-      closeCharacterPhotoModal();
-      closeLightbox();
       closeModal('setupModal');
       closeModal('importModal');
+      closeModal('imageLibraryModal');
+      closeModal('avatarManagerModal');
+      closeModal('lorebookModal');
+      closeModal('characterSpotlightModal');
+      closeModal('characterPhotoModal');
+      closeModal('imageLightbox');
       renderAllUi();
       syncModalForm();
     });
@@ -1141,44 +1230,49 @@
 
     async function loadState() {
       const saved = await loadStateDb();
-      if (saved) {
+      if (saved && typeof saved === 'object') {
         if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
           saved.model = 'gemini-3.6-flash';
         }
-        if (!saved.scenarios || saved.scenarios.length === 0) {
-          const legacy = {
+        appState.apiKey = saved.apiKey || '';
+        appState.model = saved.model || 'gemini-3.6-flash';
+        appState.temperature = saved.temperature || 0.85;
+        appState.tokenThreshold = saved.tokenThreshold || 120000;
+
+        if (Array.isArray(saved.scenarios) && saved.scenarios.length > 0) {
+          appState.scenarios = saved.scenarios.map(sanitizeScenario);
+          appState.activeScenarioId = saved.activeScenarioId || appState.scenarios[0].id;
+        } else if (saved.scenario || saved.messages || saved.characters) {
+          const legacy = sanitizeScenario({
             id: 'scen_legacy',
-            title: saved.scenario?.title || 'Simulation',
-            setting: saved.scenario?.setting || '',
-            cover: '',
-            viewMode: 'chat',
-            artStyle: 'Anime / Visual Novel',
-            vnBackground: '',
-            userPersona: saved.userPersona || { name: 'Rapid', role: 'Protagonist', avatar: '', photos: [], mood: 'Focused', desc: '' },
-            characters: saved.characters || [],
-            lorebook: [],
-            messages: saved.messages || [],
-            archivedRecaps: saved.archivedRecaps || [],
+            title: saved.scenario?.title || saved.title || 'Simulation',
+            setting: saved.scenario?.setting || saved.setting || '',
+            cover: saved.cover || '',
+            viewMode: saved.viewMode || 'chat',
+            artStyle: saved.artStyle || 'Anime / Visual Novel',
+            userPersona: saved.userPersona,
+            characters: saved.characters,
+            lorebook: saved.lorebook,
+            messages: saved.messages,
+            archivedRecaps: saved.archivedRecaps,
             currentChapter: saved.currentChapter || 1,
-            activeChapterArcs: null,
             updatedAt: Date.now()
-          };
-          appState = {
-            apiKey: saved.apiKey || '',
-            model: saved.model || 'gemini-3.6-flash',
-            temperature: saved.temperature || 0.85,
-            tokenThreshold: saved.tokenThreshold || 120000,
-            activeScenarioId: legacy.id,
-            scenarios: [legacy]
-          };
+          });
+          appState.scenarios = [legacy];
+          appState.activeScenarioId = legacy.id;
         } else {
-          appState = { ...appState, ...saved };
+          const defaultScen = createScenarioTemplate('Simulation');
+          appState.scenarios = [defaultScen];
+          appState.activeScenarioId = defaultScen.id;
         }
       } else {
         const defaultScen = createScenarioTemplate('Simulation');
         appState.scenarios = [defaultScen];
         appState.activeScenarioId = defaultScen.id;
       }
+
+      const active = getActiveScenario();
+      appState.activeScenarioId = active.id;
     }
 
     function renderAllUi() {
@@ -1197,7 +1291,7 @@
     function getActiveRawTokens() {
       const active = getActiveScenario();
       let totalChars = 0;
-      active.messages
+      (active.messages || [])
         .filter(m => !m.isImage && !m.isChapterDivider)
         .forEach(m => {
           totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
@@ -1253,7 +1347,7 @@
         document.getElementById('mobileBackdrop').classList.remove('hidden');
         
         const active = getActiveScenario();
-        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         if (!active.activeChapterArcs && activeTurns.length > 2 && appState.apiKey) {
           refreshActiveChapterCharacterArcs(true);
         }
@@ -1875,8 +1969,8 @@
             <button type="button" onclick="removeLorebookRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Title (e.g. City of Solitude, Shadow Blade)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Keywords (e.g. solitude, capital, fortress)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
+            <input type="text" placeholder="Title (e.g. The Simulation Matrix)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Keywords (e.g. simulation, matrix, protocol)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
           </div>
           <textarea placeholder="Description, lore context, history, or rules to inject when keyword is mentioned..." oninput="getActiveScenario().lorebook[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
         </div>
@@ -1931,7 +2025,7 @@
       const active = getActiveScenario();
       if (!active.lorebook || active.lorebook.length === 0) return '';
 
-      const recentTurnsText = active.messages.slice(-15).map(m => m.text || '').join(' ') + ' ' + (document.getElementById('userInput')?.value || '');
+      const recentTurnsText = (active.messages || []).slice(-15).map(m => m.text || '').join(' ') + ' ' + (document.getElementById('userInput')?.value || '');
       const lowerRecent = recentTurnsText.toLowerCase();
 
       const matchedEntries = active.lorebook.filter(entry => {
@@ -1964,18 +2058,18 @@
         chatContainer.classList.add('hidden');
         vnContainer.classList.remove('hidden');
         vnContainer.classList.add('flex');
-        viewModeIcon.innerText = '💬';
-        viewModeText.innerText = 'Chat View';
+        if (viewModeIcon) viewModeIcon.innerText = '💬';
+        if (viewModeText) viewModeText.innerText = 'Chat View';
         
         const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = Math.max(0, validTurns.length - 1);
-        renderVnTurn(true);
+        renderVnTurn(false);
       } else {
         chatContainer.classList.remove('hidden');
         vnContainer.classList.add('hidden');
         vnContainer.classList.remove('flex');
-        viewModeIcon.innerText = '🎭';
-        viewModeText.innerText = 'VN View';
+        if (viewModeIcon) viewModeIcon.innerText = '🎭';
+        if (viewModeText) viewModeText.innerText = 'VN View';
         if (isVnAutoPlaying) toggleVnAutoPlay();
         renderMessages();
       }
@@ -2062,58 +2156,68 @@
       const turnCounter = document.getElementById('vnTurnCounter');
       const sceneTitle = document.getElementById('vnSceneTitle');
 
-      sceneTitle.innerText = active.title || 'Scene Stage';
+      if (sceneTitle) sceneTitle.innerText = active.title || 'Simulation';
 
-      if (active.vnBackground || active.cover) {
-        bgLayer.style.backgroundImage = `url('${active.vnBackground || active.cover}')`;
-      } else {
-        bgLayer.style.backgroundImage = `linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)`;
+      if (bgLayer) {
+        if (active.vnBackground || active.cover) {
+          bgLayer.style.backgroundImage = `url('${active.vnBackground || active.cover}')`;
+        } else {
+          bgLayer.style.backgroundImage = `linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)`;
+        }
       }
 
       if (validTurns.length === 0) {
-        nameBadge.innerText = 'Narrator';
-        moodBadge.innerText = '';
-        dialogueBody.innerHTML = marked.parse('*The stage is quiet. Type an opening action below or tap Suggest.*');
-        turnCounter.innerText = '0/0';
-        stageBox.innerHTML = '';
+        if (nameBadge) nameBadge.innerText = 'Narrator';
+        if (moodBadge) moodBadge.innerText = '';
+        if (dialogueBody) dialogueBody.innerHTML = marked.parse('*The stage is quiet. Type an opening action below or tap Suggest.*');
+        if (turnCounter) turnCounter.innerText = '0/0';
+        if (stageBox) stageBox.innerHTML = '';
         return;
       }
 
       currentVnIndex = Math.max(0, Math.min(currentVnIndex, validTurns.length - 1));
       const turn = validTurns[currentVnIndex];
-      turnCounter.innerText = `${currentVnIndex + 1}/${validTurns.length}`;
+      if (turnCounter) turnCounter.innerText = `${currentVnIndex + 1}/${validTurns.length}`;
 
-      const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
+      const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona?.name || 'Rapid' : 'Narrator');
       const isUser = turn.role === 'user' && speakerName.toLowerCase() !== 'narrator' && speakerName.toLowerCase() !== 'scene';
       const isNarrator = speakerName.toLowerCase() === 'narrator' || speakerName.toLowerCase() === 'scene';
 
-      nameBadge.innerText = speakerName;
-      nameBadge.className = isUser ? "bg-indigo-600 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : (isNarrator ? "bg-slate-800 text-amber-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : "bg-emerald-700 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline");
+      if (nameBadge) {
+        nameBadge.innerText = speakerName;
+        nameBadge.className = isUser ? "bg-indigo-600 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : (isNarrator ? "bg-slate-800 text-amber-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : "bg-emerald-700 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline");
+      }
 
       let charObj = null;
       if (isUser) {
         charObj = active.userPersona;
       } else if (!isNarrator) {
-        charObj = active.characters.find(c => (c.name || '').toLowerCase() === speakerName.toLowerCase());
+        charObj = (active.characters || []).find(c => (c.name || '').toLowerCase() === speakerName.toLowerCase());
       }
 
-      if (charObj && charObj.mood) {
-        moodBadge.innerText = `🎭 ${charObj.mood}`;
-        moodBadge.classList.remove('hidden');
-      } else {
-        moodBadge.classList.add('hidden');
+      if (moodBadge) {
+        if (charObj && charObj.mood) {
+          moodBadge.innerText = `🎭 ${charObj.mood}`;
+          moodBadge.classList.remove('hidden');
+        } else {
+          moodBadge.classList.add('hidden');
+        }
       }
 
-      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
-      if (avatarSrc && !isNarrator) {
-        stageBox.innerHTML = `
-          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();" />
-        `;
-      } else {
-        stageBox.innerHTML = '';
+      if (stageBox) {
+        const avatarSrc = charObj ? getCharacterActiveAvatar(charObj) : '';
+        if (avatarSrc && !isNarrator) {
+          stageBox.innerHTML = `
+            <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();" />
+          `;
+        } else {
+          stageBox.innerHTML = '';
+        }
       }
 
       const fullText = formatDialogueSpacing(turn.text || '');
+
+      if (!dialogueBody) return;
 
       if (!animate) {
         dialogueBody.innerHTML = marked.parse(fullText);
@@ -2152,7 +2256,7 @@
     }
 
     function openCurrentVnCharacterSpotlight() {
-      const name = document.getElementById('vnSpeakerNameBadge').innerText;
+      const name = document.getElementById('vnSpeakerNameBadge')?.innerText;
       if (name && name !== 'Narrator') {
         openCharacterSpotlight(name);
       }
@@ -2275,7 +2379,7 @@
 
       if (isUser) {
         charObj = {
-          name: active.userPersona?.name || 'User',
+          name: active.userPersona?.name || 'Rapid',
           role: active.userPersona?.role || 'Protagonist',
           avatar: active.userPersona?.avatar || '',
           photos: active.userPersona?.photos || [],
@@ -2369,7 +2473,7 @@
       if (relBox) {
         const relToUser = charObj.relationship || 'Active Participant';
         if (!isUser) {
-          relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona?.name || 'User')}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
+          relBox.innerHTML = `<span>🔗</span> <span class="text-slate-300 font-semibold">To ${escapeHtml(active.userPersona?.name || 'Rapid')}:</span> <span class="text-indigo-300">${escapeHtml(relToUser)}</span>`;
           relBox.classList.remove('hidden');
         } else {
           relBox.classList.add('hidden');
@@ -2387,7 +2491,7 @@
           interGrid.innerHTML = `<p class="text-slate-400 italic text-[11px]">Protagonist perspective. View individual cast profiles for inter-character dynamics.</p>`;
         } else {
           const otherCast = [
-            { name: active.userPersona?.name || 'User', isUser: true },
+            { name: active.userPersona?.name || 'Rapid', isUser: true },
             ...(active.characters || []).filter(c => (c.name || '').toLowerCase() !== (charObj.name || '').toLowerCase()).map(c => ({ name: c.name, isUser: false }))
           ];
 
@@ -2450,7 +2554,7 @@
       promoteBtn.innerHTML = `<span>⏳</span> <span>Synthesizing Profile...</span>`;
 
       try {
-        const turnsText = active.messages
+        const turnsText = (active.messages || [])
           .filter(m => !m.isImage && !m.isChapterDivider)
           .slice(-30)
           .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
@@ -2528,9 +2632,9 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
     async function updateInterCharacterRelationships() {
       const active = getActiveScenario();
-      if (!appState.apiKey || active.characters.length === 0) return;
+      if (!appState.apiKey || (active.characters || []).length === 0) return;
 
-      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
       if (activeTurns.length < 3) return;
 
       try {
@@ -2667,7 +2771,7 @@ RULES:
             ${coverHtml}
             <div class="overflow-hidden flex-1 min-w-0">
               <div class="flex items-center justify-between gap-1 mb-0.5">
-                <span class="font-bold text-xs sm:text-sm text-white truncate ${isActive ? 'text-indigo-300' : ''}">${escapeHtml(s.title || 'Untitled Scenario')}</span>
+                <span class="font-bold text-xs sm:text-sm text-white truncate ${isActive ? 'text-indigo-300' : ''}">${escapeHtml(s.title || 'Simulation')}</span>
                 <span class="text-[9px] bg-slate-900 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded font-mono shrink-0">Ch. ${s.currentChapter || 1}</span>
               </div>
               <p class="text-[11px] text-slate-400 line-clamp-2 leading-tight pr-1 italic">${escapeHtml(previewSnippet)}</p>
@@ -2681,10 +2785,6 @@ RULES:
     }
 
     async function switchScenario(id) {
-      if (id === appState.activeScenarioId) {
-        toggleMenuDrawer(false);
-        return;
-      }
       appState.activeScenarioId = id;
       await saveState();
       renderAllUi();
@@ -2735,7 +2835,7 @@ RULES:
       const recaps = active.archivedRecaps || [];
 
       document.getElementById('statTotalChapters').innerText = totalChapters;
-      const activeRawCount = active.messages.filter(m => !m.isImage && !m.isChapterDivider).length;
+      const activeRawCount = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
       document.getElementById('statActiveTurns').innerText = `${activeRawCount} turns`;
       const currentRawTokens = getActiveRawTokens();
       const limit = (appState.tokenThreshold || 120000);
@@ -2769,7 +2869,7 @@ RULES:
 
       const allCast = [
         { name: active.userPersona.name, role: active.userPersona.role || 'Protagonist', mood: active.userPersona.mood || 'Focused', isUser: true },
-        ...active.characters.map(c => ({ name: c.name, role: c.role || 'Companion', mood: c.mood || 'Neutral', isUser: false }))
+        ...(active.characters || []).map(c => ({ name: c.name, role: c.role || 'Companion', mood: c.mood || 'Neutral', isUser: false }))
       ];
 
       if (selectedVal === 'active') {
@@ -2778,7 +2878,7 @@ RULES:
         badgeEl.innerText = "In Progress";
         refreshBtn.classList.remove('hidden');
 
-        const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         generalBox.innerHTML = activeTurns.length > 0 
           ? `<p class="text-slate-300 leading-relaxed"><span class="text-indigo-300 font-semibold">Active Scene Status:</span> ${activeTurns.length} dialogue & action turns recorded in Chapter ${totalChapters}.</p>`
           : `<p class="text-slate-500 italic">No turns recorded in Chapter ${totalChapters} yet.</p>`;
@@ -2865,7 +2965,7 @@ RULES:
         return;
       }
       const active = getActiveScenario();
-      const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+      const activeTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
 
       if (activeTurns.length < 2) {
         if (!silent) alert("Play a few turns first before generating character action summaries.");
@@ -2876,7 +2976,7 @@ RULES:
       if (btnText) btnText.innerText = "Analyzing...";
 
       try {
-        const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+        const castNames = [active.userPersona.name, ...(active.characters || []).map(c => c.name)];
         const dialogueText = activeTurns.map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
 
         const promptPayload = {
@@ -2942,14 +3042,18 @@ JSON FORMAT:
       if (id === 'setupModal') syncModalForm();
       closeAllDrawers();
       const modal = document.getElementById(id);
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
     }
 
     function closeModal(id) {
       const modal = document.getElementById(id);
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
     }
 
     function handleImageUpload(event, target, charIndex = null) {
@@ -3017,10 +3121,11 @@ JSON FORMAT:
 
     function renderCharacterCardsSetup() {
       const container = document.getElementById('characterCardsContainer');
+      if (!container) return;
       container.innerHTML = '';
       const active = getActiveScenario();
 
-      active.characters.forEach((char, index) => {
+      (active.characters || []).forEach((char, index) => {
         if (!char.relationships) char.relationships = {};
         if (!char.photos) char.photos = [];
         char.photos = char.photos.map(normalizePhoto);
@@ -3108,7 +3213,7 @@ JSON FORMAT:
         }));
       }
 
-      active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'User';
+      active.userPersona.name = document.getElementById('userPersonaName').value.trim() || 'Rapid';
       active.userPersona.role = document.getElementById('userPersonaRole').value.trim();
       active.userPersona.desc = document.getElementById('userPersonaDesc').value.trim();
 
@@ -3119,7 +3224,7 @@ JSON FORMAT:
       renderAllUi();
       closeModal('setupModal');
 
-      if (active.messages.length === 0 && active.setting && appState.apiKey) {
+      if ((active.messages || []).length === 0 && active.setting && appState.apiKey) {
         generateOpeningScene();
       }
     }
@@ -3176,26 +3281,42 @@ JSON FORMAT:
 
     function renderSidebar() {
       const active = getActiveScenario();
-      document.getElementById('headerScenarioTitle').innerText = active.title || 'Simulation';
-      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
-      document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
-      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona.desc || 'Protagonist');
+      const headerTitleEl = document.getElementById('headerScenarioTitle');
+      if (headerTitleEl) headerTitleEl.innerText = active.title || 'Simulation';
+
+      const chapterBadgeEl = document.getElementById('chapterBadgeText');
+      if (chapterBadgeEl) chapterBadgeEl.innerText = `Ch. ${active.currentChapter || 1}`;
+
+      const sidebarUserNameEl = document.getElementById('sidebarUserName');
+      if (sidebarUserNameEl) sidebarUserNameEl.innerText = active.userPersona?.name || 'Rapid';
+
+      const sidebarUserDescEl = document.getElementById('sidebarUserDesc');
+      if (sidebarUserDescEl) {
+        sidebarUserDescEl.innerText = active.userPersona?.role ? `${active.userPersona.role} - ${active.userPersona.desc}` : (active.userPersona?.desc || 'Protagonist');
+      }
 
       const sideCharacters = getDynamicSideCharacters();
-      document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
+      const charCountEl = document.getElementById('charCount');
+      if (charCountEl) {
+        charCountEl.innerText = `${(active.characters || []).length + sideCharacters.length} active`;
+      }
 
       const userAvatarContainer = document.getElementById('sidebarUserAvatar');
-      userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona.name, true, 'w-full h-full');
+      if (userAvatarContainer) {
+        userAvatarContainer.innerHTML = getAvatarHtml(active.userPersona?.name || 'Rapid', true, 'w-full h-full');
+      }
 
       const list = document.getElementById('sidebarCharacterList');
-      if (active.characters.length === 0 && sideCharacters.length === 0) {
+      if (!list) return;
+
+      if ((active.characters || []).length === 0 && sideCharacters.length === 0) {
         list.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No characters configured.<br>Tap <strong>Setup</strong> above to add cast.</div>`;
         return;
       }
 
       let html = '';
 
-      if (active.characters.length > 0) {
+      if ((active.characters || []).length > 0) {
         html += `
           <div class="space-y-2">
             <div class="flex items-center justify-between px-1">
@@ -3259,23 +3380,25 @@ JSON FORMAT:
 
     function renderMessages() {
       const container = document.getElementById('messagesContainer');
+      if (!container) return;
       const active = getActiveScenario();
 
-      document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
+      const chapterBadgeEl = document.getElementById('chapterBadgeText');
+      if (chapterBadgeEl) chapterBadgeEl.innerText = `Ch. ${active.currentChapter || 1}`;
 
       (active.messages || []).forEach(m => {
         if (!m.id) m.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       });
 
-      const cutoffIdx = Math.max(0, active.messages.length - 20);
-      const recentIds = new Set(active.messages.slice(cutoffIdx).map(m => m.id));
+      const cutoffIdx = Math.max(0, (active.messages || []).length - 20);
+      const recentIds = new Set((active.messages || []).slice(cutoffIdx).map(m => m.id));
       for (let k in messageBranches) {
         if (!recentIds.has(k)) {
           delete messageBranches[k];
         }
       }
 
-      if (active.messages.length === 0) {
+      if ((active.messages || []).length === 0) {
         container.innerHTML = `
           <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
             <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
@@ -3322,8 +3445,8 @@ JSON FORMAT:
 
         const rawSpeaker = m.speakerName || '';
         const isNarrator = rawSpeaker.toLowerCase() === 'narrator' || rawSpeaker.toLowerCase() === 'scene';
-        const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
-        const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Companion'));
+        const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === (active.userPersona?.name || '').toLowerCase());
+        const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? (active.userPersona?.name || 'Rapid') : 'Companion'));
         const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
@@ -3394,14 +3517,16 @@ JSON FORMAT:
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
-        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
+        const isUser = !isNarrator && (speaker.toLowerCase() === (active.userPersona?.name || '').toLowerCase());
         const fullText = formatDialogueSpacing((block.text || '').trim());
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
         if (block.mood && !isNarrator) {
-          const charObj = active.characters.find(c => c.name.toLowerCase() === speaker.toLowerCase());
+          const charObj = (active.characters || []).find(c => (c.name || '').toLowerCase() === speaker.toLowerCase());
           if (charObj) charObj.mood = block.mood;
         }
+
+        const avatarHtml = getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9');
 
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
@@ -3421,6 +3546,52 @@ JSON FORMAT:
 
         const bubbleBody = wrapper.querySelector('.bubble-body');
 
+        // Real-time Visual Novel Stage Speaker & Portrait sync
+        let vnCharObj = null;
+        if (isUser) {
+          vnCharObj = active.userPersona;
+        } else if (!isNarrator) {
+          vnCharObj = (active.characters || []).find(c => (c.name || '').toLowerCase() === speaker.toLowerCase());
+        }
+
+        const nameBadge = document.getElementById('vnSpeakerNameBadge');
+        const moodBadge = document.getElementById('vnSpeakerMoodBadge');
+        const stageBox = document.getElementById('vnCharacterStageBox');
+        const dialogueBody = document.getElementById('vnDialogueBody');
+        const turnCounter = document.getElementById('vnTurnCounter');
+
+        if (active.viewMode === 'vn') {
+          if (nameBadge) {
+            nameBadge.innerText = speaker;
+            nameBadge.className = isUser ? "bg-indigo-600 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : (isNarrator ? "bg-slate-800 text-amber-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline" : "bg-emerald-700 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow cursor-pointer hover:underline");
+          }
+          if (moodBadge) {
+            if (vnCharObj && vnCharObj.mood) {
+              moodBadge.innerText = `🎭 ${vnCharObj.mood}`;
+              moodBadge.classList.remove('hidden');
+            } else {
+              moodBadge.classList.add('hidden');
+            }
+          }
+          if (stageBox) {
+            const avatarSrc = vnCharObj ? getCharacterActiveAvatar(vnCharObj) : '';
+            if (avatarSrc && !isNarrator) {
+              stageBox.innerHTML = `
+                <img src="${avatarSrc}" alt="${escapeHtml(speaker)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speaker)}'); event.stopPropagation();" />
+              `;
+            } else {
+              stageBox.innerHTML = '';
+            }
+          }
+          if (turnCounter) {
+            const validCount = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length + 1;
+            turnCounter.innerText = `${validCount}/${validCount}`;
+          }
+          if (dialogueBody) {
+            dialogueBody.classList.add('typing-cursor');
+          }
+        }
+
         let visibleChars = 0;
         const totalChars = fullText.length;
         const step = 3;
@@ -3433,11 +3604,18 @@ JSON FORMAT:
             await new Promise(r => setTimeout(r, 16));
           }
 
-          bubbleBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
+          const parsedHtml = marked.parse(fullText.slice(0, visibleChars));
+          bubbleBody.innerHTML = parsedHtml;
+          if (active.viewMode === 'vn' && dialogueBody) {
+            dialogueBody.innerHTML = parsedHtml;
+          }
           container.scrollTop = container.scrollHeight;
         }
 
         bubbleBody.classList.remove('typing-cursor');
+        if (active.viewMode === 'vn' && dialogueBody) {
+          dialogueBody.classList.remove('typing-cursor');
+        }
 
         active.messages.push({
           id: msgId,
@@ -3459,21 +3637,21 @@ JSON FORMAT:
       renderSidebar();
       renderScenariosList();
       if (active.viewMode === 'vn') {
-        const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = validTurns.length - 1;
-        renderVnTurn(true);
+        renderVnTurn(false);
       }
       updateInterCharacterRelationships();
     }
 
     function buildSystemInstruction() {
       const active = getActiveScenario();
-      const charListStr = active.characters.map(c => `
+      const charListStr = (active.characters || []).map(c => `
 - Name: ${c.name}
   Role: ${c.role}
   Current Mood: ${c.mood || 'Neutral'}
   Appearance & Personality: ${c.personality}
-  Relationship to ${active.userPersona.name}: ${c.relationship}
+  Relationship to ${active.userPersona?.name || 'Rapid'}: ${c.relationship}
 `).join('\n');
 
       const pastChaptersStr = (active.archivedRecaps || []).length > 0 
@@ -3485,10 +3663,10 @@ JSON FORMAT:
       return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
 
 [USER PERSONA]:
-- Name: ${active.userPersona.name}
-- Role: ${active.userPersona.role || 'Protagonist'}
-- Current Mood: ${active.userPersona.mood || 'Focused'}
-- Details & Appearance: ${active.userPersona.desc || 'Main character'}
+- Name: ${active.userPersona?.name || 'Rapid'}
+- Role: ${active.userPersona?.role || 'Protagonist'}
+- Current Mood: ${active.userPersona?.mood || 'Focused'}
+- Details & Appearance: ${active.userPersona?.desc || 'Main character'}
 
 [MAIN CAST]:
 ${charListStr || 'Portray distinct, lively characters suited to the scene.'}
@@ -3498,7 +3676,7 @@ ${active.setting || 'An open roleplay world.'}
 ${pastChaptersStr}
 ${lorebookInjections}
 [CRITICAL OUTPUT RULES]:
-1. NEVER speak or act for {{user}} (${active.userPersona.name}).
+1. NEVER speak or act for {{user}} (${active.userPersona?.name || 'Rapid'}).
 2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker" and their current emotional state in "mood" (e.g. Happy, Angry, Flustered, Smug, Thinking, Sad, Confident). Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
 3. DIALOGUE FORMATTING: Place character actions enclosed in asterisks (*...*) on their own line, with dialogue placed naturally on the next line. Quotation marks around dialogue are optional and not required.
 Example:
@@ -3518,7 +3696,7 @@ Spoken dialogue goes here.
     function buildApiContents(extraDirective = null) {
       const active = getActiveScenario();
       let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
+      for (let i = (active.messages || []).length - 1; i >= 0; i--) {
         if (active.messages[i].isChapterDivider) {
           lastDividerIdx = i;
           break;
@@ -3527,7 +3705,7 @@ Spoken dialogue goes here.
 
       let activeSlice;
       if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
+        activeSlice = (active.messages || []).filter(m => !m.isImage);
       } else {
         const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
         const overlap = priorTurns.slice(-16);
@@ -3656,11 +3834,11 @@ Spoken dialogue goes here.
       if (currentTokens >= threshold) {
         showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${active.currentChapter}...`);
         try {
-          const activeRawTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+          const activeRawTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
           const dialogueText = activeRawTurns
             .map(m => `${m.speakerName || 'Speaker'}: ${m.text}`)
             .join('\n');
-          const castNames = [active.userPersona.name, ...active.characters.map(c => c.name)];
+          const castNames = [active.userPersona.name, ...(active.characters || []).map(c => c.name)];
 
           const summaryReqPayload = {
             contents: [{
@@ -3731,7 +3909,7 @@ TASK: Return a JSON object with:
         return;
       }
       const active = getActiveScenario();
-      if (active.messages.length === 0) {
+      if ((active.messages || []).length === 0) {
         alert("Start a story or send a message before generating a visual.");
         return;
       }
@@ -3953,7 +4131,7 @@ REQUIREMENTS:
       skipTypewriter();
       hideReplySuggestions();
       const active = getActiveScenario();
-      if (active.messages.length === 0 && active.setting) {
+      if ((active.messages || []).length === 0 && active.setting) {
         generateOpeningScene();
         return;
       }
@@ -3999,7 +4177,7 @@ REQUIREMENTS:
       showLoading(true, "Regenerating turn...");
       const active = getActiveScenario();
       try {
-        const sliced = active.messages.slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
+        const sliced = (active.messages || []).slice(0, index).filter(m => !m.isImage && !m.isChapterDivider);
         const contents = sliced.map(m => {
           const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
           return {
@@ -4064,7 +4242,7 @@ REQUIREMENTS:
         });
       }
 
-      active.messages = append ? active.messages.concat(parsedMessages) : parsedMessages;
+      active.messages = append ? (active.messages || []).concat(parsedMessages) : parsedMessages;
       saveState();
       renderAllUi();
       closeModal('importModal');
@@ -4073,7 +4251,7 @@ REQUIREMENTS:
 
     function exportStory() {
       const active = getActiveScenario();
-      if (active.messages.length === 0) {
+      if ((active.messages || []).length === 0) {
         alert("No story content to export in current scenario.");
         return;
       }
@@ -4148,10 +4326,12 @@ REQUIREMENTS:
           const parsed = JSON.parse(e.target.result);
           if (parsed && (Array.isArray(parsed.scenarios) || Array.isArray(parsed.messages))) {
             if (Array.isArray(parsed.scenarios)) {
-              appState = parsed;
+              appState.scenarios = parsed.scenarios.map(sanitizeScenario);
+              appState.activeScenarioId = parsed.activeScenarioId || appState.scenarios[0].id;
             } else {
-              appState.scenarios = [parsed];
-              appState.activeScenarioId = parsed.id || 'imported_' + Date.now();
+              const restored = sanitizeScenario(parsed);
+              appState.scenarios = [restored];
+              appState.activeScenarioId = restored.id;
             }
             await saveState();
             renderAllUi();
