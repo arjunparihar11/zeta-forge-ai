@@ -1,0 +1,77 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#221d2e"/>
+      <stop offset="100%" stop-color="#131118"/>
+    </linearGradient>
+    <linearGradient id="boltGrad" gradientUnits="userSpaceOnUse" x1="256" y1="110" x2="256" y2="418">
+      <stop offset="0%" stop-color="#d2c6ff"/>
+      <stop offset="55%" stop-color="#9a89f7"/>
+      <stop offset="100%" stop-color="#6650d6"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b9a6ff"/>
+      <stop offset="100%" stop-color="#7c65e8"/>
+    </linearGradient>
+    <radialGradient id="forgeGlow" cx="50%" cy="102%" r="60%">
+      <stop offset="0%" stop-color="#392f4e" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#392f4e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#3c3252" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#3c3252" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bgGrad)"/>
+
+  <!-- forge glow, dark tones only, kept lowkey -->
+  <ellipse cx="256" cy="478" rx="210" ry="130" fill="url(#forgeGlow)"/>
+
+  <!-- stylized flame rising behind the anvil, monochrome dark -->
+  <path d="M256,340 C238,368 232,392 248,414 C244,398 252,388 258,378
+           C264,392 274,400 270,418 C288,404 292,378 276,356
+           C278,368 270,372 266,364 C262,352 260,346 256,340 Z"
+        fill="url(#flameGrad)"/>
+
+  <!-- subtle anvil silhouette -->
+  <g fill="#2c2638" opacity="0.55">
+    <path d="M182,430 L326,430 L302,454 L206,454 Z"/>
+    <path d="M232,454 L280,454 L272,472 L240,472 Z"/>
+  </g>
+
+  <!-- subtle hammer silhouette leaning beside the anvil -->
+  <g fill="#2a2436" opacity="0.4">
+    <rect x="336" y="384" width="14" height="70" rx="3" transform="rotate(24 343 419)"/>
+    <rect x="322" y="372" width="34" height="20" rx="3" transform="rotate(24 339 382)"/>
+  </g>
+
+  <!-- faint ember flecks, dark grey-violet only -->
+  <g fill="#463c5c" opacity="0.4">
+    <circle cx="200" cy="420" r="4"/>
+    <circle cx="216" cy="440" r="3"/>
+    <circle cx="188" cy="404" r="2.5"/>
+  </g>
+
+  <!-- outer border, matching original app-icon frame -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="none" stroke="url(#borderGrad)" stroke-width="6"/>
+
+  <!-- soft ambient glow behind the glyph -->
+  <path d="M 210,135 L 350,135 L 260,190 L 315,190 L 235,270 L 290,270 L 215,365 L 175,395 L 145,375 L 165,335"
+        fill="none" stroke="#9a89f7" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.38" filter="url(#softBlur)"/>
+
+  <!-- zeta glyph body: sharp mitered zigzag, flat (butt) ends so the tip triangles below attach cleanly -->
+  <path d="M 210,135 L 350,135 L 260,190 L 315,190 L 235,270 L 290,270 L 215,365 L 175,395 L 145,375 L 165,335"
+        fill="none" stroke="url(#boltGrad)" stroke-width="40" stroke-linecap="butt" stroke-linejoin="miter"/>
+
+  <!-- pointed tip at the top start of the glyph -->
+  <path d="M 210,155 L 178,135 L 210,115 Z" fill="url(#boltGrad)"/>
+
+  <!-- pointed tip at the bottom end of the glyph's tail -->
+  <path d="M 182.89,343.94 L 179.31,306.38 L 147.11,326.06 Z" fill="url(#boltGrad)"/>
+</svg>
