@@ -206,8 +206,13 @@
           U
         </div>
         <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
-          <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
-          <div class="text-[#b9a6ff]/70 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
+          <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight" id="sidebarUserName">User</div>
+          <div class="mt-1">
+            <span id="sidebarUserMood" class="inline-flex text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 Neutral</span>
+          </div>
+          <div class="flex flex-wrap gap-1 mt-1" id="sidebarUserDescWrap">
+            <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full" id="sidebarUserDesc">Protagonist</span>
+          </div>
         </div>
       </div>
     </aside>
@@ -230,7 +235,7 @@
         </div>
       </div>
 
-      <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs scroll-touch">
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 min-h-0 text-xs scroll-touch">
         <div>
           <label class="block text-[11px] font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Select Chapter Arc</label>
           <select id="chapterSelectDropdown" onchange="renderSelectedChapterSummary(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent">
@@ -256,8 +261,10 @@
           </div>
         </div>
 
-        <div class="p-3 bg-[#181422] rounded-xl border border-zetaBorder space-y-1.5 text-[11px]">
-          <div class="flex items-center justify-between text-slate-400">
+      </div>
+
+      <div class="p-3 bg-[#181422] rounded-xl border-t border-zetaBorder space-y-1.5 text-[11px] shrink-0">
+        <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
             <span id="statTotalChapters" class="font-semibold text-white">1</span>
           </div>
@@ -267,10 +274,9 @@
           </div>
           <div class="flex items-center justify-between text-slate-400">
             <span>Current Raw Payload:</span>
-            <button type="button" onclick="openModal('usageCostModal')" id="statActiveTokens" class="font-semibold text-zetaGlow hover:text-white underline decoration-dotted underline-offset-2 transition active:scale-95" title="View API Usage &amp; Estimated Cost">0k / 120k tokens</button>
+            <button type="button" onclick="openUsageCostModal()" id="statActiveTokens" class="font-semibold text-zetaGlow hover:text-white underline decoration-dotted underline-offset-2 transition active:scale-95" title="View API Usage &amp; Estimated Cost">0k / 120k tokens</button>
           </div>
         </div>
-      </div>
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
         <button onclick="toggleChapterDrawer(false)" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition">Close Chronicle</button>
@@ -1436,6 +1442,13 @@
     function estimateTokens(text) {
       if (!text) return 0;
       return Math.ceil(text.length / 3.8);
+    }
+
+    function normalizeMoodTag(mood) {
+      const raw = String(mood || 'Neutral').trim();
+      if (!raw) return 'Neutral';
+      const first = raw.split(/[\s,;\/|&+_-]+/).filter(Boolean)[0] || 'Neutral';
+      return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
     }
 
     function getActiveRawTokens() {
@@ -3731,6 +3744,15 @@ JSON FORMAT:
       }
     }
 
+    function openUsageCostModal() {
+      renderUsageCostModal();
+      const modal = document.getElementById('usageCostModal');
+      if (!modal) return;
+      closeAllDrawers();
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
     function openModal(id) {
       if (id === 'setupModal') syncModalForm();
       if (id === 'usageCostModal') renderUsageCostModal();
@@ -4056,7 +4078,10 @@ JSON FORMAT:
       document.getElementById('headerScenarioTitle').innerText = active.title || 'Interactive Story';
       document.getElementById('chapterBadgeText').innerText = `Ch. ${active.currentChapter || 1}`;
       document.getElementById('sidebarUserName').innerText = active.userPersona.name || 'User';
-      document.getElementById('sidebarUserDesc').innerText = active.userPersona.role ? `${active.userPersona.role} - ${getCharacterPersona(active.userPersona)}` : (getCharacterPersona(active.userPersona) || 'Protagonist');
+      const sidebarUserMood = document.getElementById('sidebarUserMood');
+      if (sidebarUserMood) sidebarUserMood.innerText = `🎭 ${normalizeMoodTag(active.userPersona.mood)}`;
+      const sidebarUserDesc = document.getElementById('sidebarUserDesc');
+      if (sidebarUserDesc) sidebarUserDesc.innerText = active.userPersona.role || 'Protagonist';
 
       const sideCharacters = getDynamicSideCharacters();
       document.getElementById('charCount').innerText = `${active.characters.length + sideCharacters.length} active`;
@@ -4085,9 +4110,11 @@ JSON FORMAT:
                   <div class="flex items-start gap-2.5">
                     ${getAvatarHtml(c.name, false, 'w-10 h-10')}
                     <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
-                      <div class="flex items-center justify-between gap-1">
-                        <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</span>
-                        <span class="text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.2 rounded font-medium truncate shrink-0">🎭 ${escapeHtml(c.mood || 'Neutral')}</span>
+                      <div class="min-w-0">
+                        <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
+                        <div class="mt-1">
+                          <span class="inline-flex text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
+                        </div>
                       </div>
                       ${c.role ? `
                         <div class="flex flex-wrap gap-1">
