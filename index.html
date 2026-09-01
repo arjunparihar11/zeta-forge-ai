@@ -13,7 +13,7 @@
   <meta name="theme-color" content="#1a1622" />
 
   <!-- App Icon & Favicon -->
-  <link rel="apple-touch-icon" id="appleTouchIcon" href="./zetaforge.svg" />
+  <link rel="apple-touch-icon" id="appleTouchIcon" href="./zetaforge.png" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23131118'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%239a89f7'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
@@ -31,9 +31,9 @@
           colors: {
             zetaBg: '#131118',
             zetaSidebar: '#1a1622',
-            zetaCard: '#241f30',
+            zetaCard: '#221d2e',
             zetaInput: '#1d1827',
-            zetaBorder: '#322a42',
+            zetaBorder: '#322a44',
             zetaAccent: '#7c65e8',
             zetaAccentHover: '#6650d6',
             zetaGlow: '#9a89f7',
@@ -266,7 +266,7 @@
           </div>
           <div class="flex items-center justify-between text-slate-400">
             <span>Current Raw Payload:</span>
-            <span id="statActiveTokens" class="font-semibold text-zetaGlow">0k / 120k tokens</span>
+            <button type="button" onclick="openModal('usageCostModal')" id="statActiveTokens" class="font-semibold text-zetaGlow hover:text-white underline decoration-dotted underline-offset-2 transition active:scale-95" title="View API Usage &amp; Estimated Cost">0k / 120k tokens</button>
           </div>
         </div>
       </div>
@@ -729,13 +729,14 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block font-semibold text-slate-200 mb-1">Text Model</label>
+            <label class="block font-semibold text-slate-200 mb-1">Routine Text Model</label>
             <select id="modelSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
-              <option value="gemini-3.6-flash">gemini-3.6-flash (Recommended)</option>
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Recommended — Default)</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
               <option value="gemini-3.7-flash">gemini-3.7-flash</option>
-              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
               <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
             </select>
+            <p class="text-[10px] text-slate-500 mt-1 leading-snug">Used for routine story turns. Relationship analysis and chapter-level analysis always use gemini-3.6-flash automatically, regardless of this setting.</p>
           </div>
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Creativity (<span id="tempValue">0.85</span>)</label>
@@ -910,6 +911,53 @@
     </div>
   </div>
 
+  <!-- API Usage & Estimated Cost Modal -->
+  <div id="usageCostModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-full flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📊 API Usage &amp; Estimated Cost</h2>
+        <button onclick="closeModal('usageCostModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
+        <div class="space-y-1.5">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#b9a6ff]/80 px-1">This Scenario</h3>
+          <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-1.5">
+            <div class="flex items-center justify-between text-slate-300"><span>Complete locally stored story size</span><span id="ucStoredSize" class="font-semibold text-white">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Approx. context sent per turn</span><span id="ucContextPerTurn" class="font-semibold text-white">-</span></div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#b9a6ff]/80 px-1">Estimated Next-Call Cost</h3>
+          <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-1.5">
+            <div class="flex items-center justify-between text-slate-300"><span>Next turn (3.5 Flash-Lite)</span><span id="ucNextTurnCost" class="font-semibold text-emerald-300">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Advanced op (3.6 Flash)</span><span id="ucAdvancedOpCost" class="font-semibold text-zetaGlow">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Character/scene image (1K)</span><span id="ucImage1kCost" class="font-semibold text-white">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Sprite sheet (4K, 16 cells)</span><span id="ucImage4kCost" class="font-semibold text-white">-</span></div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#b9a6ff]/80 px-1">Recorded Usage (This Device)</h3>
+          <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-1.5">
+            <div class="flex items-center justify-between text-slate-300"><span>Cached input tokens</span><span id="ucCachedUsage" class="font-semibold text-white">-</span></div>
+            <div class="text-[10px] text-slate-500">Cached context is billed at the configured cached-input rate; cache storage is not included in this estimate.</div>
+            <div class="flex items-center justify-between text-slate-300"><span>Text usage</span><span id="ucTextUsage" class="font-semibold text-white text-right">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Image usage</span><span id="ucImageUsage" class="font-semibold text-white text-right">-</span></div>
+            <div class="flex items-center justify-between pt-1.5 mt-1.5 border-t border-zetaBorder text-slate-200 font-semibold"><span>Estimated accumulated cost</span><span id="ucAccumulatedCost" class="text-zetaGlow">-</span></div>
+          </div>
+        </div>
+
+        <p class="text-[10px] text-slate-500 leading-relaxed px-1">Costs are rough estimates from approximate per-token/per-image pricing, using actual token counts from Gemini responses where available. Not billed by ZetaForge — check Google's current Gemini API pricing for exact rates.</p>
+      </div>
+
+      <div class="p-3 sm:p-4 border-t border-zetaBorder bg-zetaCard flex justify-end shrink-0">
+        <button onclick="closeModal('usageCostModal')" class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
@@ -945,7 +993,7 @@
         display: "standalone",
         background_color: "#0f1117",
         theme_color: "#161922",
-        icons: [{ src: './zetaforge.svg', sizes: "any", type: "image/svg+xml", purpose: "any maskable" }]
+        icons: [{ src: './zetaforge.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' }, { src: './zetaforge.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }]
       };
       const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
       document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(manifestBlob));
@@ -1045,21 +1093,81 @@
         lorebook: [],
         messages: [],
         archivedRecaps: [],
+        archivedRecapsRaw: [],
         currentChapter: 1,
         activeChapterArcs: null,
         sideCharacterProfiles: {},
+        // Local long-term memory index: a compact, selectively-retrieved digest
+        // of this scenario (chapter recaps, lorebook, relationships, character
+        // memory, visual profiles/outfits, raw turn count) that Gemini reads
+        // from instead of the full raw transcript. Kept in sync by
+        // syncLocalMemoryIndex() and persisted with the rest of the scenario's
+        // IndexedDB state, so it travels with the existing JSON backup/export.
+        localMemoryIndex: {
+          chapterRecaps: [],
+          lorebook: [],
+          relationships: {},
+          characterMemory: {},
+          visualProfiles: {},
+          rawTurnCount: 0,
+          lastLorebookAnalysisTurn: 0,
+          updatedAt: Date.now()
+        },
         updatedAt: Date.now()
       };
     }
 
+    // --- Cost / Context Optimization -------------------------------------
+    // Routine turn-by-turn generation defaults to the cheaper Flash-Lite model.
+    // Higher-value operations (relationship analysis, chapter-level analysis)
+    // are pinned to the stronger Flash model regardless of the user's routine
+    // model selection, so quality-sensitive analysis never silently downgrades.
+    const MODEL_ROUTINE_DEFAULT = 'gemini-3.5-flash-lite';
+    const MODEL_ADVANCED = 'gemini-3.6-flash';
+    // Normal story context sent to Gemini is capped to ~12k recent-dialogue
+    // tokens instead of the full raw transcript. Nothing is deleted locally.
+    const CONTEXT_TOKEN_CAP = 12000;
+    // Automatic lorebook analysis now runs every N turns instead of constantly.
+    const LOREBOOK_ANALYSIS_INTERVAL = 12;
+    const LOREBOOK_INJECTION_LIMIT = 5;
+    const RECAP_COMPACTION_THRESHOLD = 12;
+    const RECAP_COMPACTION_BATCH = 6;
+    const CONTEXT_CACHE_TTL_SECONDS = 1800;
+    const CONTEXT_CACHE_MIN_TOKENS = 4096;
+    // Background maintenance can tolerate extra latency, so use Google's Flex
+    // inference tier where supported; this is separate from the interactive turn.
+    const BACKGROUND_SERVICE_TIER = 'flex';
+
+    // Rough, approximate per-1M-token / per-image USD pricing used only to give
+    // the user a ballpark cost estimate in the API Usage & Estimated Cost panel.
+    // Not billed by ZetaForge — check Google's current Gemini API pricing for
+    // exact, up-to-date rates.
+    const PRICING = {
+      routine: { inputPerM: 0.30, outputPerM: 2.50, cachedInputPerM: 0.03 }, // Gemini 3.5 Flash-Lite
+      advanced: { inputPerM: 0.75, outputPerM: 3.75, cachedInputPerM: 0.075 }, // Gemini 3.6 Flash
+      image1K: 0.067,
+      image4K: 0.151
+    };
+
     let appState = {
       apiKey: '',
-      model: 'gemini-3.6-flash',
+      model: MODEL_ROUTINE_DEFAULT,
       temperature: 0.85,
       tokenThreshold: 120000,
       removeSpriteSheetBackground: true,
       activeScenarioId: 'default_scen',
-      scenarios: []
+      scenarios: [],
+      usageStats: {
+        routineInputTokens: 0,
+        routineOutputTokens: 0,
+        advancedInputTokens: 0,
+        advancedOutputTokens: 0,
+        cachedInputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheHits: 0,
+        images1K: 0,
+        images4K: 0
+      }
     };
 
     let activeTypewriter = {
@@ -1077,6 +1185,8 @@
 
     let isNarrateModeActive = false;
     let activeSuggestedReplies = [];
+    let suggestionCacheState = { fingerprint: '', choices: [], createdAt: 0 };
+    let contextCacheState = { name: '', fingerprint: '', expiresAt: 0, model: '' };
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
     let isSpotlightEditing = false;
@@ -1164,9 +1274,59 @@
       syncModalForm();
     });
 
+    // Rebuild the scenario's compact localMemoryIndex from its source-of-truth
+    // fields (recaps, lorebook, relationships, arcs, outfits). This does not
+    // duplicate/replace those fields — it is a lightweight, always-fresh digest
+    // that Gemini calls read from instead of the full raw transcript/JSON.
+    function syncLocalMemoryIndex(scenario) {
+      const active = scenario || getActiveScenario();
+      if (!active) return;
+
+      const rawTurnCount = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
+      const cast = [active.userPersona, ...(active.characters || [])].filter(Boolean);
+
+      const characterMemory = {};
+      cast.forEach(c => {
+        const notes = [];
+        (active.archivedRecaps || []).forEach(r => {
+          const arc = typeof r === 'object' ? (r.characterArcs || {})[c.name] : null;
+          if (arc) notes.push(arc);
+        });
+        if (active.activeChapterArcs && active.activeChapterArcs[c.name]) notes.push(active.activeChapterArcs[c.name]);
+        characterMemory[c.name] = notes.join(' ').slice(-1600);
+      });
+
+      const relationships = {};
+      cast.forEach(c => {
+        relationships[c.name] = { relationship: c.relationship || '', relationships: c.relationships || {} };
+      });
+
+      const visualProfiles = {};
+      cast.forEach(c => {
+        visualProfiles[c.name] = {
+          visualProfile: c.visualProfile || '',
+          currentOutfit: getCurrentOutfitDescription(c) || ''
+        };
+      });
+
+      active.localMemoryIndex = {
+        chapterRecaps: (active.archivedRecaps || []).map(r => typeof r === 'string' ? { milestoneSummary: r } : r),
+        lorebook: active.lorebook || [],
+        relationships,
+        characterMemory,
+        visualProfiles,
+        rawTurnCount,
+        lastLorebookAnalysisTurn: (active.localMemoryIndex && active.localMemoryIndex.lastLorebookAnalysisTurn) || 0,
+        updatedAt: Date.now()
+      };
+    }
+
     async function saveState() {
       const active = getActiveScenario();
-      if (active) active.updatedAt = Date.now();
+      if (active) {
+        active.updatedAt = Date.now();
+        syncLocalMemoryIndex(active);
+      }
       if (appState.activeScenarioId) {
         localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
       }
@@ -1177,7 +1337,7 @@
       const saved = await loadStateDb();
       if (saved) {
         if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
-          saved.model = 'gemini-3.6-flash';
+          saved.model = MODEL_ROUTINE_DEFAULT;
         }
         if (!saved.scenarios || saved.scenarios.length === 0) {
           const legacy = {
@@ -1193,18 +1353,21 @@
             lorebook: [],
             messages: saved.messages || [],
             archivedRecaps: saved.archivedRecaps || [],
+            archivedRecapsRaw: saved.archivedRecapsRaw || saved.archivedRecaps || [],
             currentChapter: saved.currentChapter || 1,
             activeChapterArcs: null,
             sideCharacterProfiles: {},
+            localMemoryIndex: createScenarioTemplate().localMemoryIndex,
             updatedAt: Date.now()
           };
           appState = {
             apiKey: saved.apiKey || '',
-            model: saved.model || 'gemini-3.6-flash',
+            model: saved.model || MODEL_ROUTINE_DEFAULT,
             temperature: saved.temperature || 0.85,
             tokenThreshold: saved.tokenThreshold || 120000,
             activeScenarioId: legacy.id,
-            scenarios: [legacy]
+            scenarios: [legacy],
+            usageStats: saved.usageStats || appState.usageStats
           };
         } else {
           appState = { ...appState, ...saved };
@@ -1214,6 +1377,11 @@
         appState.scenarios = [defaultScen];
         appState.activeScenarioId = defaultScen.id;
       }
+
+      if (!appState.usageStats) {
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+      }
+      if (!appState.model) appState.model = MODEL_ROUTINE_DEFAULT;
 
       ensureActiveScenario();
 
@@ -1235,8 +1403,15 @@
           c.outfits.forEach(o => { if (!o.id) o.id = 'outfit_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); o.name = o.name || 'Outfit'; o.triggers = o.triggers || ''; o.description = o.description || ''; });
           c.currentOutfitId = c.currentOutfitId || '';
         });
+        s.suggestionCache = s.suggestionCache || null;
+        if (!Array.isArray(s.archivedRecapsRaw)) s.archivedRecapsRaw = Array.isArray(s.archivedRecaps) ? s.archivedRecaps.slice() : [];
+        if (!s.localMemoryIndex) {
+          s.localMemoryIndex = createScenarioTemplate().localMemoryIndex;
+        }
       });
       if (typeof appState.removeSpriteSheetBackground !== 'boolean') appState.removeSpriteSheetBackground = true;
+      if (!appState.usageStats) appState.usageStats = {};
+      Object.assign(appState.usageStats, { routineInputTokens:0, routineOutputTokens:0, advancedInputTokens:0, advancedOutputTokens:0, cachedInputTokens:0, cacheCreationTokens:0, cacheHits:0, images1K:0, images4K:0 }, appState.usageStats);
 
       localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
     }
@@ -1263,7 +1438,26 @@
         .forEach(m => {
           totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
         });
-      return estimateTokens(totalChars > 0 ? totalChars.toString() : '');
+      // Bug fix: previously ran totalChars.toString() through estimateTokens(),
+      // which estimated tokens from the *string length of the number* (e.g. "8400"
+      // -> 4 chars) instead of the actual character count, so Chronicle perpetually
+      // showed ~0.0k. Estimate directly from the real character total instead.
+      return Math.ceil(totalChars / 3.8);
+    }
+
+    // Sum the raw character/token size of every message across every scenario
+    // stored locally (all chapters, all scenarios) — used by the API Usage &
+    // Estimated Cost panel to show the complete locally stored story size.
+    function getAllLocallyStoredTokens() {
+      let totalChars = 0;
+      (appState.scenarios || []).forEach(s => {
+        (s.messages || [])
+          .filter(m => !m.isImage && !m.isChapterDivider)
+          .forEach(m => {
+            totalChars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
+          });
+      });
+      return Math.ceil(totalChars / 3.8);
     }
 
     function autoExpandTextarea(el) {
@@ -1866,6 +2060,7 @@ Preserve the character's described physical identity consistently. Show the full
       const partsOut = data.candidates?.[0]?.content?.parts || [];
       const imagePart = partsOut.find(p => p.inlineData?.data);
       if (!imagePart) throw new Error('The image model did not return an image.');
+      recordImageUsage(imageConfig.imageSize === '4K' ? '4K' : '1K');
       return `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`;
     }
 
@@ -2141,14 +2336,16 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const recentTurnsText = active.messages.slice(-15).map(m => m.text || '').join(' ') + ' ' + (document.getElementById('userInput')?.value || '');
       const lowerRecent = recentTurnsText.toLowerCase();
 
-      const matchedEntries = active.lorebook.filter(entry => {
-        if (!entry.keywords) return false;
+      const scoredEntries = active.lorebook.map(entry => {
+        if (!entry.keywords) return { entry, score: 0 };
         const keys = entry.keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-        return keys.some(k => lowerRecent.includes(k));
-      });
+        const score = keys.reduce((n, k) => n + (lowerRecent.includes(k) ? 1 : 0), 0);
+        return { entry, score };
+      }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
 
+      const matchedEntries = scoredEntries.slice(0, LOREBOOK_INJECTION_LIMIT).map(x => x.entry);
       if (matchedEntries.length === 0) return '';
-      return `\n[WORLD CODEX & DYNAMIC LOREBOOK INJECTIONS]:\n` + matchedEntries.map(e => `- ${e.title}: ${e.content}`).join('\n') + `\n`;
+      return `\n[WORLD CODEX & DYNAMIC LOREBOOK INJECTIONS — TOP ${LOREBOOK_INJECTION_LIMIT} MATCHES]:\n` + matchedEntries.map(e => `- ${e.title}: ${e.content}`).join('\n') + `\n`;
     }
 
     // Visual Novel Stage View Engine with Left/Right Taps & Auto-Forward
@@ -2403,6 +2600,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
             for (const part of parts) {
               if (part.inlineData?.data) {
                 fullDataUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                recordImageUsage('1K');
                 break;
               }
             }
@@ -2526,6 +2724,24 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       return Array.from(sideMap.values());
     }
 
+    function getSuggestionFingerprint() {
+      const active = getActiveScenario();
+      const recent = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-8);
+      return JSON.stringify({ scenario: active.id, chapter: active.currentChapter, turns: recent.map(m => [m.speakerName, m.text]), input: document.getElementById('userInput')?.value || '' });
+    }
+
+    function renderSuggestionChoices() {
+      const container = document.getElementById('replySuggestionsContainer');
+      const list = document.getElementById('replySuggestionsList');
+      if (!container || !list) return;
+      list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
+        <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
+          <div class="flex items-center justify-between text-[10px] text-indigo-400 font-semibold pointer-events-none"><span>Option ${idx + 1}</span><span class="opacity-70 group-hover:opacity-100 transition text-[10px] text-indigo-300">Tap to insert ✍️</span></div>
+          <p class="leading-relaxed text-slate-300 font-normal italic pointer-events-none">${escapeHtml(choiceText).replace(/\n/g, '<br>')}</p>
+        </button>`).join('');
+      container.classList.remove('hidden');
+    }
+
     // AI Reply Generator
     async function generateReplySuggestions() {
       if (!appState.apiKey) {
@@ -2541,6 +2757,12 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const btn = document.getElementById('suggestRepliesBtn');
       const container = document.getElementById('replySuggestionsContainer');
       const list = document.getElementById('replySuggestionsList');
+      const suggestionFingerprint = getSuggestionFingerprint();
+      if (suggestionCacheState.fingerprint === suggestionFingerprint && suggestionCacheState.choices.length > 0 && Date.now() - suggestionCacheState.createdAt < 10 * 60 * 1000) {
+        activeSuggestedReplies = suggestionCacheState.choices.slice();
+        renderSuggestionChoices();
+        return;
+      }
 
       btn.disabled = true;
       btn.innerHTML = `<span>⏳</span> <span>Suggest</span>`;
@@ -2584,7 +2806,8 @@ CRITICAL RULES:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const suggestModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${suggestModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2593,11 +2816,14 @@ CRITICAL RULES:
 
         if (!res.ok) throw new Error("Failed to generate suggestion paths.");
         const data = await res.json();
+        recordTextUsage(suggestModel, data, recentDialogue, 650);
         const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
         const choices = JSON.parse(rawJson.trim());
 
         if (Array.isArray(choices) && choices.length > 0) {
           activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
+          suggestionCacheState = { fingerprint: suggestionFingerprint, choices: activeSuggestedReplies.slice(), createdAt: Date.now() };
+          active.suggestionCache = { fingerprint: suggestionFingerprint, choices: activeSuggestedReplies.slice(), createdAt: Date.now() };
 
           list.innerHTML = activeSuggestedReplies.map((choiceText, idx) => `
             <button type="button" onclick="applySuggestedReply(${idx})" class="p-3 rounded-xl bg-zetaCard hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/80 text-left text-xs text-slate-200 w-full transition active:scale-[0.99] shadow-sm space-y-1 group cursor-pointer">
@@ -2766,7 +2992,8 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const profileModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${profileModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2775,6 +3002,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
         if (!res.ok) throw new Error("Failed to generate profile.");
         const data = await res.json();
+        recordTextUsage(profileModel, data, turnsText, 600);
         const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         const parsed = JSON.parse(rawJson.trim());
 
@@ -2918,7 +3146,9 @@ IMPORTANT RULES:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        // Relationship analysis is a higher-value operation: always use the
+        // stronger Flash model regardless of the user's routine model choice.
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2927,6 +3157,7 @@ IMPORTANT RULES:
 
         if (res.ok) {
           const data = await res.json();
+          recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
           const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
           const parsedData = JSON.parse(rawJson.trim());
           const charMap = parsedData.characters || parsedData;
@@ -3477,7 +3708,9 @@ JSON FORMAT:
           }
         };
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        // Chapter-level analysis is a higher-value operation: always use the
+        // stronger Flash model regardless of the user's routine model choice.
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3486,6 +3719,7 @@ JSON FORMAT:
 
         if (res.ok) {
           const data = await res.json();
+          recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
           const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
           const parsedArcs = JSON.parse(rawJson.trim());
 
@@ -3503,10 +3737,52 @@ JSON FORMAT:
 
     function openModal(id) {
       if (id === 'setupModal') syncModalForm();
+      if (id === 'usageCostModal') renderUsageCostModal();
       closeAllDrawers();
       const modal = document.getElementById(id);
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+    }
+
+    function formatUsd(n) {
+      if (!isFinite(n) || n <= 0) return '$0.00';
+      if (n < 0.01) return '<$0.01';
+      return '$' + n.toFixed(2);
+    }
+
+    function renderUsageCostModal() {
+      const storyTokens = getActiveRawTokens();
+      const contextTokens = estimateNextTurnContextTokens();
+      const us = appState.usageStats || { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+
+      document.getElementById('ucStoredSize').innerText = `${(storyTokens/1000).toFixed(1)}k tokens`;
+      document.getElementById('ucContextPerTurn').innerText = `~${(contextTokens/1000).toFixed(1)}k tokens`;
+
+      const nextTurnCost = (contextTokens/1e6) * PRICING.routine.inputPerM + (1500/1e6) * PRICING.routine.outputPerM;
+      document.getElementById('ucNextTurnCost').innerText = formatUsd(nextTurnCost);
+
+      // Representative size for a relationship/chapter-level analysis call
+      // (recent dialogue window + prompt scaffolding, capped like those calls are).
+      const advancedInputEstimate = Math.min(contextTokens, 6500) + 400;
+      const advancedOpCost = (advancedInputEstimate/1e6) * PRICING.advanced.inputPerM + (1200/1e6) * PRICING.advanced.outputPerM;
+      document.getElementById('ucAdvancedOpCost').innerText = formatUsd(advancedOpCost);
+
+      document.getElementById('ucImage1kCost').innerText = formatUsd(PRICING.image1K);
+      document.getElementById('ucImage4kCost').innerText = formatUsd(PRICING.image4K);
+
+      const totalRoutineTokens = us.routineInputTokens + us.routineOutputTokens;
+      const cachedCost = (us.cachedInputTokens/1e6) * PRICING.routine.cachedInputPerM;
+      const cacheCreationCost = (us.cacheCreationTokens/1e6) * PRICING.routine.inputPerM;
+      const cachedEl = document.getElementById('ucCachedUsage'); if (cachedEl) cachedEl.innerText = `${(us.cachedInputTokens/1000).toFixed(1)}k tokens / ${us.cacheHits || 0} hits`;
+      const totalAdvancedTokens = us.advancedInputTokens + us.advancedOutputTokens;
+      document.getElementById('ucTextUsage').innerText = `${(totalRoutineTokens/1000).toFixed(1)}k Flash-Lite + ${(totalAdvancedTokens/1000).toFixed(1)}k Flash`;
+      document.getElementById('ucImageUsage').innerText = `${us.images1K} × 1K, ${us.images4K} × 4K`;
+
+      const accumulatedCost =
+        (us.routineInputTokens/1e6) * PRICING.routine.inputPerM + cachedCost + cacheCreationCost + (us.routineOutputTokens/1e6) * PRICING.routine.outputPerM +
+        (us.advancedInputTokens/1e6) * PRICING.advanced.inputPerM + (us.advancedOutputTokens/1e6) * PRICING.advanced.outputPerM +
+        us.images1K * PRICING.image1K + us.images4K * PRICING.image4K;
+      document.getElementById('ucAccumulatedCost').innerText = formatUsd(accumulatedCost);
     }
 
     function closeModal(id) {
@@ -3537,7 +3813,7 @@ JSON FORMAT:
     function syncModalForm() {
       const active = getActiveScenario();
       document.getElementById('apiKeyInput').value = appState.apiKey || '';
-      document.getElementById('modelSelect').value = appState.model || 'gemini-3.6-flash';
+      document.getElementById('modelSelect').value = appState.model || MODEL_ROUTINE_DEFAULT;
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
@@ -4104,7 +4380,7 @@ JSON FORMAT:
       autoUpdateLorebookFromStory();
     }
 
-    function buildSystemInstruction() {
+    function buildSystemInstruction(includeDynamicLore = true) {
       const active = getActiveScenario();
       const charListStr = active.characters.map(c => `
 - Name: ${c.name}
@@ -4118,11 +4394,18 @@ ${getOutfitSystemInstruction(c)}
   Relationship to ${active.userPersona.name}: ${c.relationship}
 `).join('\n');
 
-      const pastChaptersStr = (active.archivedRecaps || []).length > 0 
-        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${active.archivedRecaps.map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).join('\n\n')}\n` 
+      // Long-term memory is read from the scenario's compact localMemoryIndex
+      // (chapter recaps + character memory notes) rather than the full raw
+      // transcript, keeping the prompt small while still grounding continuity.
+      const memoryIndex = active.localMemoryIndex || {};
+      const compactRecaps = (memoryIndex.chapterRecaps && memoryIndex.chapterRecaps.length > 0)
+        ? memoryIndex.chapterRecaps
+        : (active.archivedRecaps || []).map(r => typeof r === 'string' ? { milestoneSummary: r } : r);
+      const pastChaptersStr = compactRecaps.length > 0
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${compactRecaps.map(r => r.milestoneSummary || '').join('\n\n')}\n`
         : '';
 
-      const lorebookInjections = getRelevantLorebookInjections();
+      const lorebookInjections = includeDynamicLore ? getRelevantLorebookInjections() : '';
 
       return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
 
@@ -4163,6 +4446,84 @@ Spoken dialogue goes here.
 ]`;
     }
 
+    // Trims a chronological slice of raw messages down to ~budgetTokens,
+    // keeping the most recent turns and dropping the oldest. This only shrinks
+    // the ephemeral payload sent to Gemini for this call — active.messages
+    // (the complete stored story) is never touched or deleted.
+    function capSliceToTokenBudget(slice, budgetTokens) {
+      if (!slice || slice.length === 0) return slice;
+      const kept = [];
+      let totalChars = 0;
+      const minKeep = 6; // always keep at least a few most-recent turns
+      for (let i = slice.length - 1; i >= 0; i--) {
+        const m = slice[i];
+        const chars = (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
+        if (kept.length >= minKeep && Math.ceil((totalChars + chars) / 3.8) > budgetTokens) break;
+        kept.unshift(m);
+        totalChars += chars;
+      }
+      return kept;
+    }
+
+    // Records actual (or, failing that, estimated) token usage for a text call
+    // against the running usageStats totals shown in the API Usage & Estimated
+    // Cost panel. Uses the real usageMetadata from the Gemini response when
+    // available, since that's more accurate than a character-based estimate.
+    function recordTextUsage(model, data, fallbackInputText = '', fallbackMaxOutput = 0) {
+      if (!appState.usageStats) {
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+      }
+      const meta = (data && data.usageMetadata) || {};
+      const totalPromptTokens = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : estimateTokens(fallbackInputText);
+      const outputTokens = typeof meta.candidatesTokenCount === 'number' ? meta.candidatesTokenCount : fallbackMaxOutput;
+      const cachedTokens = typeof meta.cachedContentTokenCount === 'number' ? meta.cachedContentTokenCount : (typeof meta.totalCachedTokens === 'number' ? meta.totalCachedTokens : 0);
+      const inputTokens = Math.max(0, totalPromptTokens - cachedTokens);
+      if (cachedTokens > 0) {
+        appState.usageStats.cachedInputTokens += cachedTokens;
+        appState.usageStats.cacheHits += 1;
+      }
+      if (model === MODEL_ADVANCED) {
+        appState.usageStats.advancedInputTokens += inputTokens;
+        appState.usageStats.advancedOutputTokens += outputTokens;
+      } else {
+        appState.usageStats.routineInputTokens += inputTokens;
+        appState.usageStats.routineOutputTokens += outputTokens;
+      }
+    }
+
+    function recordImageUsage(kind) {
+      if (!appState.usageStats) {
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+      }
+      if (kind === '4K') appState.usageStats.images4K += 1;
+      else appState.usageStats.images1K += 1;
+    }
+
+    // Approximates the total context (dialogue + system instruction) that the
+    // *next* routine turn would actually send, after the 12k-token dialogue cap.
+    function estimateNextTurnContextTokens() {
+      const active = getActiveScenario();
+      let lastDividerIdx = -1;
+      for (let i = active.messages.length - 1; i >= 0; i--) {
+        if (active.messages[i].isChapterDivider) { lastDividerIdx = i; break; }
+      }
+      let slice;
+      if (lastDividerIdx === -1) {
+        slice = active.messages.filter(m => !m.isImage);
+      } else {
+        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
+        const overlap = priorTurns.slice(-16);
+        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
+        slice = overlap.concat(currentTurns);
+      }
+      slice = capSliceToTokenBudget(slice, CONTEXT_TOKEN_CAP);
+      let chars = 0;
+      slice.forEach(m => { chars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0); });
+      const dialogueTokens = Math.ceil(chars / 3.8);
+      const systemTokens = estimateTokens(buildSystemInstruction());
+      return dialogueTokens + systemTokens;
+    }
+
     function buildApiContents(extraDirective = null) {
       const active = getActiveScenario();
       let lastDividerIdx = -1;
@@ -4182,6 +4543,12 @@ Spoken dialogue goes here.
         const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
         activeSlice = overlap.concat(currentTurns);
       }
+
+      // Cost/context optimization: cap the dialogue actually sent to Gemini to
+      // ~12k recent-dialogue tokens instead of continually sending everything
+      // since the last chapter divider. The full transcript stays intact in
+      // active.messages (IndexedDB) — only this ephemeral API payload shrinks.
+      activeSlice = capSliceToTokenBudget(activeSlice, CONTEXT_TOKEN_CAP);
 
       const contents = activeSlice.map(m => {
         const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
@@ -4208,21 +4575,78 @@ Spoken dialogue goes here.
       return contents;
     }
 
+    function buildCachedSystemInstruction() {
+      const active = getActiveScenario();
+      const memoryIndex = active.localMemoryIndex || {};
+      const compactRecaps = (memoryIndex.chapterRecaps && memoryIndex.chapterRecaps.length > 0)
+        ? memoryIndex.chapterRecaps
+        : (active.archivedRecaps || []).map(r => typeof r === 'string' ? { milestoneSummary: r } : r);
+      const pastChaptersStr = compactRecaps.length > 0
+        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${compactRecaps.map(r => r.milestoneSummary || '').join('\\n\\n')}\n`
+        : '';
+      const characterMemoryStr = Object.entries(memoryIndex.characterMemory || {}).map(([name, note]) => note ? `- ${name}: ${note}` : '').filter(Boolean).join('\\n');
+      const longTermCharacterMemory = characterMemoryStr ? `\n[LONG-TERM CHARACTER MEMORY]:\n${characterMemoryStr}\n` : '';
+      const charListStr = active.characters.map(c => `\n- Name: ${c.name}\n  Role: ${c.role || 'Companion'}\n  Persona: ${getCharacterPersona(c)}\n  Visual Profile: ${getCharacterVisualProfile(c)}\n  Current Outfit: ${getCurrentOutfitDescription(c)}\n  Outfit Options & Trigger Words:\n${getOutfitSystemInstruction(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship || 'Companion'}`).join('\\n');
+      return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.\n\n[USER PERSONA]:\n- Name: ${active.userPersona.name}\n- Role: ${active.userPersona.role || 'Protagonist'}\n- Persona: ${getCharacterPersona(active.userPersona) || 'Main character'}\n- Visual Profile: ${getCharacterVisualProfile(active.userPersona)}\n- Current Outfit: ${getCurrentOutfitDescription(active.userPersona)}\n\n[MAIN CAST]:\n${charListStr || 'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]:\n${active.setting || 'An open roleplay world.'}\n${pastChaptersStr}${longTermCharacterMemory}\n[CRITICAL OUTPUT RULES]:\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n2. Each reacting character must have a distinct turn with exact speaker name and current mood.\n3. Keep permanent continuity from the supplied recaps and character memory.\n4. Output ONLY a JSON array of objects with speaker, mood, and text keys.`;
+    }
+
+    function getStableContextFingerprint() {
+      const active = getActiveScenario();
+      const stable = buildCachedSystemInstruction();
+      return `${active.id}|${active.currentChapter || 1}|${stable}`;
+    }
+
+    async function ensureContextCache() {
+      if (!appState.apiKey) return '';
+      const model = MODEL_ROUTINE_DEFAULT;
+      const stableInstruction = buildCachedSystemInstruction();
+      const fingerprint = getStableContextFingerprint();
+      if (contextCacheState.name && contextCacheState.fingerprint === fingerprint && contextCacheState.model === model && Date.now() < contextCacheState.expiresAt - 30000) {
+        return contextCacheState.name;
+      }
+      // Google's explicit cache endpoint requires a sufficiently large prefix.
+      // If the stable prefix is too small, normal generateContent remains cheaper.
+      if (estimateTokens(stableInstruction) < CONTEXT_CACHE_MIN_TOKENS) return '';
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${encodeURIComponent(appState.apiKey)}`;
+        const payload = {
+          model: `models/${model}`,
+          displayName: `zetaforge-${getActiveScenario().id}`,
+          systemInstruction: { parts: [{ text: stableInstruction }] },
+          ttl: `${CONTEXT_CACHE_TTL_SECONDS}s`
+        };
+        const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) return '';
+        const data = await res.json();
+        if (!data.name) return '';
+        contextCacheState = { name: data.name, fingerprint, expiresAt: Date.now() + CONTEXT_CACHE_TTL_SECONDS * 1000, model };
+        appState.usageStats.cacheCreationTokens = (appState.usageStats.cacheCreationTokens || 0) + (data.usageMetadata?.totalTokenCount || estimateTokens(stableInstruction));
+        return data.name;
+      } catch (e) {
+        console.warn('Context cache unavailable; using normal context:', e.message);
+        return '';
+      }
+    }
+
     async function callGeminiApi(contentsArray) {
       if (!appState.apiKey) {
         openModal('setupModal');
         throw new Error("Enter your Gemini API key in setup.");
       }
 
-      const model = appState.model || 'gemini-3.6-flash';
+      const model = appState.model || MODEL_ROUTINE_DEFAULT;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      let cachedName = '';
+      if (model === MODEL_ROUTINE_DEFAULT) {
+        cachedName = await ensureContextCache();
+      }
 
       const payload = {
         contents: contentsArray,
-        systemInstruction: { parts: [{ text: buildSystemInstruction() }] },
+        ...(cachedName ? { cachedContent: cachedName } : { systemInstruction: { parts: [{ text: buildSystemInstruction(true) }] } }),
         generationConfig: {
           temperature: appState.temperature || 0.85,
-          maxOutputTokens: 1500,
+          maxOutputTokens: 1000,
           responseMimeType: "application/json",
           responseSchema: {
             type: "ARRAY",
@@ -4251,6 +4675,7 @@ Spoken dialogue goes here.
       }
 
       const data = await response.json();
+      recordTextUsage(model, data, JSON.stringify(contentsArray), 1500);
       const rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
       try {
@@ -4296,6 +4721,30 @@ Spoken dialogue goes here.
       return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
     }
 
+    async function compactOldRecapsIfNeeded() {
+      const active = getActiveScenario();
+      const recaps = active.archivedRecaps || [];
+      if (recaps.length <= RECAP_COMPACTION_THRESHOLD || !appState.apiKey) return;
+      if (active._recapCompactionBusy) return;
+      active._recapCompactionBusy = true;
+      try {
+        const batch = recaps.slice(0, RECAP_COMPACTION_BATCH);
+        const text = batch.map(r => typeof r === 'string' ? r : `Chapter ${r.chapterNum}: ${r.milestoneSummary || ''}`).join('\n\n');
+        const payload = { contents: [{ role:'user', parts:[{ text:`Compress these oldest archived chapter recaps into ONE durable continuity recap. Preserve major plot events, permanent character development, relationship changes, discoveries, secrets, promises, locations and unresolved threads. Omit temporary details. Return only one concise paragraph.\n\n${text}` }]}], generationConfig:{temperature:0.2,maxOutputTokens:450} };
+        payload.serviceTier = BACKGROUND_SERVICE_TIER;
+        const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if (!res.ok) return;
+        const data=await res.json();
+        recordTextUsage(MODEL_ADVANCED,data,text,450);
+        const summary=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!summary) return;
+        active.archivedRecaps.splice(0, RECAP_COMPACTION_BATCH, { chapterNum: `${batch[0]?.chapterNum || 1}-${batch[batch.length-1]?.chapterNum || RECAP_COMPACTION_BATCH}`, milestoneSummary: `[Compacted chapters ${batch[0]?.chapterNum || 1}-${batch[batch.length-1]?.chapterNum || RECAP_COMPACTION_BATCH}] ${summary}`, characterArcs: {} });
+        await saveState();
+      } catch(e) { console.warn('Recap compaction skipped:',e.message); }
+      finally { active._recapCompactionBusy = false; }
+    }
+
     async function checkAndTriggerChapterArchival() {
       const currentTokens = getActiveRawTokens();
       const threshold = appState.tokenThreshold || 120000;
@@ -4332,7 +4781,10 @@ TASK: Return a JSON object with:
             }
           };
 
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          // Chapter-level analysis is a higher-value operation: always use the
+          // stronger Flash model regardless of the user's routine model choice.
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          summaryReqPayload.serviceTier = BACKGROUND_SERVICE_TIER;
           const summaryRes = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4340,16 +4792,21 @@ TASK: Return a JSON object with:
           });
 
           const summaryData = await summaryRes.json();
+          recordTextUsage(MODEL_ADVANCED, summaryData, dialogueText, 1200);
           const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
           let parsed = {};
           try { parsed = JSON.parse(rawJson.trim()); } catch(e){}
 
           if (!active.archivedRecaps) active.archivedRecaps = [];
-          active.archivedRecaps.push({
+          const completedRecap = {
             chapterNum: active.currentChapter,
             milestoneSummary: parsed.milestoneSummary || `Chapter ${active.currentChapter} concluded.`,
             characterArcs: parsed.characterArcs || active.activeChapterArcs || {}
-          });
+          };
+          if (!Array.isArray(active.archivedRecapsRaw)) active.archivedRecapsRaw = [];
+          active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completedRecap)));
+          active.archivedRecaps.push(completedRecap);
+          await compactOldRecapsIfNeeded();
 
           active.activeChapterArcs = null;
 
@@ -4380,15 +4837,19 @@ TASK: Return a JSON object with:
       const storyMessages = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-24);
       if (storyMessages.length < 6) return;
       const totalStoryTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
-      if (totalStoryTurns % 3 !== 0) return;
+      // Automatic lorebook analysis now runs every LOREBOOK_ANALYSIS_INTERVAL (12)
+      // turns instead of repeatedly re-analyzing the story on every few turns.
+      if (totalStoryTurns % LOREBOOK_ANALYSIS_INTERVAL !== 0) return;
       lorebookAutoUpdateRunning = true;
       try {
         const transcript = storyMessages.map(m => `${m.speakerName || m.role || 'Speaker'}: ${m.text}`).join('\n');
         const existing = (active.lorebook || []).map(l => `${l.title} | ${l.keywords} | ${l.content}`).join('\n');
         const prompt = `Analyze this latest story transcript for persistent facts that should be remembered in a lorebook. Extract only durable, story-important information: locations, rules, character facts, relationships, objects, secrets, factions, major events, promises, injuries, discoveries, or continuity details. Avoid temporary dialogue and redundant entries. Return ONLY JSON array objects with title, keywords, content. Existing lorebook: ${existing || 'none'}\nTranscript:\n${transcript}`;
-        const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:900}})});
+        const lorebookModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${lorebookModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:900},serviceTier:BACKGROUND_SERVICE_TIER})});
         const data=await res.json().catch(()=>({}));
+        recordTextUsage(lorebookModel, data, prompt, 900);
         const text=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean=text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
         let entries=[]; try { entries=JSON.parse(clean); } catch(e) { entries=[]; }
@@ -4400,6 +4861,7 @@ TASK: Return a JSON object with:
           const duplicate=active.lorebook.some(l=>((l.title||'')+' '+(l.keywords||'')).toLowerCase()===key || (l.title||'').toLowerCase()===e.title.toLowerCase());
           if (!duplicate) active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:String(e.keywords||e.title).slice(0,240),content:String(e.content).slice(0,1200),autoGenerated:true});
         });
+        if (active.localMemoryIndex) active.localMemoryIndex.lastLorebookAnalysisTurn = totalStoryTurns;
         await saveState();
         renderLorebookSetup();
       } catch(e) { console.warn('Automatic lorebook update skipped:',e); }
@@ -4489,7 +4951,8 @@ REQUIREMENTS:
           generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
         };
 
-        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model || 'gemini-3.6-flash'}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const scenePromptModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${scenePromptModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const promptRes = await fetch(promptEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -4497,6 +4960,7 @@ REQUIREMENTS:
         });
 
         const promptData = await promptRes.json().catch(() => ({}));
+        recordTextUsage(scenePromptModel, promptData, promptText, 140);
         let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         if (!visualPrompt || visualPrompt.length < 15) {
@@ -4525,6 +4989,7 @@ REQUIREMENTS:
             for (let p of parts) {
               if (p.inlineData && p.inlineData.data) {
                 fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                recordImageUsage('1K');
                 break;
               }
             }
