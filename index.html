@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="dark h-full">
 <head>
+  <!-- ZetaForge optimized build: routine Lite model, selective cache, compact schema, fading context, worker image processing -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>ZetaForge AI - Interactive Story Engine</title>
@@ -1000,7 +1001,7 @@
 
       if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
         const swScript = `
-          const CACHE_NAME = 'zetaforge-v63';
+          const CACHE_NAME = 'zetaforge-v64';
           const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
           self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
           self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
@@ -1126,7 +1127,7 @@
     const MODEL_ADVANCED = 'gemini-3.6-flash';
     // Normal story context sent to Gemini is capped to ~12k recent-dialogue
     // tokens instead of the full raw transcript. Nothing is deleted locally.
-    const CONTEXT_TOKEN_CAP = 12000;
+    const CONTEXT_TOKEN_CAP = 8000;
     // Automatic lorebook analysis now runs every N turns instead of constantly.
     const LOREBOOK_ANALYSIS_INTERVAL = 12;
     const LOREBOOK_INJECTION_LIMIT = 5;
@@ -1137,6 +1138,12 @@
     // Background maintenance can tolerate extra latency, so use Google's Flex
     // inference tier where supported; this is separate from the interactive turn.
     const BACKGROUND_SERVICE_TIER = 'flex';
+    const ACTIVE_STATUS_REFRESH_INTERVAL = 12;
+    const ACTIVE_STATUS_MIN_TOKENS = 7000;
+    const SUGGESTION_CACHE_TTL_MS = 10 * 60 * 1000;
+    const API_RETRY_LIMIT = 3;
+    const API_RETRY_BASE_MS = 700;
+
 
     // Rough, approximate per-1M-token / per-image USD pricing used only to give
     // the user a ballpark cost estimate in the API Usage & Estimated Cost panel.
@@ -1187,6 +1194,7 @@
     let activeSuggestedReplies = [];
     let suggestionCacheState = { fingerprint: '', choices: [], createdAt: 0 };
     let contextCacheState = { name: '', fingerprint: '', expiresAt: 0, model: '' };
+    let scenePromptCacheState = { fingerprint: '', prompt: '', createdAt: 0 };
     let currentLightboxImgSrc = '';
     let currentSpotlightCharName = '';
     let isSpotlightEditing = false;
@@ -1664,7 +1672,7 @@
       return false;
     }
 
-    function removeBackgroundFromPixelData(pixelData, width, height) {
+    function removeBackgroundFromPixelDataLegacy(pixelData, width, height) {
       const totalPixels = width * height;
       const isTransparent = new Uint8Array(totalPixels);
       const visited = new Uint8Array(totalPixels);
@@ -2139,7 +2147,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       for (let row=0; row<4; row++) for (let col=0; col<4; col++) {
         const index=row*4+col; const emotionSlug=SPRITE_EMOTIONS[index] || `sprite_${index+1}`;
         ctx.clearRect(0,0,cellWidth,cellHeight); ctx.drawImage(img,col*cellWidth,row*cellHeight,cellWidth,cellHeight,0,0,cellWidth,cellHeight);
-        if (removeBackground) { const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); removeBackgroundFromPixelData(imgData.data,cellWidth,cellHeight); ctx.putImageData(imgData,0,0); }
+        if (removeBackground) { const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); await removeBackgroundFromPixelDataWorker(imgData.data,cellWidth,cellHeight); ctx.putImageData(imgData,0,0); }
         let spriteDataUrl; if (cellWidth!==exportWidth || cellHeight!==exportHeight) { downscaleCtx.clearRect(0,0,exportWidth,exportHeight); downscaleCtx.imageSmoothingEnabled=true; downscaleCtx.imageSmoothingQuality='high'; downscaleCtx.drawImage(cellCanvas,0,0,exportWidth,exportHeight); spriteDataUrl=downscaleCanvas.toDataURL('image/png'); } else spriteDataUrl=cellCanvas.toDataURL('image/png');
         extractedPhotos.push({src:spriteDataUrl,caption:formatEmotionLabel(emotionSlug)});
       }
@@ -2330,22 +2338,16 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     }
 
     function getRelevantLorebookInjections() {
-      const active = getActiveScenario();
-      if (!active.lorebook || active.lorebook.length === 0) return '';
-
-      const recentTurnsText = active.messages.slice(-15).map(m => m.text || '').join(' ') + ' ' + (document.getElementById('userInput')?.value || '');
-      const lowerRecent = recentTurnsText.toLowerCase();
-
-      const scoredEntries = active.lorebook.map(entry => {
-        if (!entry.keywords) return { entry, score: 0 };
-        const keys = entry.keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-        const score = keys.reduce((n, k) => n + (lowerRecent.includes(k) ? 1 : 0), 0);
-        return { entry, score };
-      }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
-
-      const matchedEntries = scoredEntries.slice(0, LOREBOOK_INJECTION_LIMIT).map(x => x.entry);
-      if (matchedEntries.length === 0) return '';
-      return `\n[WORLD CODEX & DYNAMIC LOREBOOK INJECTIONS — TOP ${LOREBOOK_INJECTION_LIMIT} MATCHES]:\n` + matchedEntries.map(e => `- ${e.title}: ${e.content}`).join('\n') + `\n`;
+      const active=getActiveScenario(); if(!active.lorebook?.length) return '';
+      const recent=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider).slice(-12).map(m=>m.text||'').join(' ')+' '+(document.getElementById('userInput')?.value||'');
+      const lower=recent.toLowerCase();
+      const scored=active.lorebook.map(entry=>{
+        const keys=String(entry.keywords||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+        const score=keys.reduce((n,k)=>n+(lower.includes(k)?1:0),0);
+        return {entry,score};
+      }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score || String(a.entry.title||'').localeCompare(String(b.entry.title||'')));
+      const matched=scored.slice(0,LOREBOOK_INJECTION_LIMIT).map(x=>x.entry);
+      return matched.length?`\n[TOP ${LOREBOOK_INJECTION_LIMIT} RELEVANT LOREBOOK ENTRIES]\n${matched.map(e=>`- ${e.title}: ${e.content}`).join('\n')}\n`:'';
     }
 
     // Visual Novel Stage View Engine with Left/Right Taps & Auto-Forward
@@ -2579,8 +2581,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         let fullDataUrl = null;
 
         // Use the same Gemini image-generation path as the working scene visualizer.
-        // This avoids the legacy image.pollinations.ai fetch that was causing the
-        // "Image renderer network error" in VN mode.
+        // This uses the same Gemini image renderer as the main visualizer and avoids
+        // the legacy third-party browser image endpoint.
         try {
           const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const imagePayload = {
@@ -2611,13 +2613,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
           console.warn("Gemini VN backdrop generation bypassed:", geminiErr);
         }
 
-        // Last-resort browser-rendered URL. Do not fetch this URL from JS:
-        // the old image.pollinations.ai fetch was the source of the network/CORS
-        // error. The current Pollinations endpoint is gen.pollinations.ai/image.
-        if (!fullDataUrl) {
-          const cleanPrompt = encodeURIComponent(promptText);
-          fullDataUrl = `https://gen.pollinations.ai/image/${cleanPrompt}?model=flux&width=1280&height=720&nologo=true&seed=${Date.now()}`;
-        }
+        if (!fullDataUrl) throw new Error('Gemini could not render the VN backdrop. Please retry.');
 
         active.vnBackground = fullDataUrl;
         await saveState();
@@ -2880,7 +2876,7 @@ CRITICAL RULES:
       const newText = textareaEl.value.trim();
       if (!newText) return;
 
-      messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
+      messageBranches[id] = [...active.messages];
 
       active.messages[idx].text = formatDialogueSpacing(newText);
       active.messages = active.messages.slice(0, idx + 1);
@@ -2926,7 +2922,7 @@ CRITICAL RULES:
       const lastModelMsg = active.messages[active.messages.length - 1];
       const branchKey = (lastUserIdx !== -1 && active.messages[lastUserIdx]?.id) ? active.messages[lastUserIdx].id : (lastModelMsg.id || 'last_turn');
 
-      messageBranches[branchKey] = JSON.parse(JSON.stringify(active.messages));
+      messageBranches[branchKey] = [...active.messages];
 
       if (lastUserIdx !== -1) {
         active.messages = active.messages.slice(0, lastUserIdx + 1);
@@ -4138,7 +4134,7 @@ JSON FORMAT:
       list.innerHTML = html;
     }
 
-    function renderMessages() {
+    function renderMessagesLegacy() {
       const container = document.getElementById('messagesContainer');
       const active = getActiveScenario();
 
@@ -4380,220 +4376,29 @@ JSON FORMAT:
       autoUpdateLorebookFromStory();
     }
 
-    function buildSystemInstruction(includeDynamicLore = true) {
+    function buildSystemInstruction(includeDynamicLore = false) {
       const active = getActiveScenario();
-      const charListStr = active.characters.map(c => `
-- Name: ${c.name}
-  Role: ${c.role}
-  Current Mood: ${c.mood || 'Neutral'}
-  Persona: ${getCharacterPersona(c)}
-  Visual Profile: ${getCharacterVisualProfile(c)}
-  Current Outfit: ${getCurrentOutfitDescription(c)}
-  Outfit Options & Trigger Words:
-${getOutfitSystemInstruction(c)}
-  Relationship to ${active.userPersona.name}: ${c.relationship}
-`).join('\n');
-
-      // Long-term memory is read from the scenario's compact localMemoryIndex
-      // (chapter recaps + character memory notes) rather than the full raw
-      // transcript, keeping the prompt small while still grounding continuity.
-      const memoryIndex = active.localMemoryIndex || {};
-      const compactRecaps = (memoryIndex.chapterRecaps && memoryIndex.chapterRecaps.length > 0)
-        ? memoryIndex.chapterRecaps
-        : (active.archivedRecaps || []).map(r => typeof r === 'string' ? { milestoneSummary: r } : r);
-      const pastChaptersStr = compactRecaps.length > 0
-        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${compactRecaps.map(r => r.milestoneSummary || '').join('\n\n')}\n`
-        : '';
-
-      const lorebookInjections = includeDynamicLore ? getRelevantLorebookInjections() : '';
-
-      return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.
-
-[USER PERSONA]:
-- Name: ${active.userPersona.name}
-- Role: ${active.userPersona.role || 'Protagonist'}
-- Current Mood: ${active.userPersona.mood || 'Focused'}
-- Persona: ${getCharacterPersona(active.userPersona) || 'Main character'}
-- Visual Profile: ${getCharacterVisualProfile(active.userPersona)}
-- Current Outfit: ${getCurrentOutfitDescription(active.userPersona)}
-- Outfit Options & Trigger Words:
-${getOutfitSystemInstruction(active.userPersona)}
-
-[MAIN CAST]:
-${charListStr || 'Portray distinct, lively characters suited to the scene.'}
-
-[OUTFIT RULE]: When a scene explicitly matches an outfit's trigger words, use that outfit. Otherwise preserve each character's Current Outfit when one is selected. Do not change a manually selected Current Outfit without a story reason.
-
-[WORLD & SCENARIO]:
-${active.setting || 'An open roleplay world.'}
-${pastChaptersStr}
-${lorebookInjections}
-[CRITICAL OUTPUT RULES]:
-1. NEVER speak or act for {{user}} (${active.userPersona.name}).
-2. INDIVIDUAL CHARACTER TURNS: Every character present that reacts or speaks MUST be its own item in the array with their exact name in "speaker" and their current emotional state in "mood" (e.g. Happy, Angry, Flustered, Smug, Thinking, Sad, Confident). Use "Narrator" for environmental changes, atmosphere, or actions not spoken by a specific character.
-3. DIALOGUE FORMATTING: Place character actions enclosed in asterisks (*...*) on their own line, with dialogue placed naturally on the next line. Quotation marks around dialogue are optional and not required.
-Example:
-*Sensory action or physical movement.*
-Spoken dialogue goes here.
-
-4. OUTPUT FORMAT: Output ONLY a JSON array of objects with "speaker", "mood", and "text" keys:
-[
-  {
-    "speaker": "CharacterName or Narrator",
-    "mood": "Confident",
-    "text": "*Action in asterisks*\\nDialogue text"
-  }
-]`;
-    }
-
-    // Trims a chronological slice of raw messages down to ~budgetTokens,
-    // keeping the most recent turns and dropping the oldest. This only shrinks
-    // the ephemeral payload sent to Gemini for this call — active.messages
-    // (the complete stored story) is never touched or deleted.
-    function capSliceToTokenBudget(slice, budgetTokens) {
-      if (!slice || slice.length === 0) return slice;
-      const kept = [];
-      let totalChars = 0;
-      const minKeep = 6; // always keep at least a few most-recent turns
-      for (let i = slice.length - 1; i >= 0; i--) {
-        const m = slice[i];
-        const chars = (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
-        if (kept.length >= minKeep && Math.ceil((totalChars + chars) / 3.8) > budgetTokens) break;
-        kept.unshift(m);
-        totalChars += chars;
-      }
-      return kept;
-    }
-
-    // Records actual (or, failing that, estimated) token usage for a text call
-    // against the running usageStats totals shown in the API Usage & Estimated
-    // Cost panel. Uses the real usageMetadata from the Gemini response when
-    // available, since that's more accurate than a character-based estimate.
-    function recordTextUsage(model, data, fallbackInputText = '', fallbackMaxOutput = 0) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      const meta = (data && data.usageMetadata) || {};
-      const totalPromptTokens = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : estimateTokens(fallbackInputText);
-      const outputTokens = typeof meta.candidatesTokenCount === 'number' ? meta.candidatesTokenCount : fallbackMaxOutput;
-      const cachedTokens = typeof meta.cachedContentTokenCount === 'number' ? meta.cachedContentTokenCount : (typeof meta.totalCachedTokens === 'number' ? meta.totalCachedTokens : 0);
-      const inputTokens = Math.max(0, totalPromptTokens - cachedTokens);
-      if (cachedTokens > 0) {
-        appState.usageStats.cachedInputTokens += cachedTokens;
-        appState.usageStats.cacheHits += 1;
-      }
-      if (model === MODEL_ADVANCED) {
-        appState.usageStats.advancedInputTokens += inputTokens;
-        appState.usageStats.advancedOutputTokens += outputTokens;
-      } else {
-        appState.usageStats.routineInputTokens += inputTokens;
-        appState.usageStats.routineOutputTokens += outputTokens;
-      }
-    }
-
-    function recordImageUsage(kind) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      if (kind === '4K') appState.usageStats.images4K += 1;
-      else appState.usageStats.images1K += 1;
-    }
-
-    // Approximates the total context (dialogue + system instruction) that the
-    // *next* routine turn would actually send, after the 12k-token dialogue cap.
-    function estimateNextTurnContextTokens() {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) { lastDividerIdx = i; break; }
-      }
-      let slice;
-      if (lastDividerIdx === -1) {
-        slice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        slice = overlap.concat(currentTurns);
-      }
-      slice = capSliceToTokenBudget(slice, CONTEXT_TOKEN_CAP);
-      let chars = 0;
-      slice.forEach(m => { chars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0); });
-      const dialogueTokens = Math.ceil(chars / 3.8);
-      const systemTokens = estimateTokens(buildSystemInstruction());
-      return dialogueTokens + systemTokens;
-    }
-
-    function buildApiContents(extraDirective = null) {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
-          lastDividerIdx = i;
-          break;
-        }
-      }
-
-      let activeSlice;
-      if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        activeSlice = overlap.concat(currentTurns);
-      }
-
-      // Cost/context optimization: cap the dialogue actually sent to Gemini to
-      // ~12k recent-dialogue tokens instead of continually sending everything
-      // since the last chapter divider. The full transcript stays intact in
-      // active.messages (IndexedDB) — only this ephemeral API payload shrinks.
-      activeSlice = capSliceToTokenBudget(activeSlice, CONTEXT_TOKEN_CAP);
-
-      const contents = activeSlice.map(m => {
-        const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
-        return {
-          role: isUserTurn ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-        };
-      });
-
-      if (extraDirective) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: extraDirective }]
-        });
-      }
-
-      if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
-        contents.push({
-          role: 'user',
-          parts: [{ text: `[Scene update / Narration: React to the unfolding events and dialogue naturally.]` }]
-        });
-      }
-
-      return contents;
+      const charListStr=(active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
+      const memoryIndex=active.localMemoryIndex||{};
+      const recaps=(memoryIndex.chapterRecaps||active.archivedRecaps||[]).map(r=>typeof r==='string'?r:(r.milestoneSummary||'')).filter(Boolean);
+      const characterMemory=Object.entries(memoryIndex.characterMemory||{}).map(([name,note])=>note?`- ${name}: ${note}`:'').filter(Boolean).join('\n');
+      const dynamicLore=includeDynamicLore?getRelevantLorebookInjections():'';
+      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${active.setting||'An open roleplay world.'}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n2. Every reacting character must have a distinct turn with exact speaker name and current mood.\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.`;
     }
 
     function buildCachedSystemInstruction() {
       const active = getActiveScenario();
       const memoryIndex = active.localMemoryIndex || {};
-      const compactRecaps = (memoryIndex.chapterRecaps && memoryIndex.chapterRecaps.length > 0)
-        ? memoryIndex.chapterRecaps
-        : (active.archivedRecaps || []).map(r => typeof r === 'string' ? { milestoneSummary: r } : r);
-      const pastChaptersStr = compactRecaps.length > 0
-        ? `\n[PAST CHAPTER RECAPS & MILESTONES]:\n${compactRecaps.map(r => r.milestoneSummary || '').join('\\n\\n')}\n`
-        : '';
-      const characterMemoryStr = Object.entries(memoryIndex.characterMemory || {}).map(([name, note]) => note ? `- ${name}: ${note}` : '').filter(Boolean).join('\\n');
-      const longTermCharacterMemory = characterMemoryStr ? `\n[LONG-TERM CHARACTER MEMORY]:\n${characterMemoryStr}\n` : '';
-      const charListStr = active.characters.map(c => `\n- Name: ${c.name}\n  Role: ${c.role || 'Companion'}\n  Persona: ${getCharacterPersona(c)}\n  Visual Profile: ${getCharacterVisualProfile(c)}\n  Current Outfit: ${getCurrentOutfitDescription(c)}\n  Outfit Options & Trigger Words:\n${getOutfitSystemInstruction(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship || 'Companion'}`).join('\\n');
-      return `You are the interactive multi-character roleplay story engine for an immersive narrative like the Zeta app.\n\n[USER PERSONA]:\n- Name: ${active.userPersona.name}\n- Role: ${active.userPersona.role || 'Protagonist'}\n- Persona: ${getCharacterPersona(active.userPersona) || 'Main character'}\n- Visual Profile: ${getCharacterVisualProfile(active.userPersona)}\n- Current Outfit: ${getCurrentOutfitDescription(active.userPersona)}\n\n[MAIN CAST]:\n${charListStr || 'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]:\n${active.setting || 'An open roleplay world.'}\n${pastChaptersStr}${longTermCharacterMemory}\n[CRITICAL OUTPUT RULES]:\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n2. Each reacting character must have a distinct turn with exact speaker name and current mood.\n3. Keep permanent continuity from the supplied recaps and character memory.\n4. Output ONLY a JSON array of objects with speaker, mood, and text keys.`;
+      const compactRecaps = (memoryIndex.chapterRecaps || active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).filter(Boolean);
+      const characterMemoryStr = Object.entries(memoryIndex.characterMemory || {}).map(([name,note]) => note ? `- ${name}: ${note}` : '').filter(Boolean).join('\n');
+      const lore = (memoryIndex.lorebook || active.lorebook || []).slice(-20).map(e => `- ${e.title}: ${e.content}`).join('\n');
+      const charListStr = (active.characters || []).map(c => `- ${c.name} (${c.role || 'Companion'}): Persona=${getCharacterPersona(c)}; Relationship=${c.relationship || 'Companion'}; Mood=${c.mood || 'Neutral'}`).join('\n');
+      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role || 'Protagonist'}\nPersona: ${getCharacterPersona(active.userPersona) || 'Main character'}\n\n[MAIN CAST]\n${charListStr || 'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD]\n${active.setting || 'An open roleplay world.'}\n\n[PAST CHAPTER MEMORY]\n${compactRecaps.join('\n\n')}\n\n[CHARACTER MEMORY]\n${characterMemoryStr}\n\n[LOREBOOK MEMORY]\n${lore}\n\n[OUTPUT RULES]\nNever speak for the user. Preserve continuity. Each reacting character gets a separate turn. Output only JSON using compact keys s=speaker, m=mood, t=text.`;
     }
 
     function getStableContextFingerprint() {
       const active = getActiveScenario();
-      const stable = buildCachedSystemInstruction();
-      return `${active.id}|${active.currentChapter || 1}|${stable}`;
+      return `${active.id}|${active.currentChapter || 1}|${buildCachedSystemInstruction()}`;
     }
 
     async function ensureContextCache() {
@@ -4628,66 +4433,46 @@ Spoken dialogue goes here.
       }
     }
 
-    async function callGeminiApi(contentsArray) {
-      if (!appState.apiKey) {
-        openModal('setupModal');
-        throw new Error("Enter your Gemini API key in setup.");
-      }
-
-      const model = appState.model || MODEL_ROUTINE_DEFAULT;
+    async function callGeminiApi(contentsArray, options = {}) {
+      if (!appState.apiKey) { openModal('setupModal'); throw new Error('Enter your Gemini API key in setup.'); }
+      const model = options.model || appState.model || MODEL_ROUTINE_DEFAULT;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
       let cachedName = '';
-      if (model === MODEL_ROUTINE_DEFAULT) {
-        cachedName = await ensureContextCache();
-      }
-
+      if (model === MODEL_ROUTINE_DEFAULT && options.useCache !== false) cachedName = await ensureContextCache();
       const payload = {
         contents: contentsArray,
-        ...(cachedName ? { cachedContent: cachedName } : { systemInstruction: { parts: [{ text: buildSystemInstruction(true) }] } }),
+        ...(cachedName ? {cachedContent: cachedName} : {systemInstruction:{parts:[{text:buildSystemInstruction(false)}]}}),
         generationConfig: {
           temperature: appState.temperature || 0.85,
-          maxOutputTokens: 1000,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                speaker: { type: "STRING" },
-                mood: { type: "STRING" },
-                text: { type: "STRING" }
-              },
-              required: ["speaker", "text"]
-            }
-          }
+          maxOutputTokens: options.maxOutputTokens || 850,
+          responseMimeType:'application/json',
+          responseSchema:{type:'ARRAY',items:{type:'OBJECT',properties:{s:{type:'STRING'},m:{type:'STRING'},t:{type:'STRING'}},required:['s','t']}}
         }
       };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `API error ${response.status}`);
+      let lastError;
+      for (let attempt=0; attempt<=API_RETRY_LIMIT; attempt++) {
+        try {
+          const response = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          if (!response.ok) {
+            const errJson=await response.json().catch(()=>({}));
+            const status=response.status;
+            if (![429,500,502,503,504].includes(status) || attempt===API_RETRY_LIMIT) throw new Error(errJson.error?.message || `API error ${status}`);
+            await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250));
+            continue;
+          }
+          const data=await response.json();
+          recordTextUsage(model,data,JSON.stringify(contentsArray),payload.generationConfig.maxOutputTokens);
+          const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          try {
+            const parsed=JSON.parse(rawOutput.trim());
+            if(Array.isArray(parsed)&&parsed.length){
+              return parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''}));
+            }
+          } catch(e) { return parsePlainTextIntoBlocks(rawOutput); }
+          return parsePlainTextIntoBlocks(rawOutput);
+        } catch(e) { lastError=e; if(attempt===API_RETRY_LIMIT) throw e; await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250)); }
       }
-
-      const data = await response.json();
-      recordTextUsage(model, data, JSON.stringify(contentsArray), 1500);
-      const rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-      try {
-        const parsed = JSON.parse(rawOutput.trim());
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter(b => b.text && b.text.trim());
-        }
-      } catch (e) {
-        return parsePlainTextIntoBlocks(rawOutput);
-      }
-
-      return parsePlainTextIntoBlocks(rawOutput);
+      throw lastError || new Error('Gemini request failed.');
     }
 
     function parsePlainTextIntoBlocks(text) {
@@ -4831,10 +4616,27 @@ TASK: Return a JSON object with:
     }
 
     let lorebookAutoUpdateRunning = false;
+    async function maybeRefreshActiveChapterStatus() {
+      const active=getActiveScenario(); if(!appState.apiKey || active._activeStatusBusy) return;
+      const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider);
+      if(turns.length < ACTIVE_STATUS_REFRESH_INTERVAL || turns.length % ACTIVE_STATUS_REFRESH_INTERVAL !== 0) return;
+      const recentSinceLastStatus=turns.slice(-(ACTIVE_STATUS_REFRESH_INTERVAL*2));
+      const raw=recentSinceLastStatus.map(m=>`${m.speakerName||m.role||'Speaker'}: ${m.text}`).join('\n');
+      if(estimateTokens(raw) < ACTIVE_STATUS_MIN_TOKENS) return;
+      active._activeStatusBusy=true;
+      try {
+        const prompt=`Create a compact Active Chapter Status for long-term continuity. Preserve current goals, important events, character decisions/emotions, relationship developments, discoveries, locations, secrets and unresolved threads. Do not invent facts. Return one paragraph under 900 characters.\n\n${raw}`;
+        const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ROUTINE_DEFAULT}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:220},serviceTier:BACKGROUND_SERVICE_TIER};
+        const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(res.ok){const data=await res.json(); recordTextUsage(MODEL_ROUTINE_DEFAULT,data,prompt,220); const text=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim(); if(text) active.activeChapterStatus=text.slice(0,1400); await saveState(); contextCacheState={name:'',fingerprint:'',expiresAt:0,model:''};}
+      }catch(e){console.warn('Active chapter status refresh skipped:',e.message)}finally{active._activeStatusBusy=false;}
+    }
+
     async function autoUpdateLorebookFromStory() {
       if (lorebookAutoUpdateRunning || !appState.apiKey) return;
       const active = getActiveScenario();
-      const storyMessages = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-24);
+      const storyMessages = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-LOREBOOK_ANALYSIS_INTERVAL);
       if (storyMessages.length < 6) return;
       const totalStoryTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).length;
       // Automatic lorebook analysis now runs every LOREBOOK_ANALYSIS_INTERVAL (12)
@@ -4845,7 +4647,7 @@ TASK: Return a JSON object with:
         const transcript = storyMessages.map(m => `${m.speakerName || m.role || 'Speaker'}: ${m.text}`).join('\n');
         const existing = (active.lorebook || []).map(l => `${l.title} | ${l.keywords} | ${l.content}`).join('\n');
         const prompt = `Analyze this latest story transcript for persistent facts that should be remembered in a lorebook. Extract only durable, story-important information: locations, rules, character facts, relationships, objects, secrets, factions, major events, promises, injuries, discoveries, or continuity details. Avoid temporary dialogue and redundant entries. Return ONLY JSON array objects with title, keywords, content. Existing lorebook: ${existing || 'none'}\nTranscript:\n${transcript}`;
-        const lorebookModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        const lorebookModel = MODEL_ROUTINE_DEFAULT;
         const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${lorebookModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:900},serviceTier:BACKGROUND_SERVICE_TIER})});
         const data=await res.json().catch(()=>({}));
@@ -4951,20 +4753,19 @@ REQUIREMENTS:
           generationConfig: { temperature: 0.65, maxOutputTokens: 140 }
         };
 
-        const scenePromptModel = appState.model || MODEL_ROUTINE_DEFAULT;
-        const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${scenePromptModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const promptRes = await fetch(promptEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptReqPayload)
-        });
-
-        const promptData = await promptRes.json().catch(() => ({}));
-        recordTextUsage(scenePromptModel, promptData, promptText, 140);
-        let visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        if (!visualPrompt || visualPrompt.length < 15) {
-          visualPrompt = `Cinematic illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, ${artStylePreset} aesthetic, detailed lighting, 16:9 masterpiece`;
+        const scenePromptFingerprint = JSON.stringify({scenario:active.id,chapter:active.currentChapter,artStyle:artStylePreset,recent:recentDialogue,cast:castVisualProfiles});
+        let visualPrompt = '';
+        if (scenePromptCacheState.fingerprint === scenePromptFingerprint && scenePromptCacheState.prompt && Date.now() - scenePromptCacheState.createdAt < 10 * 60 * 1000) {
+          visualPrompt = scenePromptCacheState.prompt;
+        } else {
+          const scenePromptModel = MODEL_ROUTINE_DEFAULT;
+          const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${scenePromptModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const promptRes = await fetch(promptEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(promptReqPayload)});
+          const promptData = await promptRes.json().catch(() => ({}));
+          recordTextUsage(scenePromptModel, promptData, promptText, 140);
+          visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (!visualPrompt || visualPrompt.length < 15) visualPrompt = `Cinematic illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, ${artStylePreset} aesthetic, detailed lighting, 16:9 masterpiece`;
+          scenePromptCacheState = {fingerprint:scenePromptFingerprint,prompt:visualPrompt,createdAt:Date.now()};
         }
 
         showLoading(true, "Rendering character-consistent visual snapshot...");
@@ -5342,6 +5143,66 @@ REQUIREMENTS:
       if (!str) return '';
       return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
-  </script>
+  
+    // --- Performance optimizations -----------------------------------------
+    // Incremental message rendering: ordinary new turns append instead of rebuilding
+    // the complete chat DOM. Full rebuild is retained for edits/deletes/scenario changes.
+    let lastRenderedMessageCount = -1;
+    let lastRenderedScenarioId = '';
+    let lastRenderedMessageSignature = '';
+    function renderMessages() {
+      const container=document.getElementById('messagesContainer');
+      const active=getActiveScenario();
+      if(!container||!active) return;
+      document.getElementById('chapterBadgeText').innerText=`Ch. ${active.currentChapter||1}`;
+      (active.messages||[]).forEach(m=>{if(!m.id)m.id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);});
+      const recentSig=(active.messages||[]).slice(-3).map(m=>`${m.id||''}|${m.text||''}|${m.speakerName||''}|${m.isImage?'i':''}|${m.isChapterDivider?'d':''}`).join('§');
+      const needsFull=lastRenderedScenarioId!==active.id || lastRenderedMessageCount<0 || active.messages.length<lastRenderedMessageCount || editingMessageId!==null || (lastRenderedMessageCount===active.messages.length && recentSig!==lastRenderedMessageSignature);
+      if(needsFull){
+        lastRenderedScenarioId=active.id; lastRenderedMessageCount=0; lastRenderedMessageSignature='';
+        container.innerHTML='';
+        if(!active.messages.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p><button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow">Configure & Start</button></div>`; return;}
+      }
+      const start=lastRenderedMessageCount;
+      for(let index=start; index<active.messages.length; index++){
+        const m=active.messages[index];
+        const wrapper=document.createElement('div'); wrapper.id=`msg-${index}`;
+        if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3'; wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`; container.appendChild(wrapper); continue;}
+        if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group'; wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`; container.appendChild(wrapper); continue;}
+        const rawSpeaker=m.speakerName||''; const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase()); const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase()); const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion')); const cleanContent=formatDialogueSpacing((m.text||'').trim()); const renderedHtml=marked.parse(cleanContent); const hasBranch=Boolean(messageBranches[m.id]); const isMostRecent=index===active.messages.length-1&&!isUser;
+        wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;
+        wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9'):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9'):''}`;
+        container.appendChild(wrapper);
+      }
+      lastRenderedMessageCount=active.messages.length;
+      lastRenderedMessageSignature=(active.messages||[]).slice(-3).map(m=>`${m.id||''}|${m.text||''}|${m.speakerName||''}|${m.isImage?'i':''}|${m.isChapterDivider?'d':''}`).join('§');
+      container.scrollTop=container.scrollHeight;
+    }
+
+    // Web Worker for expensive sprite-sheet background removal. Falls back to the
+    // original algorithm on browsers that cannot construct workers.
+    let spriteWorkerPromise=null;
+    function getSpriteBackgroundWorker(){
+      if(spriteWorkerPromise) return spriteWorkerPromise;
+      const workerCode=`self.onmessage=function(e){const {buffer,width,height}=e.data;const p=new Uint8ClampedArray(buffer);const total=width*height,trans=new Uint8Array(total),vis=new Uint8Array(total),q=new Int32Array(total);let h=0,t=0;function en(x,y){const i=y*width+x;if(!vis[i]){vis[i]=1;q[t++]=i;}}function chk(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,a=(r+g+b)/3;return d<=26&&a>=110||d<=16&&a>=90||a>=220&&d<=35||r>238&&g>238&&b>238;}for(let x=0;x<width;x++){en(x,0);en(x,1);en(x,height-1);en(x,height-2)}for(let y=0;y<height;y++){en(0,y);en(1,y);en(width-1,y);en(width-2,y))}while(h<t){const idx=q[h++],x=idx%width,y=(idx/width)|0,pi=idx*4,r=p[pi],g=p[pi+1],b=p[pi+2];if(chk(r,g,b)){p[pi+3]=0;trans[idx]=1;if(x)en(x-1,y);if(x<width-1)en(x+1,y);if(y)en(x,y-1);if(y<height-1)en(x,y+1);}}for(let iter=0;iter<2;iter++){const clear=[];for(let y=1;y<height-1;y++){for(let x=1;x<width-1;x++){const idx=y*width+x;if(trans[idx])continue;const pi=idx*4,r=p[pi],g=p[pi+1],b=p[pi+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,a=(r+g+b)/3,n=trans[idx-1]||trans[idx+1]||trans[idx-width]||trans[idx+width]||trans[idx-width-1]||trans[idx-width+1]||trans[idx+width-1]||trans[idx+width+1];if(n){if((d<=36&&a>=120)||a>=200||(d<=20&&a>=85))clear.push(idx);else if(d<=40&&a>=140){p[pi+3]=Math.round(p[pi+3]*.4);p[pi]=Math.round(r*.7);p[pi+1]=Math.round(g*.7);p[pi+2]=Math.round(b*.7);}}}}for(const idx of clear){trans[idx]=1;p[idx*4+3]=0;}}postMessage(buffer,[buffer]);};`;
+      return spriteWorkerPromise=new Promise(resolve=>{try{const blob=new Blob([workerCode],{type:'application/javascript'});const worker=new Worker(URL.createObjectURL(blob));resolve(worker);}catch(e){resolve(null);}});
+    }
+    async function removeBackgroundFromPixelDataWorker(pixelData,width,height){
+      const workerCode=`self.onmessage=function(e){const {buffer,width,height}=e.data;const p=new Uint8ClampedArray(buffer);const total=width*height,trans=new Uint8Array(total),vis=new Uint8Array(total),q=new Int32Array(total);let h=0,t=0;function en(x,y){const i=y*width+x;if(!vis[i]){vis[i]=1;q[t++]=i;}}function chk(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,a=(r+g+b)/3;return d<=26&&a>=110||d<=16&&a>=90||a>=220&&d<=35||r>238&&g>238&&b>238;}for(let x=0;x<width;x++){en(x,0);en(x,1);en(x,height-1);en(x,height-2)}for(let y=0;y<height;y++){en(0,y);en(1,y);en(width-1,y);en(width-2,y)}while(h<t){const idx=q[h++],x=idx%width,y=(idx/width)|0,pi=idx*4,r=p[pi],g=p[pi+1],b=p[pi+2];if(chk(r,g,b)){p[pi+3]=0;trans[idx]=1;if(x)en(x-1,y);if(x<width-1)en(x+1,y);if(y)en(x,y-1);if(y<height-1)en(x,y+1);}}for(let iter=0;iter<2;iter++){const clear=[];for(let y=1;y<height-1;y++){for(let x=1;x<width-1;x++){const idx=y*width+x;if(trans[idx])continue;const pi=idx*4,r=p[pi],g=p[pi+1],b=p[pi+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,a=(r+g+b)/3,n=trans[idx-1]||trans[idx+1]||trans[idx-width]||trans[idx+width]||trans[idx-width-1]||trans[idx-width+1]||trans[idx+width-1]||trans[idx+width+1];if(n){if((d<=36&&a>=120)||a>=200||(d<=20&&a>=85))clear.push(idx);else if(d<=40&&a>=140){p[pi+3]=Math.round(p[pi+3]*.4);p[pi]=Math.round(r*.7);p[pi+1]=Math.round(g*.7);p[pi+2]=Math.round(b*.7);}}}}for(const idx of clear){trans[idx]=1;p[idx*4+3]=0;}}postMessage(buffer,[buffer]);};`;
+      try{
+        const worker=new Worker(URL.createObjectURL(new Blob([workerCode],{type:'application/javascript'})));
+        return await new Promise((resolve,reject)=>{
+          let settled=false;
+          const finish=(fn,val)=>{if(settled)return;settled=true;clearTimeout(timer);worker.terminate();fn(val);};
+          const timer=setTimeout(()=>finish(resolve,null),120000);
+          worker.onmessage=e=>{pixelData.set(new Uint8ClampedArray(e.data));finish(resolve,true);};
+          worker.onerror=()=>finish(resolve,null);
+          const copy=new Uint8ClampedArray(pixelData);
+          worker.postMessage({buffer:copy.buffer,width,height},[copy.buffer]);
+        }).then(result=>{if(result===null)removeBackgroundFromPixelDataLegacy(pixelData,width,height);});
+      }catch(e){removeBackgroundFromPixelDataLegacy(pixelData,width,height);}
+    }
+
+</script>
 </body>
 </html>
