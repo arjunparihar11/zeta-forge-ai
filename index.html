@@ -111,67 +111,73 @@
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
   <!-- Top Header -->
-  <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
-    <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
-        <button onclick="toggleMobileSidebar()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Dramatis Personae">
-          👥
-        </button>
-        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30 shrink-0">
-          ⚡
-        </div>
-        <div class="overflow-hidden flex-1 min-w-0 pr-1">
-          <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight flex items-center gap-2"><img src="./zetaforge.svg" alt="ZetaForge" class="w-6 h-6 object-contain" />ZetaForge</h1>
-          <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
-        </div>
-      </div>
+<header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
+  <div class="px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 flex-nowrap">
+    
+    <!-- Left: Sidebar Button, Raw Logo, and Text Stack -->
+    <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+      <!-- Mobile Sidebar Toggle -->
+      <button onclick="toggleMobileSidebar()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden text-sm" title="Dramatis Personae">
+        👥
+      </button>
 
-      <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Visual Novel / Chat Mode Switcher Button -->
-        <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
-          <span id="viewModeIcon">🎭</span>
-          <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
-        </button>
+      <!-- Clean Logo (Sized to match button height, no wrapper/border) -->
+      <img src="./zetaforge.svg" alt="ZetaForge" class="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0" />
 
-        <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
-        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
-          <span>🖼️</span>
-          <span>Gallery</span>
-        </button>
-
-        <!-- Chapter Badge Button -->
-        <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
-          <span>📖</span>
-          <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
-          <span class="text-[10px] text-indigo-400">▾</span>
-        </button>
-
-        <!-- Desktop Expanded Utilities -->
-        <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
-          <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
-            <span>➕</span> <span>New</span>
-          </button>
-          <button onclick="openModal('setupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
-            <span>⚙️</span> <span>Setup</span>
-          </button>
-          <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
-            <span>📥</span> <span>Import</span>
-          </button>
-          <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
-            <span>💾</span> <span>Export</span>
-          </button>
-          <button onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
-            <span>📦</span> <span>Backup</span>
-          </button>
-        </div>
-
-        <button onclick="toggleMenuDrawer(true)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
-          ☰
-        </button>
+      <!-- Title & Subtitle Stack -->
+      <div class="overflow-hidden flex-1 min-w-0">
+        <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
+        <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
       </div>
     </div>
-  </header>
 
+    <!-- Right: Controls & Menus -->
+    <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+      <!-- Visual Novel / Chat Mode Switcher Button -->
+      <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
+        <span id="viewModeIcon">🎭</span>
+        <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
+      </button>
+
+      <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
+      <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
+        <span>🖼️</span>
+        <span>Gallery</span>
+      </button>
+
+      <!-- Chapter Badge Button -->
+      <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
+        <span>📖</span>
+        <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
+        <span class="text-[10px] text-indigo-400">▾</span>
+      </button>
+
+      <!-- Desktop Expanded Utilities -->
+      <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
+        <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
+          <span>➕</span> <span>New</span>
+        </button>
+        <button onclick="openModal('setupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
+          <span>⚙️</span> <span>Setup</span>
+        </button>
+        <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
+          <span>📥</span> <span>Import</span>
+        </button>
+        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
+          <span>💾</span> <span>Export</span>
+        </button>
+        <button onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
+          <span>📦</span> <span>Backup</span>
+        </button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button onclick="toggleMenuDrawer(true)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
+        ☰
+      </button>
+    </div>
+  </div>
+</header>
   <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
