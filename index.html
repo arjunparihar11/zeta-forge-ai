@@ -7,14 +7,14 @@
 
   <!-- Native iOS Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ZetaForge" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#161922" />
+  <meta name="theme-color" content="#1a1622" />
 
   <!-- App Icon & Favicon -->
   <link rel="apple-touch-icon" id="appleTouchIcon" href="./zetaforge.svg" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23131118'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%239a89f7'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
 
@@ -29,13 +29,16 @@
       theme: {
         extend: {
           colors: {
-            zetaBg: '#0f1117',
-            zetaSidebar: '#161922',
-            zetaCard: '#1e2230',
-            zetaInput: '#262b3d',
-            zetaAccent: '#6366f1',
-            zetaAccentHover: '#4f46e5',
-            zetaUser: '#312e81'
+            zetaBg: '#131118',
+            zetaSidebar: '#1a1622',
+            zetaCard: '#241f30',
+            zetaInput: '#1d1827',
+            zetaBorder: '#322a42',
+            zetaAccent: '#7c65e8',
+            zetaAccentHover: '#6650d6',
+            zetaGlow: '#9a89f7',
+            zetaLight: '#d2c6ff',
+            zetaUser: '#392f4e'
           }
         }
       }
@@ -48,15 +51,15 @@
       height: 100dvh;
       overflow: hidden;
       overscroll-behavior: none;
-      background-color: #0f1117;
+      background-color: #131118;
     }
 
     .header-safe {
-      padding-top: max(env(safe-area-inset-top, 0px), 12px);
+      padding-top: env(safe-area-inset-top, 12px);
     }
 
     .bottom-safe {
-      padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
 
     .scroll-touch {
@@ -74,8 +77,8 @@
     }
 
     ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #0f1117; }
-    ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: #131118; }
+    ::-webkit-scrollbar-thumb { background: #392f4e; border-radius: 2px; }
     
     .prose p { 
       margin-top: 0;
@@ -91,7 +94,7 @@
     .prose > :last-child {
       margin-bottom: 0 !important;
     }
-    .prose em { color: #94a3b8; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
+    .prose em { color: #b9a6ff; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
     .prose strong { color: #f8fafc; }
     textarea, input, select { -webkit-appearance: none; }
 
@@ -99,7 +102,7 @@
       content: '▋';
       display: inline-block;
       margin-left: 2px;
-      color: #818cf8;
+      color: #9a89f7;
       animation: blink 0.8s infinite;
     }
     @keyframes blink {
@@ -111,84 +114,85 @@
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
   <!-- Top Header -->
-<header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
-  <div class="px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 flex-nowrap">
-    
-    <!-- Left: Sidebar Button, Raw Logo, and Text Stack -->
-    <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-      <!-- Mobile Sidebar Toggle -->
-      <button onclick="toggleMobileSidebar()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden text-sm" title="Dramatis Personae">
-        👥
-      </button>
-
-      <!-- Clean Logo (Sized to match button height, no wrapper/border) -->
-      <img src="./zetaforge.svg" alt="ZetaForge" class="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0" />
-
-      <!-- Title & Subtitle Stack -->
-      <div class="overflow-hidden flex-1 min-w-0">
-        <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
-        <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
-      </div>
-    </div>
-
-    <!-- Right: Controls & Menus -->
-    <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-      <!-- Visual Novel / Chat Mode Switcher Button -->
-      <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
-        <span id="viewModeIcon">🎭</span>
-        <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
-      </button>
-
-      <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
-      <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
-        <span>🖼️</span>
-        <span>Gallery</span>
-      </button>
-
-      <!-- Chapter Badge Button -->
-      <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
-        <span>📖</span>
-        <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
-        <span class="text-[10px] text-indigo-400">▾</span>
-      </button>
-
-      <!-- Desktop Expanded Utilities -->
-      <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
-        <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
-          <span>➕</span> <span>New</span>
+  <header class="bg-zetaSidebar border-b border-zetaBorder header-safe shrink-0 z-40 shadow-md relative">
+    <div class="px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 flex-nowrap">
+      
+      <!-- Left: Sidebar Button, Raw Logo, and Text Stack -->
+      <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+        <!-- Mobile Sidebar Toggle -->
+        <button onclick="toggleMobileSidebar()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zetaCard hover:bg-zetaBorder flex items-center justify-center text-slate-200 border border-zetaBorder active:scale-95 transition shrink-0 shadow-sm md:hidden text-sm" title="Dramatis Personae">
+          👥
         </button>
-        <button onclick="openModal('setupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
-          <span>⚙️</span> <span>Setup</span>
-        </button>
-        <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
-          <span>📥</span> <span>Import</span>
-        </button>
-        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
-          <span>💾</span> <span>Export</span>
-        </button>
-        <button onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
-          <span>📦</span> <span>Backup</span>
-        </button>
+
+        <!-- Clean Logo (Sized to match button height) -->
+        <img src="./zetaforge.svg" alt="ZetaForge" class="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0" />
+
+        <!-- Title & Subtitle Stack -->
+        <div class="overflow-hidden flex-1 min-w-0">
+          <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
+          <p class="text-[11px] text-[#b9a6ff]/80 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
+        </div>
       </div>
 
-      <!-- Mobile Menu Button -->
-      <button onclick="toggleMenuDrawer(true)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
-        ☰
-      </button>
+      <!-- Right: Controls & Menus -->
+      <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <!-- Visual Novel / Chat Mode Switcher Button -->
+        <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
+          <span id="viewModeIcon">🎭</span>
+          <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
+        </button>
+
+        <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
+        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
+          <span>🖼️</span>
+          <span>Gallery</span>
+        </button>
+
+        <!-- Chapter Badge Button -->
+        <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-[#2a223c] hover:bg-[#352a4e] text-zetaLight border border-zetaAccent/60 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
+          <span>📖</span>
+          <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
+          <span class="text-[10px] text-zetaGlow">▾</span>
+        </button>
+
+        <!-- Desktop Expanded Utilities -->
+        <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-zetaBorder">
+          <button onclick="createNewScenarioFlow()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
+            <span>➕</span> <span>New</span>
+          </button>
+          <button onclick="openModal('setupModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
+            <span>⚙️</span> <span>Setup</span>
+          </button>
+          <button onclick="openModal('importModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
+            <span>📥</span> <span>Import</span>
+          </button>
+          <button onclick="exportStory()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
+            <span>💾</span> <span>Export</span>
+          </button>
+          <button onclick="exportJsonBackup()" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
+            <span>📦</span> <span>Backup</span>
+          </button>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button onclick="toggleMenuDrawer(true)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zetaCard hover:bg-zetaBorder flex items-center justify-center text-slate-200 border border-zetaBorder active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
+          ☰
+        </button>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
+
   <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
     <!-- Left Sidebar: Cast Panel -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-slate-800 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
-      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard/40">
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-72 sm:w-80 bg-zetaSidebar border-r border-zetaBorder flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out header-safe bottom-safe">
+      <div class="p-3.5 border-b border-zetaBorder flex items-center justify-between bg-zetaCard/40">
         <div class="flex items-center gap-1.5">
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Dramatis Personae</h2>
-          <span class="text-[10px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-700/50" id="charCount">0 active</span>
+          <span class="text-[10px] bg-[#2a223c] text-zetaLight px-2 py-0.5 rounded-full border border-zetaAccent/40" id="charCount">0 active</span>
         </div>
         <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
       </div>
@@ -196,30 +200,29 @@
       <div class="flex-1 overflow-y-auto p-3 space-y-4 scroll-touch" id="sidebarCharacterList">
       </div>
 
-      <div class="p-3 bg-zetaCard/60 border-t border-slate-800 text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-indigo-400/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+      <div class="p-3 bg-zetaCard/60 border-t border-zetaBorder text-xs flex items-center gap-3 shrink-0">
+        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-zetaAccent flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-zetaLight/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
           U
         </div>
         <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
           <div class="text-white font-semibold truncate text-sm" id="sidebarUserName">User</div>
-          <div class="text-slate-400 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
+          <div class="text-[#b9a6ff]/70 text-[11px] truncate" id="sidebarUserDesc">Protagonist</div>
         </div>
       </div>
     </aside>
 
-    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access (With Mobile Gallery Button) -->
-    <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
-      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access -->
+    <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-zetaBorder flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+      <div class="p-3.5 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
           <span class="text-base">📖</span>
           <h2 class="text-xs font-bold uppercase tracking-wider text-white">Chapter Chronicle</h2>
         </div>
         <div class="flex items-center gap-1.5">
-          <!-- Mobile-Only Gallery Button in Chronicle Header -->
-          <button onclick="openImageLibraryModal()" class="md:hidden bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow" title="Scenario Image Gallery">
+          <button onclick="openImageLibraryModal()" class="md:hidden bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow" title="Scenario Image Gallery">
             <span>🖼️</span> <span>Gallery</span>
           </button>
-          <button onclick="openLorebookModal()" class="bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/70 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow">
+          <button onclick="openLorebookModal()" class="bg-[#2a223c] hover:bg-[#352a4e] text-zetaLight border border-zetaAccent/50 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow">
             <span>📚</span> <span>Codex</span>
           </button>
           <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none pl-1">&times;</button>
@@ -229,30 +232,30 @@
       <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs scroll-touch">
         <div>
           <label class="block text-[11px] font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Select Chapter Arc</label>
-          <select id="chapterSelectDropdown" onchange="renderSelectedChapterSummary(this.value)" class="w-full bg-zetaInput border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <select id="chapterSelectDropdown" onchange="renderSelectedChapterSummary(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent">
           </select>
         </div>
 
         <div class="flex items-center justify-between pt-1">
-          <span id="summaryChapterTitle" class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Chapter Summary</span>
+          <span id="summaryChapterTitle" class="text-[11px] font-bold text-zetaLight uppercase tracking-wider">Chapter Summary</span>
           <div class="flex items-center gap-1.5">
             <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
-            <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
+            <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-zetaAccent/30 hover:bg-zetaAccent/50 text-zetaLight border border-zetaAccent/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
               ✨ <span id="refreshArcsBtnText">Re-Analyze</span>
             </button>
           </div>
         </div>
 
-        <div id="chapterGeneralSummary" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-slate-300 leading-relaxed text-xs">
+        <div id="chapterGeneralSummary" class="p-3 bg-zetaCard border border-zetaBorder rounded-xl text-slate-300 leading-relaxed text-xs">
         </div>
 
         <div class="space-y-2.5">
-          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Character Actions & Narrative Arcs</h3>
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-[#b9a6ff]/80 px-1">Character Actions & Narrative Arcs</h3>
           <div id="chapterCharacterArcsList" class="space-y-3">
           </div>
         </div>
 
-        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
+        <div class="p-3 bg-[#181422] rounded-xl border border-zetaBorder space-y-1.5 text-[11px]">
           <div class="flex items-center justify-between text-slate-400">
             <span>Total Chapters:</span>
             <span id="statTotalChapters" class="font-semibold text-white">1</span>
@@ -263,19 +266,19 @@
           </div>
           <div class="flex items-center justify-between text-slate-400">
             <span>Current Raw Payload:</span>
-            <span id="statActiveTokens" class="font-semibold text-indigo-400">0k / 120k tokens</span>
+            <span id="statActiveTokens" class="font-semibold text-zetaGlow">0k / 120k tokens</span>
           </div>
         </div>
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
-        <button onclick="toggleChapterDrawer(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition">Close Chronicle</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="toggleChapterDrawer(false)" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition">Close Chronicle</button>
       </div>
     </div>
 
     <!-- Right Drawer 2: Dedicated Scenarios Menu -->
-    <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-slate-800 flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
-      <div class="p-3.5 border-b border-slate-800 bg-zetaCard shrink-0 space-y-3">
+    <div id="menuDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-zetaBorder flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+      <div class="p-3.5 border-b border-zetaBorder bg-zetaCard shrink-0 space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-base">💬</span>
@@ -285,19 +288,19 @@
         </div>
 
         <div class="grid grid-cols-4 gap-1.5 pt-1">
-          <button onclick="createNewScenarioFlow()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium shadow transition active:scale-95">
+          <button onclick="createNewScenarioFlow()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-medium shadow transition active:scale-95">
             <span class="text-base leading-none mb-1">➕</span>
             <span>New</span>
           </button>
-          <button onclick="openModal('setupModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+          <button onclick="openModal('setupModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
             <span class="text-base leading-none mb-1">⚙️</span>
             <span>Setup</span>
           </button>
-          <button onclick="openModal('importModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+          <button onclick="openModal('importModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
             <span class="text-base leading-none mb-1">📥</span>
             <span>Import</span>
           </button>
-          <button onclick="exportStory()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition active:scale-95">
+          <button onclick="exportStory()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
             <span class="text-base leading-none mb-1">💾</span>
             <span>Export</span>
           </button>
@@ -305,18 +308,18 @@
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 space-y-2.5 scroll-touch">
-        <div class="flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <div class="flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wider text-[#b9a6ff]/80">
           <span>Saved Scenarios</span>
-          <span id="scenariosCountBadge" class="text-indigo-400">0 Total</span>
+          <span id="scenariosCountBadge" class="text-zetaGlow">0 Total</span>
         </div>
 
         <div id="scenariosListContainer" class="space-y-2">
         </div>
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/40 flex items-center justify-between text-xs text-slate-400 shrink-0">
-        <button onclick="exportJsonBackup()" class="text-indigo-400 hover:text-indigo-300 font-medium">📦 Full JSON Backup</button>
-        <button onclick="toggleMenuDrawer(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg">Close</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/40 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <button onclick="exportJsonBackup()" class="text-zetaLight hover:text-white font-medium">📦 Full JSON Backup</button>
+        <button onclick="toggleMenuDrawer(false)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 px-3 py-1.5 rounded-lg">Close</button>
       </div>
     </div>
 
@@ -326,41 +329,41 @@
       <!-- MODE A: Standard Chat Messages Container -->
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
-          <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div>
+          <div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div>
           <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
-          <p class="text-xs sm:text-sm max-w-md text-slate-400">
+          <p class="text-xs sm:text-sm max-w-md text-[#b9a6ff]/70">
             Configure your Gemini API key, cast, and World Codex in Setup, or import past Zeta logs to begin.
           </p>
-          <button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/30">
+          <button onclick="openModal('setupModal')" class="mt-2 bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-zetaAccent/30">
             Configure & Start
           </button>
         </div>
       </div>
 
       <!-- MODE B: Traditional Visual Novel Stage View -->
-      <div id="vnStageContainer" class="flex-1 relative overflow-hidden hidden flex-col justify-between p-3 sm:p-6 bg-slate-950">
+      <div id="vnStageContainer" class="flex-1 relative overflow-hidden hidden flex-col justify-between p-3 sm:p-6 bg-[#0c0a10]">
         <div id="vnBackgroundLayer" class="absolute inset-0 bg-cover bg-center transition-all duration-700 opacity-60 filter brightness-[0.7] blur-[1px]"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-zetaBg via-transparent to-black/50 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-zetaBg via-transparent to-black/60 pointer-events-none"></div>
 
-        <!-- Transparent Left / Right Navigation Tap Zones (Above Textbox, Below Top Bar) -->
+        <!-- Tap Zones -->
         <div class="absolute inset-0 top-12 bottom-36 flex z-10 pointer-events-auto">
           <div onclick="handleVnStageTap('prev')" class="w-1/2 h-full cursor-pointer select-none" title="Previous turn (Tap Left)"></div>
           <div onclick="handleVnStageTap('next')" class="w-1/2 h-full cursor-pointer select-none" title="Next turn / Advance (Tap Right)"></div>
         </div>
 
-        <!-- Top Stage Quick Navigation & Scene Bar -->
+        <!-- Top Stage Scene Bar -->
         <div class="relative z-20 flex items-center justify-between gap-2 max-w-4xl mx-auto w-full pointer-events-auto">
-          <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] font-semibold text-indigo-300 shadow">
+          <span class="bg-[#1a1622]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zetaBorder text-[11px] font-semibold text-zetaLight shadow">
             🎭 <span id="vnSceneTitle" class="text-white">Scene Stage</span>
           </span>
           <div class="flex items-center gap-1.5">
-            <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-black/60 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
+            <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
             </button>
-            <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-black/60 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
+            <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
             </button>
-            <button onclick="toggleStoryViewMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1.5 rounded-xl font-medium transition active:scale-95 shadow">
+            <button onclick="toggleStoryViewMode()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs px-2.5 py-1.5 rounded-xl font-medium transition active:scale-95 shadow">
               💬 <span class="hidden sm:inline">Chat View</span>
             </button>
           </div>
@@ -374,15 +377,15 @@
 
         <!-- Visual Novel Dialog Box -->
         <div class="relative z-20 max-w-4xl mx-auto w-full space-y-2 pointer-events-auto">
-          <div class="bg-slate-900/90 backdrop-blur-md border border-indigo-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-2.5">
+          <div class="bg-[#1a1622]/95 backdrop-blur-md border border-zetaAccent/40 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-2.5">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span id="vnSpeakerNameBadge" class="bg-indigo-600 text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow-md cursor-pointer hover:underline" onclick="openCurrentVnCharacterSpotlight()">
+                <span id="vnSpeakerNameBadge" class="bg-zetaAccent text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow-md cursor-pointer hover:underline" onclick="openCurrentVnCharacterSpotlight()">
                   Speaker
                 </span>
-                <span id="vnSpeakerMoodBadge" class="text-[10px] bg-slate-800 text-amber-300 border border-slate-700 px-2 py-0.5 rounded-full font-medium"></span>
+                <span id="vnSpeakerMoodBadge" class="text-[10px] bg-zetaCard text-amber-300 border border-zetaBorder px-2 py-0.5 rounded-full font-medium"></span>
               </div>
-              <div class="flex items-center gap-2 text-xs text-slate-400 font-mono">
+              <div class="flex items-center gap-2 text-xs text-[#b9a6ff]/70 font-mono">
                 <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
                 <span id="vnTurnCounter">Turn 0/0</span>
                 <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
@@ -397,7 +400,7 @@
       </div>
 
       <!-- Typing Indicator -->
-      <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-indigo-400 font-medium">
+      <div id="typingIndicator" class="hidden px-4 sm:px-6 py-1.5 max-w-4xl mx-auto w-full flex items-center gap-2 text-xs text-zetaGlow font-medium">
         <span class="animate-pulse">●</span>
         <span class="animate-pulse delay-100">●</span>
         <span class="animate-pulse delay-200">●</span>
@@ -405,27 +408,27 @@
       </div>
 
       <!-- Bottom Chat Bar -->
-      <div class="p-3 bg-zetaSidebar border-t border-slate-800 bottom-safe shrink-0" onclick="event.stopPropagation()">
+      <div class="p-3 bg-zetaSidebar border-t border-zetaBorder bottom-safe shrink-0" onclick="event.stopPropagation()">
         <div class="max-w-4xl mx-auto space-y-2">
           
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
+            <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
               <span>📜</span> <span id="narrateToggleText">Narrate</span>
             </button>
-            <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+            <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>💡</span> <span>Suggest</span>
             </button>
-            <button onclick="generateSceneImage()" id="genImageBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+            <button onclick="generateSceneImage()" id="genImageBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
             </button>
-            <button onclick="triggerContinue()" id="continueBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+            <button onclick="triggerContinue()" id="continueBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>⏩</span> <span>Continue</span>
             </button>
           </div>
 
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
             <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
-              <span class="font-semibold text-indigo-300">💡 Tap an option to insert into text box:</span>
+              <span class="font-semibold text-zetaLight">💡 Tap an option to insert into text box:</span>
               <button onclick="hideReplySuggestions()" class="text-slate-500 hover:text-slate-300">&times; Dismiss</button>
             </div>
             <div id="replySuggestionsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto scroll-touch pb-1">
@@ -437,14 +440,14 @@
               id="userInput"
               rows="1"
               placeholder="Describe action, speak, or use @: to narrate..."
-              class="flex-1 bg-zetaInput border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
+              class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-zetaAccent resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
               oninput="autoExpandTextarea(this)"
               onkeydown="handleInputKeydown(event)"
             ></textarea>
             <button
               type="submit"
               id="sendBtn"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 shrink-0 h-[42px] min-w-[64px]"
+              class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-zetaAccent/30 disabled:opacity-50 shrink-0 h-[42px] min-w-[64px]"
             >
               Send
             </button>
@@ -456,8 +459,8 @@
 
   <!-- Image Library Modal -->
   <div id="imageLibraryModal" onclick="closeImageLibraryModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🖼️ Scenario Image Library</h2>
         <button onclick="closeImageLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
@@ -465,22 +468,22 @@
       <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 scroll-touch" id="imageLibraryContainer">
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
-        <button onclick="closeImageLibraryModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close Library</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeImageLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close Library</button>
       </div>
     </div>
   </div>
 
   <!-- Lorebook / World Codex Modal -->
   <div id="lorebookModal" onclick="closeLorebookModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2">
           <span class="text-base">📚</span>
           <h2 class="text-sm sm:text-base font-bold text-white">World Codex & Lorebook</h2>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" onclick="addLorebookRow()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg transition active:scale-95 shadow">
+          <button type="button" onclick="addLorebookRow()" class="text-xs bg-zetaAccent hover:bg-zetaAccentHover text-white px-2.5 py-1 rounded-lg transition active:scale-95 shadow">
             + Add Entry
           </button>
           <button onclick="closeLorebookModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
@@ -488,35 +491,35 @@
       </div>
 
       <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 scroll-touch">
-        <p class="text-[11px] text-slate-400 leading-tight">
+        <p class="text-[11px] text-[#b9a6ff]/70 leading-tight">
           When any keyword is detected in recent conversations, ZetaForge automatically injects that specific entry into the AI context without wasting token budget when not relevant.
         </p>
         <div id="lorebookContainerModal" class="space-y-3">
         </div>
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
-        <button onclick="closeLorebookModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Return to Story</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeLorebookModal()" class="w-full bg-zetaAccent hover:bg-zetaAccentHover text-white py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Return to Story</button>
       </div>
     </div>
   </div>
 
   <!-- Character Spotlight Dossier Modal -->
   <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       
       <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-        <button onclick="toggleSpotlightEditMode()" id="spotlightEditToggleBtn" class="px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-indigo-300 hover:text-white text-xs font-medium shadow transition active:scale-95">
+        <button onclick="toggleSpotlightEditMode()" id="spotlightEditToggleBtn" class="px-2.5 py-1 rounded-full bg-zetaBg/80 border border-zetaBorder text-zetaLight hover:text-white text-xs font-medium shadow transition active:scale-95">
           ✏️ Edit
         </button>
-        <button onclick="closeCharacterSpotlight()" class="w-8 h-8 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
+        <button onclick="closeCharacterSpotlight()" class="w-8 h-8 rounded-full bg-zetaBg/80 border border-zetaBorder text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
           &times;
         </button>
       </div>
 
       <div class="overflow-y-auto p-4 sm:p-5 space-y-4 scroll-touch" id="spotlightViewBody">
-        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-3 border-b border-slate-800">
-          <div id="spotlightAvatarBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-800 border-2 border-indigo-500/50 shadow-xl shrink-0 flex items-center justify-center text-4xl font-bold text-indigo-300 cursor-pointer active:scale-95 transition group relative" title="Tap for windowed full preview">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-3 border-b border-zetaBorder">
+          <div id="spotlightAvatarBox" class="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl overflow-hidden bg-zetaCard border-2 border-zetaAccent/50 shadow-xl shrink-0 flex items-center justify-center text-4xl font-bold text-zetaLight cursor-pointer active:scale-95 transition group relative" title="Tap for windowed full preview">
           </div>
           <div class="flex sm:flex-col gap-2 shrink-0">
             <button type="button" onclick="generateSpotlightCharacterPhoto()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✨ Photo</button>
@@ -530,23 +533,23 @@
             <div id="spotlightRoleTags" class="flex flex-wrap gap-1 justify-center sm:justify-start">
             </div>
             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
-              <div id="spotlightMoodBadge" class="text-[11px] text-amber-300 font-semibold flex items-center gap-1 bg-slate-900/80 border border-slate-800 px-2 py-0.5 rounded-md">
+              <div id="spotlightMoodBadge" class="text-[11px] text-amber-300 font-semibold flex items-center gap-1 bg-zetaCard border border-zetaBorder px-2 py-0.5 rounded-md">
               </div>
-              <div id="spotlightRelationshipBox" class="text-[11px] text-indigo-400 font-medium flex items-center gap-1">
+              <div id="spotlightRelationshipBox" class="text-[11px] text-zetaGlow font-medium flex items-center gap-1">
               </div>
             </div>
           </div>
         </div>
 
-        <div id="spotlightPromoteContainer" class="hidden p-3 bg-indigo-950/40 border border-indigo-700/60 rounded-xl space-y-2">
+        <div id="spotlightPromoteContainer" class="hidden p-3 bg-[#2a223c]/60 border border-zetaAccent/50 rounded-xl space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-indigo-300">Side Character Detected</span>
+            <span class="text-xs font-semibold text-zetaLight">Side Character Detected</span>
             <span class="text-[10px] text-slate-400">Temporary Cast</span>
           </div>
           <p class="text-[11px] text-slate-300">
             Promote this character to permanent Main Cast. AI will auto-synthesize their full personality, appearance, archetypes, and dynamic relationship from all story logs.
           </p>
-          <button onclick="promoteSideCharacterToMain()" id="promoteBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-2 rounded-xl transition shadow active:scale-95 flex items-center justify-center gap-1.5">
+          <button onclick="promoteSideCharacterToMain()" id="promoteBtn" class="w-full bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium py-2 rounded-xl transition shadow active:scale-95 flex items-center justify-center gap-1.5">
             ✨ <span>Add to Main Cast</span>
           </button>
         </div>
@@ -555,26 +558,26 @@
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span>🎭</span> Persona
           </span>
-          <div id="spotlightPersonaText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
+          <div id="spotlightPersonaText" class="p-3 bg-zetaCard border border-zetaBorder rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
         </div>
         <div class="space-y-1.5">
-          <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
             <span>👁️</span> Visual Profile
           </span>
-          <div id="spotlightVisualProfileText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
+          <div id="spotlightVisualProfileText" class="p-3 bg-zetaCard border border-zetaBorder rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
         </div>
         <div class="space-y-1.5">
           <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
             <span>👔</span> Current Outfit
           </span>
-          <div id="spotlightOutfitText" class="p-3 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
+          <div id="spotlightOutfitText" class="p-3 bg-zetaCard border border-zetaBorder rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
         </div>
 
         <div class="space-y-1.5">
-          <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
             <span>🔗</span> Inter-Character Relationships
           </span>
           <div id="spotlightInterCharacterGrid" class="space-y-2">
@@ -583,12 +586,12 @@
 
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
               <span>📖</span> Current Chapter Journey
             </span>
-            <span class="text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-1.5 py-0.2 rounded font-mono" id="spotlightChapterBadge">Ch. 1</span>
+            <span class="text-[9px] bg-[#2a223c] text-zetaLight border border-zetaAccent/50 px-1.5 py-0.2 rounded font-mono" id="spotlightChapterBadge">Ch. 1</span>
           </div>
-          <div id="spotlightArcText" class="p-3.5 bg-zetaCard border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
+          <div id="spotlightArcText" class="p-3.5 bg-zetaCard border border-zetaBorder rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
         </div>
       </div>
@@ -598,42 +601,42 @@
         <h3 class="text-sm font-bold text-white">✏️ Edit Character Dossier</h3>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Name</label>
-          <input type="text" id="spotlightEditName" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white" />
+          <input type="text" id="spotlightEditName" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div class="space-y-1">
             <label class="text-[11px] font-semibold text-slate-400">Archetype / Role Tags</label>
-            <input type="text" id="spotlightEditRole" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white" />
+            <input type="text" id="spotlightEditRole" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
           </div>
           <div class="space-y-1">
             <label class="text-[11px] font-semibold text-slate-400">Current Mood</label>
-            <input type="text" id="spotlightEditMood" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-amber-300" />
+            <input type="text" id="spotlightEditMood" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-amber-300 focus:border-zetaAccent" />
           </div>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Persona</label>
-          <textarea id="spotlightEditPersona" rows="3" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
+          <textarea id="spotlightEditPersona" rows="3" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Visual Profile</label>
-          <textarea id="spotlightEditVisualProfile" rows="3" placeholder="Hair, eyes, face, body, clothing, physical traits... Used for visual generation." class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
+          <textarea id="spotlightEditVisualProfile" rows="3" placeholder="Hair, eyes, face, body, clothing, physical traits... Used for visual generation." class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Current Outfit</label>
-          <select id="spotlightEditOutfit" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-white"></select>
+          <select id="spotlightEditOutfit" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></select>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Relationship to User</label>
-          <input type="text" id="spotlightEditRelationship" class="w-full bg-zetaInput border border-slate-700 rounded-lg p-2 text-xs text-indigo-300" />
+          <input type="text" id="spotlightEditRelationship" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-zetaGlow focus:border-zetaAccent" />
         </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button type="button" onclick="toggleSpotlightEditMode(false)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">Cancel</button>
-          <button type="button" onclick="saveSpotlightEdits()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow">Save Dossier</button>
+        <div class="flex justify-end gap-2 pt-2 border-t border-zetaBorder">
+          <button type="button" onclick="toggleSpotlightEditMode(false)" class="px-3 py-1.5 bg-zetaCard hover:bg-zetaBorder text-slate-300 rounded-xl text-xs">Cancel</button>
+          <button type="button" onclick="saveSpotlightEdits()" class="px-4 py-1.5 bg-zetaAccent hover:bg-zetaAccentHover text-white font-semibold rounded-xl text-xs shadow">Save Dossier</button>
         </div>
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0" id="spotlightFooterBar">
-        <button onclick="closeCharacterSpotlight()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Back to Story</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0" id="spotlightFooterBar">
+        <button onclick="closeCharacterSpotlight()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Back to Story</button>
       </div>
     </div>
   </div>
@@ -641,32 +644,32 @@
   <!-- Fullscreen Photo Modal -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] items-center justify-center p-4 hidden">
     <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
-      <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+      <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
       </div>
       <div class="text-center space-y-2 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere outside or swipe down to return</p>
+        <p class="text-[11px] text-[#b9a6ff]/70 mt-1">Tap anywhere outside or swipe down to return</p>
       </div>
     </div>
   </div>
 
   <!-- Dedicated Photo Manager & Gallery Modal -->
   <div id="avatarManagerModal" onclick="closeAvatarManagerModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 id="avatarManagerTitle" class="text-sm font-bold text-white flex items-center gap-2">🖼️ Manage Character Photos</h2>
         <button onclick="closeAvatarManagerModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
       <div class="p-4 overflow-y-auto space-y-5 flex-1 scroll-touch">
-        <div class="p-3.5 bg-zetaCard rounded-xl border border-slate-700/80 space-y-3">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400 block">Add New Photos & Expression Sheets</span>
+        <div class="p-3.5 bg-zetaCard rounded-xl border border-zetaBorder space-y-3">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-zetaGlow block">Add New Photos & Expression Sheets</span>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-2 rounded-lg cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5 shadow">
+            <label class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium px-3 py-2 rounded-lg cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5 shadow">
               <span>📁</span> <span>Single Photo (Auto-Scale)</span>
               <input type="file" accept="image/*" onchange="handleAvatarManagerUpload(event)" class="hidden" />
             </label>
@@ -678,18 +681,18 @@
           </div>
 
           <div class="flex gap-1.5 pt-0.5">
-            <input type="text" id="avatarManagerUrlInput" placeholder="Or paste image URL..." class="flex-1 bg-zetaInput border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
-            <button onclick="addAvatarFromUrlInput()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
+            <input type="text" id="avatarManagerUrlInput" placeholder="Or paste image URL..." class="flex-1 bg-zetaInput border border-zetaBorder rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-zetaAccent" />
+            <button onclick="addAvatarFromUrlInput()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
           </div>
 
-          <label class="flex items-center justify-between gap-3 p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg cursor-pointer">
+          <label class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg cursor-pointer">
             <span class="text-[10px] text-slate-300 leading-tight">
               <strong class="text-white">Remove sprite-sheet background</strong><br>
               Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet. Turn off to keep the original cell background and remove it manually later.
             </span>
-            <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="w-4 h-4 accent-indigo-500 shrink-0" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
+            <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="w-4 h-4 accent-zetaAccent shrink-0" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
           </label>
-          <p class="text-[10px] text-slate-400 leading-tight">
+          <p class="text-[10px] text-[#b9a6ff]/70 leading-tight">
             Sprite sheets (4×4 grid) automatically extract 16 emotion poses and label them with expression names.
           </p>
         </div>
@@ -697,23 +700,23 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between px-1">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Character Photo Library</span>
-            <span id="avatarManagerCount" class="text-[10px] text-indigo-400 font-mono">0 Photos</span>
+            <span id="avatarManagerCount" class="text-[10px] text-zetaLight font-mono">0 Photos</span>
           </div>
           <div id="avatarManagerGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           </div>
         </div>
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-zetaCard/60 flex justify-end shrink-0">
-        <button onclick="closeAvatarManagerModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Close Library</button>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeAvatarManagerModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Close Library</button>
       </div>
     </div>
   </div>
 
   <!-- Setup Modal -->
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
-    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Presentation & Codex Settings</h2>
         <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
@@ -721,13 +724,13 @@
       <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm scroll-touch">
         <div class="space-y-1.5">
           <label class="block font-semibold text-slate-200">Google Gemini API Key <span class="text-rose-400">*</span></label>
-          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" />
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:outline-none focus:border-zetaAccent" />
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Text Model</label>
-            <select id="modelSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <select id="modelSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
               <option value="gemini-3.6-flash">gemini-3.6-flash (Recommended)</option>
               <option value="gemini-3.7-flash">gemini-3.7-flash</option>
               <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
@@ -736,11 +739,11 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Creativity (<span id="tempValue">0.85</span>)</label>
-            <input type="range" id="tempInput" min="0.2" max="1.3" step="0.05" value="0.85" oninput="document.getElementById('tempValue').innerText = this.value" class="w-full mt-2" />
+            <input type="range" id="tempInput" min="0.2" max="1.3" step="0.05" value="0.85" oninput="document.getElementById('tempValue').innerText = this.value" class="w-full mt-2 accent-zetaAccent" />
           </div>
           <div>
             <label class="block font-semibold text-slate-200 mb-1">Raw Token Window</label>
-            <select id="tokenThresholdSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <select id="tokenThresholdSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
               <option value="75000">75k Tokens (~350 Raw Turns)</option>
               <option value="120000" selected>120k Tokens (~600 Raw Turns - Optimal)</option>
               <option value="180000">180k Tokens (~900+ Raw Turns - Max Raw)</option>
@@ -748,25 +751,25 @@
           </div>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <!-- Presentation & Visual Novel Settings -->
-        <div class="space-y-3 p-3.5 bg-slate-900/80 rounded-xl border border-slate-800">
-          <h3 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+        <div class="space-y-3 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
+          <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px] flex items-center gap-1.5">
             <span>🎭</span> Presentation Mode & Visual Art Style
           </h3>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">Story View Mode</label>
-              <select id="viewModeSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs">
+              <select id="viewModeSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs focus:border-zetaAccent">
                 <option value="chat">💬 Chat Messenger (Turn Feed)</option>
                 <option value="vn">🎭 Visual Novel (Stage &amp; Large Sprites)</option>
               </select>
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">Default Visual Art Style</label>
-              <select id="artStyleSelect" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white text-xs">
+              <select id="artStyleSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs focus:border-zetaAccent">
                 <option value="Anime">Anime</option>
                 <option value="Cinematic Semi-Realistic">Cinematic Semi-Realistic</option>
                 <option value="Cyberpunk Neon">Cyberpunk Neon</option>
@@ -778,88 +781,88 @@
           </div>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <!-- User Identity -->
         <div class="space-y-2.5">
           <div class="flex items-center justify-between">
-            <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
-            <button type="button" onclick="generateCharacterPhoto('user')" class="bg-slate-800 hover:bg-emerald-700 text-emerald-300 border border-slate-700 text-[10px] px-2 py-1.5 rounded-lg">✨ Photo</button>
-            <button type="button" onclick="generateCharacterSpriteSheet('user')" class="bg-slate-800 hover:bg-amber-700 text-amber-300 border border-slate-700 text-[10px] px-2 py-1.5 rounded-lg">🎞️ Sheet</button>
-            <button type="button" onclick="openAvatarManager('user')" id="userPhotoManagerBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
+            <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">User Identity & Avatar</h3>
+            <button type="button" onclick="generateCharacterPhoto('user')" class="bg-zetaCard hover:bg-emerald-700 text-emerald-300 border border-zetaBorder text-[10px] px-2 py-1.5 rounded-lg">✨ Photo</button>
+            <button type="button" onclick="generateCharacterSpriteSheet('user')" class="bg-zetaCard hover:bg-amber-700 text-amber-300 border border-zetaBorder text-[10px] px-2 py-1.5 rounded-lg">🎞️ Sheet</button>
+            <button type="button" onclick="openAvatarManager('user')" id="userPhotoManagerBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
               <span>🖼️</span> <span>Photos (0)</span>
             </button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
-            <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
+            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
+            <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
           </div>
           <label class="block text-[11px] font-semibold text-slate-400">Persona</label>
-          <textarea id="userPersonaPersona" rows="2" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+          <textarea id="userPersonaPersona" rows="2" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent"></textarea>
           <label class="block text-[11px] font-semibold text-slate-400">Visual Profile</label>
-          <textarea id="userPersonaVisualProfile" rows="2" placeholder="Physical appearance, hair, eyes, clothing, body, visual traits..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
-          <div class="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg space-y-2">
-            <div class="flex items-center justify-between"><span class="text-[10px] font-bold uppercase tracking-wider text-amber-300">👔 Outfit Management</span><button type="button" onclick="addUserOutfit()" class="text-[10px] bg-slate-800 hover:bg-indigo-600 text-indigo-300 hover:text-white px-2 py-1 rounded">+ Add Outfit</button></div>
+          <textarea id="userPersonaVisualProfile" rows="2" placeholder="Physical appearance, hair, eyes, clothing, body, visual traits..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent"></textarea>
+          <div class="p-2.5 bg-[#181422] border border-zetaBorder rounded-lg space-y-2">
+            <div class="flex items-center justify-between"><span class="text-[10px] font-bold uppercase tracking-wider text-amber-300">👔 Outfit Management</span><button type="button" onclick="addUserOutfit()" class="text-[10px] bg-zetaCard hover:bg-zetaAccent text-zetaLight hover:text-white px-2 py-1 rounded">+ Add Outfit</button></div>
             <div class="flex items-center gap-2">
               <label class="text-[10px] text-slate-400 shrink-0">Current:</label>
-              <select id="userCurrentOutfit" onchange="setUserCurrentOutfit(this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white"></select>
+              <select id="userCurrentOutfit" onchange="setUserCurrentOutfit(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[10px] text-white focus:border-zetaAccent"></select>
             </div>
             <div id="userOutfitsSetup" class="space-y-2"></div>
           </div>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <!-- Cast & Characters -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Cast, Personas & Relationships</h3>
-            <button type="button" onclick="addCharacterRow()" class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-600/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
+            <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">Cast, Personas & Relationships</h3>
+            <button type="button" onclick="addCharacterRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
           </div>
           <div id="characterCardsContainer" class="space-y-3"></div>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <!-- Lorebook / World Codex Setup Editor -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5">
-              <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">📚 Lorebook & World Codex</h3>
+              <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">📚 Lorebook & World Codex</h3>
               <span class="text-[10px] text-slate-500 font-mono">(Keyword-Triggered)</span>
             </div>
-            <button type="button" onclick="addLorebookRow()" class="text-xs bg-indigo-600/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-600/50 px-2.5 py-1 rounded-md transition">+ Add Lore Entry</button>
+            <button type="button" onclick="addLorebookRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Lore Entry</button>
           </div>
           <div id="lorebookContainerSetup" class="space-y-3"></div>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <div class="space-y-2.5">
-          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
-          <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white" />
-          <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+          <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">Setting & Visual Aesthetic</h3>
+          <input type="text" id="scenarioTitle" placeholder="Scenario Title" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
+          <textarea id="scenarioSetting" rows="3" placeholder="Context, premise, environment, lighting aesthetic..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent"></textarea>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
         <div class="space-y-2.5">
-          <h3 class="font-bold text-indigo-400 uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
-          <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs"></textarea>
+          <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">Archived Chapter Recaps (Auto-Generated)</h3>
+          <textarea id="chapterRecapsText" rows="4" placeholder="Automatic chapter milestones and summaries will accumulate here..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-zetaAccent"></textarea>
         </div>
 
-        <hr class="border-slate-800" />
+        <hr class="border-zetaBorder" />
 
-        <div class="space-y-2.5 p-3.5 bg-slate-900/80 rounded-xl border border-slate-800">
-          <h3 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
-          <p class="text-[11px] text-slate-400">
+        <div class="space-y-2.5 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
+          <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
+          <p class="text-[11px] text-[#b9a6ff]/70">
             Export or restore a complete uncompressed JSON backfile containing your entire raw message archive, all scenarios, chapter milestones, lorebook codex, and avatars.
           </p>
           <div class="flex flex-wrap gap-2 pt-1">
-            <button type="button" onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-3 py-2 rounded-lg transition active:scale-95">
+            <button type="button" onclick="exportJsonBackup()" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-3 py-2 rounded-lg transition active:scale-95">
               📥 Export Full Backfile (.json)
             </button>
-            <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-lg cursor-pointer transition active:scale-95">
+            <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-3 py-2 rounded-lg cursor-pointer transition active:scale-95">
               📤 Restore Backfile
               <input type="file" accept=".json" onchange="importJsonBackup(event)" class="hidden" />
             </label>
@@ -867,23 +870,23 @@
         </div>
       </div>
 
-      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2 shrink-0">
-        <button onclick="closeModal('setupModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
-        <button onclick="saveSetupAndInit()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-lg shadow-indigo-600/30">Save & Start</button>
+      <div class="p-3 sm:p-4 border-t border-zetaBorder bg-zetaCard flex justify-end gap-2 shrink-0">
+        <button onclick="closeModal('setupModal')" class="bg-zetaBorder hover:bg-[#3f3554] text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
+        <button onclick="saveSetupAndInit()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-lg shadow-zetaAccent/30">Save & Start</button>
       </div>
     </div>
   </div>
 
   <!-- Import Modal -->
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
-    <div class="bg-zetaSidebar border border-slate-700 rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-zetaCard shrink-0">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import from Zeta App</h2>
         <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
       <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
-        <p class="text-[11px] sm:text-xs text-slate-400">
+        <p class="text-[11px] sm:text-xs text-[#b9a6ff]/70">
           Paste copied logs or a story transcript. Each speaker will automatically become their own message bubble with their respective avatar.
         </p>
 
@@ -891,18 +894,18 @@
           id="importTranscriptText"
           rows="8"
           placeholder="Lyra: &quot;Hey there.&quot;&#10;*Takes a seat beside you.*&#10;Me: &quot;Glad you made it.&quot;&#10;Guard: &quot;Keep it down!&quot;"
-          class="w-full bg-zetaInput border border-slate-700 rounded-lg p-3 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-3 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-zetaAccent"
         ></textarea>
 
         <div class="flex items-center gap-2">
-          <input type="checkbox" id="appendTranscriptCheck" class="rounded bg-zetaInput border-slate-700 text-indigo-600" checked />
+          <input type="checkbox" id="appendTranscriptCheck" class="rounded bg-zetaInput border-zetaBorder text-zetaAccent" checked />
           <label for="appendTranscriptCheck" class="text-xs text-slate-300">Append to current chat</label>
         </div>
       </div>
 
-      <div class="p-3 sm:p-4 border-t border-slate-800 bg-zetaCard flex justify-end gap-2 shrink-0">
-        <button onclick="closeModal('importModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
-        <button onclick="processZetaImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Story</button>
+      <div class="p-3 sm:p-4 border-t border-zetaBorder bg-zetaCard flex justify-end gap-2 shrink-0">
+        <button onclick="closeModal('importModal')" class="bg-zetaBorder hover:bg-[#3f3554] text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
+        <button onclick="processZetaImport()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Story</button>
       </div>
     </div>
   </div>
@@ -910,23 +913,22 @@
   <!-- Image Lightbox Modal -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
-      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-slate-800/90 border border-slate-700 text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
+      <div class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
         <img id="lightboxImg" src="" alt="Scene Preview" class="max-w-full max-h-[72vh] w-auto h-auto object-contain" />
       </div>
       <div class="text-center space-y-2 w-full">
         <p id="lightboxCaption" class="text-xs text-slate-300 italic max-w-xl mx-auto"></p>
         <div class="flex items-center justify-center gap-2 pt-1">
-          <button onclick="setCurrentImageAsScenarioCover()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
+          <button onclick="setCurrentImageAsScenarioCover()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow active:scale-95 inline-flex items-center gap-1.5">
             <span>🖼️</span> <span>Set as Scenario Cover</span>
           </button>
         </div>
       </div>
     </div>
   </div>
-
   <script>
     if (typeof marked !== 'undefined') {
       marked.setOptions({
