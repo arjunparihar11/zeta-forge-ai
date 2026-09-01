@@ -13,7 +13,7 @@
   <meta name="theme-color" content="#161922" />
 
   <!-- App Icon & Favicon -->
-  <link rel="apple-touch-icon" id="appleTouchIcon" href="./zetaforge.png" />
+  <link rel="apple-touch-icon" id="appleTouchIcon" href="./zetaforge.svg" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23161922'/%3E%3Cpath d='M290 80L140 280h110l-40 152 162-212H260z' fill='%236366f1'/%3E%3C/svg%3E" />
 
   <link rel="manifest" id="pwaManifest" />
@@ -43,142 +43,134 @@
   </script>
 
   <style>
-  html, body {
-    height: 100%;
-    height: 100dvh;
-    overflow: hidden;
-    overscroll-behavior: none;
-    background-color: #0f1117;
-  }
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background-color: #0f1117;
+    }
 
-  /* Added extra offset to push header below iOS Dynamic Island blur */
-  .header-safe {
-    padding-top: max(calc(env(safe-area-inset-top, 0px) + 12px), 16px);
-  }
+    .header-safe {
+      padding-top: max(env(safe-area-inset-top, 0px), 12px);
+    }
 
-  .bottom-safe {
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
-  }
+    .bottom-safe {
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+    }
 
-  .scroll-touch {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
-  }
+    .scroll-touch {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
 
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: #0f1117; }
-  ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
-  
-  .prose p { 
-    margin-top: 0;
-    margin-bottom: 0.6rem; 
-    line-height: 1.6; 
-  }
-  .prose p:last-child { 
-    margin-bottom: 0 !important; 
-  }
-  .prose > :first-child {
-    margin-top: 0 !important;
-  }
-  .prose > :last-child {
-    margin-bottom: 0 !important;
-  }
-  .prose em { color: #94a3b8; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
-  .prose strong { color: #f8fafc; }
-  textarea, input, select { -webkit-appearance: none; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: #2e3449; border-radius: 2px; }
+    
+    .prose p { 
+      margin-top: 0;
+      margin-bottom: 0.6rem; 
+      line-height: 1.6; 
+    }
+    .prose p:last-child { 
+      margin-bottom: 0 !important; 
+    }
+    .prose > :first-child {
+      margin-top: 0 !important;
+    }
+    .prose > :last-child {
+      margin-bottom: 0 !important;
+    }
+    .prose em { color: #94a3b8; font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
+    .prose strong { color: #f8fafc; }
+    textarea, input, select { -webkit-appearance: none; }
 
-  .typing-cursor::after {
-    content: '▋';
-    display: inline-block;
-    margin-left: 2px;
-    color: #818cf8;
-    animation: blink 0.8s infinite;
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-</style>
+    .typing-cursor::after {
+      content: '▋';
+      display: inline-block;
+      margin-left: 2px;
+      color: #818cf8;
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
 </head>
 <body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
   <!-- Top Header -->
-<header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
-  <div class="px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 flex-nowrap">
-    
-    <!-- Left: Sidebar Button, Raw Logo, and Text Stack -->
-    <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-      <!-- Mobile Sidebar Toggle -->
-      <button onclick="toggleMobileSidebar()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden text-sm" title="Dramatis Personae">
-        👥
-      </button>
-
-      <!-- Clean Logo (Sized to match button height, no wrapper/border) -->
-      <img src="./zetaforge.svg" alt="ZetaForge" class="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0" />
-
-      <!-- Title & Subtitle Stack -->
-      <div class="overflow-hidden flex-1 min-w-0">
-        <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight">ZetaForge</h1>
-        <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
-      </div>
-    </div>
-
-    <!-- Right: Controls & Menus -->
-    <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-      <!-- Visual Novel / Chat Mode Switcher Button -->
-      <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
-        <span id="viewModeIcon">🎭</span>
-        <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
-      </button>
-
-      <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
-      <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
-        <span>🖼️</span>
-        <span>Gallery</span>
-      </button>
-
-      <!-- Chapter Badge Button -->
-      <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
-        <span>📖</span>
-        <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
-        <span class="text-[10px] text-indigo-400">▾</span>
-      </button>
-
-      <!-- Desktop Expanded Utilities -->
-      <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
-        <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
-          <span>➕</span> <span>New</span>
+  <header class="bg-zetaSidebar border-b border-slate-800 header-safe shrink-0 z-40 shadow-md relative">
+    <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 overflow-hidden flex-1 min-w-0">
+        <button onclick="toggleMobileSidebar()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Dramatis Personae">
+          👥
         </button>
-        <button onclick="openModal('setupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
-          <span>⚙️</span> <span>Setup</span>
-        </button>
-        <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
-          <span>📥</span> <span>Import</span>
-        </button>
-        <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
-          <span>💾</span> <span>Export</span>
-        </button>
-        <button onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
-          <span>📦</span> <span>Backup</span>
-        </button>
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30 shrink-0">
+          ⚡
+        </div>
+        <div class="overflow-hidden flex-1 min-w-0 pr-1">
+          <h1 class="font-bold text-sm sm:text-base text-white tracking-wide truncate leading-tight flex items-center gap-2"><img src="./zetaforge.svg" alt="ZetaForge" class="w-6 h-6 object-contain" />ZetaForge</h1>
+          <p class="text-[11px] text-slate-400 truncate leading-tight" id="headerScenarioTitle">Uninitialized Scenario</p>
+        </div>
       </div>
 
-      <!-- Mobile Menu Button -->
-      <button onclick="toggleMenuDrawer(true)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
-        ☰
-      </button>
+      <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <!-- Visual Novel / Chat Mode Switcher Button -->
+        <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
+          <span id="viewModeIcon">🎭</span>
+          <span id="viewModeText" class="hidden sm:inline font-semibold">VN View</span>
+        </button>
+
+        <!-- Desktop Only Gallery Button (Hidden on Mobile) -->
+        <button onclick="openImageLibraryModal()" id="imageLibraryBtn" class="hidden md:flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl font-medium items-center gap-1.5 shadow transition active:scale-95" title="Scenario Image Gallery">
+          <span>🖼️</span>
+          <span>Gallery</span>
+        </button>
+
+        <!-- Chapter Badge Button -->
+        <button onclick="toggleChapterDrawer(true)" id="chapterBadgeBtn" class="bg-indigo-950 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-700/70 text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95">
+          <span>📖</span>
+          <span id="chapterBadgeText" class="font-semibold">Ch. 1</span>
+          <span class="text-[10px] text-indigo-400">▾</span>
+        </button>
+
+        <!-- Desktop Expanded Utilities -->
+        <div class="hidden md:flex items-center gap-1.5 pl-1 border-l border-slate-800">
+          <button onclick="createNewScenarioFlow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="New Scenario">
+            <span>➕</span> <span>New</span>
+          </button>
+          <button onclick="openModal('setupModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
+            <span>⚙️</span> <span>Setup</span>
+          </button>
+          <button onclick="openModal('importModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
+            <span>📥</span> <span>Import</span>
+          </button>
+          <button onclick="exportStory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
+            <span>💾</span> <span>Export</span>
+          </button>
+          <button onclick="exportJsonBackup()" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
+            <span>📦</span> <span>Backup</span>
+          </button>
+        </div>
+
+        <button onclick="toggleMenuDrawer(true)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 border border-slate-700 active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
+          ☰
+        </button>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
   <!-- Main Viewport -->
   <div class="flex-1 flex overflow-hidden relative min-h-0">
