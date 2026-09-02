@@ -47,6 +47,51 @@
   </script>
 
   <style>
+
+    :root {
+      --zeta-accent: #7c65e8;
+      --zeta-accent-hover: #6650d6;
+      --zeta-glow: #9a89f7;
+      --zeta-light: #d2c6ff;
+      --zeta-bg: #131118;
+      --zeta-sidebar: #1a1622;
+      --zeta-card: #221d2e;
+      --zeta-input: #1d1827;
+      --zeta-border: #322a44;
+      --zeta-user: #392f4e;
+    }
+    html.light-mode, body.light-mode {
+      --zeta-bg: #f5f5f8;
+      --zeta-sidebar: #ffffff;
+      --zeta-card: #eeeef4;
+      --zeta-input: #ffffff;
+      --zeta-border: #d5d5df;
+      --zeta-user: #e6e0f5;
+      color-scheme: light;
+    }
+    body.light-mode { color: #252533; background: var(--zeta-bg); }
+    body.light-mode .bg-zetaBg { background-color: var(--zeta-bg) !important; }
+    body.light-mode .bg-zetaSidebar { background-color: var(--zeta-sidebar) !important; }
+    body.light-mode .bg-zetaCard { background-color: var(--zeta-card) !important; }
+    body.light-mode .bg-zetaInput { background-color: var(--zeta-input) !important; }
+    body.light-mode .border-zetaBorder { border-color: var(--zeta-border) !important; }
+    body.light-mode .text-white { color: #20202a !important; }
+    body.light-mode .text-slate-200 { color: #30303b !important; }
+    body.light-mode .text-slate-300 { color: #464652 !important; }
+    body.light-mode .text-slate-400 { color: #646472 !important; }
+    body.light-mode .text-slate-500 { color: #777784 !important; }
+    body.light-mode .bg-black\/60, body.light-mode .bg-black\/70, body.light-mode .bg-black\/80 { background-color: rgb(20 20 30 / .58) !important; }
+    body.light-mode .prose strong { color: #22222c !important; }
+    body.light-mode .prose em { color: color-mix(in srgb, var(--zeta-accent) 75%, #000 25%); }
+    body.light-mode ::-webkit-scrollbar-track { background: #e7e7ee; }
+    body.light-mode ::-webkit-scrollbar-thumb { background: #c5c5d2; }
+    .theme-color-input { width: 54px; height: 34px; padding: 2px; border-radius: 10px; cursor: pointer; background: var(--zeta-card); border: 1px solid var(--zeta-border); }
+    .vn-bg-fade { animation: vnBackdropFade .55s ease both; }
+    @keyframes vnBackdropFade { from { opacity: .15; transform: scale(1.015); } to { opacity: .6; transform: scale(1); } }
+    .vn-progress-track { height: 3px; border-radius: 999px; background: rgb(255 255 255 / .12); overflow: hidden; }
+    .vn-progress-fill { height: 100%; border-radius: inherit; background: var(--zeta-accent); transition: width .35s ease; }
+    .virtual-chat-spacer { width: 100%; pointer-events: none; }
+
     html, body {
       height: 100%;
       height: 100dvh;
@@ -67,14 +112,6 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
       touch-action: pan-y;
-    }
-
-    /* Horizontal variant of .scroll-touch — used by strips that scroll sideways
-       (e.g. the character photo library) so touch swipes pan-x instead of pan-y. */
-    .scroll-touch-x {
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-x: contain;
-      touch-action: pan-x;
     }
 
     .no-scrollbar::-webkit-scrollbar {
@@ -120,7 +157,7 @@
     }
   </style>
 </head>
-<body class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
+<body id="appBody" class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
   <!-- Top Header -->
   <header class="bg-zetaSidebar border-b border-zetaBorder header-safe shrink-0 z-40 shadow-md relative">
@@ -175,12 +212,10 @@
           <button onclick="openModal('importModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
             <span>📥</span> <span>Import</span>
           </button>
-          <button onclick="exportStory()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
+          <button onclick="openModal('exportModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
             <span>💾</span> <span>Export</span>
           </button>
-          <button onclick="exportJsonBackup()" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Full JSON Backup">
-            <span>📦</span> <span>Backup</span>
-          </button>
+
         </div>
 
         <!-- Mobile Menu Button -->
@@ -254,6 +289,7 @@
           <span id="summaryChapterTitle" class="text-[11px] font-bold text-zetaLight uppercase tracking-wider">Chapter Summary</span>
           <div class="flex items-center gap-1.5">
             <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
+            <button onclick="archiveCurrentChapterManually()" class="text-[10px] bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder px-2 py-0.5 rounded transition active:scale-95" title="Archive current chapter now">📚 Archive</button>
             <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-zetaAccent/30 hover:bg-zetaAccent/50 text-zetaLight border border-zetaAccent/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
               ✨ <span id="refreshArcsBtnText">Re-Analyze</span>
             </button>
@@ -315,7 +351,7 @@
             <span class="text-base leading-none mb-1">📥</span>
             <span>Import</span>
           </button>
-          <button onclick="exportStory()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
+          <button onclick="openModal('exportModal')" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
             <span class="text-base leading-none mb-1">💾</span>
             <span>Export</span>
           </button>
@@ -333,7 +369,7 @@
       </div>
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/40 flex items-center justify-between text-xs text-slate-400 shrink-0">
-        <button onclick="exportJsonBackup()" class="text-zetaLight hover:text-white font-medium">📦 Full JSON Backup</button>
+        <span class="text-[10px] text-slate-500">Import/export from the buttons above</span>
         <button onclick="toggleMenuDrawer(false)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 px-3 py-1.5 rounded-lg">Close</button>
       </div>
     </div>
@@ -342,6 +378,10 @@
     <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0" onclick="skipTypewriter()">
       
       <!-- MODE A: Standard Chat Messages Container -->
+      <div id="messageSearchBar" class="hidden px-3 sm:px-6 pt-2 max-w-4xl mx-auto w-full shrink-0">
+        <div class="flex items-center gap-2"><input id="messageSearchInput" type="search" placeholder="🔎 Search current history by speaker or keyword..." oninput="filterMessageArchive(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent" /><button onclick="toggleMessageSearch(false)" class="text-[10px] text-slate-500 hover:text-white">Close</button></div>
+        <div id="messageSearchResults" class="text-[10px] text-slate-500 py-1"></div>
+      </div>
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full scroll-touch min-h-0">
         <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3">
           <div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div>
@@ -368,9 +408,16 @@
 
         <!-- Top Stage Scene Bar -->
         <div class="relative z-20 flex items-center justify-between gap-2 max-w-4xl mx-auto w-full pointer-events-auto">
-          <span class="bg-[#1a1622]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zetaBorder text-[11px] font-semibold text-zetaLight shadow">
+          <div class="flex-1 min-w-0 mr-2">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="bg-[#1a1622]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zetaBorder text-[11px] font-semibold text-zetaLight shadow truncate">
+
             🎭 <span id="vnSceneTitle" class="text-white">Scene Stage</span>
-          </span>
+              </span>
+              <span id="vnChapterIndicator" class="text-[10px] text-zetaGlow font-mono shrink-0">Ch. 1</span>
+            </div>
+            <div class="vn-progress-track"><div id="vnProgressFill" class="vn-progress-fill" style="width:0%"></div></div>
+          </div>
           <div class="flex items-center gap-1.5">
             <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
@@ -378,6 +425,10 @@
             <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
             </button>
+            <label class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow cursor-pointer" title="Choose a local VN background">
+              <span>📂</span> <span class="hidden sm:inline">Local BG</span>
+              <input type="file" accept="image/*" class="hidden" onchange="setManualVnBackground(event)" />
+            </label>
             <button onclick="toggleStoryViewMode()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs px-2.5 py-1.5 rounded-xl font-medium transition active:scale-95 shadow">
               💬 <span class="hidden sm:inline">Chat View</span>
             </button>
@@ -427,6 +478,7 @@
         <div class="max-w-4xl mx-auto space-y-2">
           
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <button onclick="toggleMessageSearch(true)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder shrink-0" title="Search message history">🔎 Search</button>
             <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
               <span>📜</span> <span id="narrateToggleText">Narrate</span>
             </button>
@@ -539,7 +591,7 @@
           <div class="flex sm:flex-col gap-2 shrink-0">
             <button type="button" onclick="generateSpotlightCharacterPhoto()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✨ Photo</button>
             <button type="button" onclick="generateSpotlightCharacterSpriteSheet()" class="bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">🎞️ Sheet</button>
-            <button type="button" id="spotlightCropChatBtn" onclick="openChatAvatarCropModal()" class="hidden bg-sky-700 hover:bg-sky-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow" title="Crop the default portrait for use in text chat bubbles only">✂️ Crop Chat</button>
+            <button type="button" onclick="openChatAvatarCropper()" class="bg-indigo-700 hover:bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✂️ Crop Chat</button>
           </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
             <div class="flex items-center justify-center sm:justify-start gap-2">
@@ -617,16 +669,16 @@
         <h3 class="text-sm font-bold text-white">✏️ Edit Character Dossier</h3>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Name</label>
-          <input type="text" id="spotlightEditName" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
+          <input type="text" id="spotlightEditName" oninput="autoSaveSpotlightField('name', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div class="space-y-1">
             <label class="text-[11px] font-semibold text-slate-400">Archetype / Role Tags</label>
-            <input type="text" id="spotlightEditRole" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
+            <input type="text" id="spotlightEditRole" oninput="autoSaveSpotlightField('role', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
           </div>
           <div class="space-y-1">
             <label class="text-[11px] font-semibold text-slate-400">Current Mood</label>
-            <input type="text" id="spotlightEditMood" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-amber-300 focus:border-zetaAccent" />
+            <input type="text" id="spotlightEditMood" oninput="autoSaveSpotlightField('mood', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-amber-300 focus:border-zetaAccent" />
           </div>
         </div>
         <div class="space-y-1">
@@ -639,16 +691,14 @@
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Current Outfit</label>
-          <select id="spotlightEditOutfit" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></select>
+          <select id="spotlightEditOutfit" onchange="autoSaveSpotlightField('currentOutfitId', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></select>
         </div>
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Relationship to User</label>
-          <input type="text" id="spotlightEditRelationship" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-zetaGlow focus:border-zetaAccent" />
+          <input type="text" id="spotlightEditRelationship" oninput="autoSaveSpotlightField('relationship', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-zetaGlow focus:border-zetaAccent" />
         </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-zetaBorder">
-          <button type="button" onclick="toggleSpotlightEditMode(false)" class="px-3 py-1.5 bg-zetaCard hover:bg-zetaBorder text-slate-300 rounded-xl text-xs">Cancel</button>
-          <button type="button" onclick="saveSpotlightEdits()" class="px-4 py-1.5 bg-zetaAccent hover:bg-zetaAccentHover text-white font-semibold rounded-xl text-xs shadow">Save Dossier</button>
-        </div>
+        <div class="space-y-1"><label class="text-[11px] font-semibold text-slate-400">Voice</label><select id="spotlightEditVoice" onchange="autoSaveSpotlightField('ttsVoice', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"><option value="">Voice Off</option></select></div>
+        <p class="text-[10px] text-slate-500 border-t border-zetaBorder pt-2">Changes save automatically while typing.</p>
       </div>
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0" id="spotlightFooterBar">
@@ -670,13 +720,38 @@
         <p id="characterPhotoCaption" class="text-[11px] text-slate-400"></p>
       </div>
       <div id="characterPhotoDefaultBtnWrap" class="w-full"></div>
-      <div class="relative w-full">
-        <button type="button" onclick="scrollCharacterPhotoThumbs(-1)" class="flex absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-zetaCard/95 border border-zetaBorder text-slate-200 items-center justify-center text-sm shadow active:scale-95" aria-label="Scroll photos left">‹</button>
-        <div id="characterPhotoThumbStrip" class="w-full flex items-stretch gap-2 overflow-x-auto overflow-y-hidden p-1 snap-x snap-mandatory scroll-touch-x no-scrollbar">
-        </div>
-        <button type="button" onclick="scrollCharacterPhotoThumbs(1)" class="flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-zetaCard/95 border border-zetaBorder text-slate-200 items-center justify-center text-sm shadow active:scale-95" aria-label="Scroll photos right">›</button>
+      <div id="characterPhotoThumbStrip" class="w-full max-h-[18vh] overflow-x-auto overflow-y-hidden flex gap-2 p-1 snap-x snap-mandatory no-scrollbar">
       </div>
-      <p class="text-[10px] text-[#b9a6ff]/70">Tap a thumbnail to preview it above. Scroll or use the arrows to see more. Swipe down or tap outside to return.</p>
+      <p class="text-[10px] text-[#b9a6ff]/70">Tap a thumbnail to preview it above. Swipe down or tap outside to return.</p>
+    </div>
+  </div>
+
+  <!-- Text Chat Avatar Cropper: stores a separate cropped copy and never overwrites the library/default image. -->
+  <div id="chatAvatarCropModal" onclick="closeChatAvatarCropper(event)" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[90] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div>
+          <h2 class="text-sm font-bold text-white">✂️ Crop for Text Chat</h2>
+          <p id="chatAvatarCropTitle" class="text-[10px] text-slate-500 mt-0.5">Creates a separate chat-only portrait.</p>
+        </div>
+        <button type="button" onclick="closeChatAvatarCropper()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-4">
+        <div class="rounded-xl border border-zetaBorder bg-black p-2 flex items-center justify-center">
+          <canvas id="chatAvatarCropCanvas" class="max-w-full max-h-[42vh] object-contain rounded-lg"></canvas>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="text-[10px] text-slate-400">Left <input id="chatCropX" type="range" min="0" max="100" value="0" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Top <input id="chatCropY" type="range" min="0" max="100" value="0" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Width <input id="chatCropW" type="range" min="10" max="100" value="100" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Height <input id="chatCropH" type="range" min="10" max="100" value="100" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+        </div>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Only the cropped copy is used by text chat. The original default portrait in the character library is never changed.</p>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex gap-2 justify-end shrink-0">
+        <button type="button" onclick="clearChatAvatarCrop()" class="px-3 py-2 bg-zetaCard hover:bg-zetaBorder text-slate-300 rounded-xl text-xs">Use Default</button>
+        <button type="button" onclick="applyChatAvatarCrop()" class="px-4 py-2 bg-zetaAccent hover:bg-zetaAccentHover text-white font-semibold rounded-xl text-xs shadow">Save Chat Crop</button>
+      </div>
     </div>
   </div>
 
@@ -709,17 +784,15 @@
             <button onclick="addAvatarFromUrlInput()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
           </div>
 
-          <label class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg cursor-pointer">
+          <div class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg">
             <span class="text-[10px] text-slate-300 leading-tight">
               <strong class="text-white">Remove sprite-sheet background</strong><br>
               Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet. Turn off to keep the original cell background and remove it manually later.
             </span>
-            <span class="relative inline-flex items-center shrink-0 w-9 h-5">
-              <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="peer sr-only" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
-              <span class="absolute inset-0 rounded-full bg-zetaBorder peer-checked:bg-zetaAccent transition-colors duration-200 pointer-events-none"></span>
-              <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-4 pointer-events-none"></span>
-            </span>
-          </label>
+            <button type="button" id="spriteSheetRemoveBackgroundToggle" role="switch" aria-checked="true" class="relative inline-flex w-10 h-5 shrink-0 rounded-full bg-zetaAccent transition focus:outline-none focus:ring-2 focus:ring-zetaAccent/50" onclick="toggleSpriteSheetBackgroundRemoval()" title="Toggle sprite-sheet background removal">
+              <span class="absolute top-0.5 left-[22px] w-4 h-4 rounded-full bg-white shadow transition-transform"></span>
+            </button>
+          </div>
           <p class="text-[10px] text-[#b9a6ff]/70 leading-tight">
             Sprite sheets (4×4 grid) automatically extract 16 emotion poses and label them with expression names.
           </p>
@@ -738,34 +811,6 @@
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
         <button onclick="closeAvatarManagerModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Save & Close Library</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Chat Avatar Crop Modal: crops the character's current default portrait for
-       use in text-chat message bubbles ONLY — the library default portrait is
-       never modified or overwritten by this. -->
-  <div id="chatAvatarCropModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[80] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div class="relative max-w-md w-full flex flex-col items-center gap-3">
-      <div class="w-full flex items-center justify-between">
-        <h4 class="text-sm font-bold text-white flex items-center gap-1.5"><span>✂️</span> Crop for Text Chat</h4>
-        <button onclick="closeChatAvatarCropModal()" class="w-8 h-8 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 hover:text-white flex items-center justify-center text-lg font-bold shadow-lg transition active:scale-95">&times;</button>
-      </div>
-      <p class="text-[11px] text-slate-400 text-center leading-snug -mt-1">
-        Drag to move, drag the corner handle to resize. This only changes how this character appears in text-chat bubbles — their library default portrait is unaffected.
-      </p>
-      <div id="chatAvatarCropStage" class="relative w-full aspect-square bg-black rounded-xl overflow-hidden border border-zetaBorder shadow-2xl select-none" style="touch-action:none;">
-        <img id="chatAvatarCropImg" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Portrait to crop" />
-        <div id="chatAvatarCropBox" onpointerdown="startChatAvatarCropDrag(event,'move')" class="absolute border-2 border-zetaAccent shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move">
-          <div onpointerdown="startChatAvatarCropDrag(event,'resize')" class="absolute -right-2.5 -bottom-2.5 w-6 h-6 rounded-full bg-zetaAccent border-2 border-white shadow flex items-center justify-center" style="cursor:nwse-resize;">
-            <span class="text-white text-[9px] pointer-events-none">⤡</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-2 w-full">
-        <button type="button" onclick="closeChatAvatarCropModal()" class="flex-1 bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Cancel</button>
-        <button type="button" onclick="confirmChatAvatarCrop()" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white py-2 rounded-xl text-xs font-semibold shadow transition active:scale-95">✂️ Save Chat Crop</button>
-      </div>
-      <button type="button" id="chatAvatarCropResetBtn" onclick="resetChatAvatarCrop()" class="hidden text-[10px] text-slate-400 hover:text-rose-400 underline decoration-dotted underline-offset-2 transition">Remove custom chat crop (use default portrait)</button>
     </div>
   </div>
 
@@ -805,6 +850,37 @@
               <option value="120000" selected>120k Tokens (~600 Raw Turns - Optimal)</option>
               <option value="180000">180k Tokens (~900+ Raw Turns - Max Raw)</option>
             </select>
+          </div>
+        </div>
+
+        <hr class="border-zetaBorder" />
+
+        <!-- Interface Appearance & VN Reading Settings -->
+        <div class="space-y-3 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
+          <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px] flex items-center gap-1.5"><span>🎨</span> Interface & Reading</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">UI Theme</label>
+              <button type="button" id="themeModeToggle" onclick="toggleThemeMode()" role="switch" aria-checked="false" class="w-full flex items-center justify-between bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs transition">
+                <span id="themeModeLabel">🌙 Dark Mode</span><span id="themeModeKnob" class="w-8 h-5 rounded-full bg-zetaAccent relative"><span class="absolute left-1 top-1 w-3 h-3 rounded-full bg-white transition-transform"></span></span>
+              </button>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">Accent Color</label>
+              <div class="flex items-center gap-2">
+                <input id="accentColorPicker" type="color" value="#7c65e8" class="theme-color-input" oninput="applyAccentColor(this.value)" aria-label="Pick accent color" />
+                <span id="accentColorValue" class="text-[10px] text-slate-400 font-mono">#7C65E8</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">Voice Acting</label>
+              <button type="button" onclick="appState.ttsEnabled=!appState.ttsEnabled; this.innerText=appState.ttsEnabled?'🔊 Voice Acting: On':'🔇 Voice Acting: Off'; saveState()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">VN Auto-Play Reading Speed <span id="vnSpeedValue">1.0×</span></label>
+              <input type="range" id="vnSpeedInput" min="0.5" max="2" step="0.1" value="1" oninput="applyVnReadingSpeed(this.value)" class="w-full mt-2 accent-zetaAccent" />
+              <p class="text-[10px] text-slate-500 mt-1">Higher values advance faster.</p>
+            </div>
           </div>
         </div>
 
@@ -853,6 +929,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
+            <select id="userTtsVoice" onchange="getActiveScenario().userPersona.ttsVoice=this.value;saveState()" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent"><option value="">🔊 Voice Off</option></select>
           </div>
           <label class="block text-[11px] font-semibold text-slate-400">Persona</label>
           <textarea id="userPersonaPersona" rows="2" placeholder="Personality, motivations, history, lore important to the story..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent"></textarea>
@@ -910,20 +987,8 @@
 
         <hr class="border-zetaBorder" />
 
-        <div class="space-y-2.5 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
-          <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px]">📦 Local Database & Raw Backfile</h3>
-          <p class="text-[11px] text-[#b9a6ff]/70">
-            Export or restore a complete uncompressed JSON backfile containing your entire raw message archive, all scenarios, chapter milestones, lorebook codex, and avatars.
-          </p>
-          <div class="flex flex-wrap gap-2 pt-1">
-            <button type="button" onclick="exportJsonBackup()" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-3 py-2 rounded-lg transition active:scale-95">
-              📥 Export Full Backfile (.json)
-            </button>
-            <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-3 py-2 rounded-lg cursor-pointer transition active:scale-95">
-              📤 Restore Backfile
-              <input type="file" accept=".json" onchange="importJsonBackup(event)" class="hidden" />
-            </label>
-          </div>
+        <div class="p-3.5 bg-[#181422] rounded-xl border border-zetaBorder text-[10px] text-slate-500">
+          Full scenario backup/restore is now available from the Import and Export menus in the top navigation.
         </div>
       </div>
 
@@ -938,31 +1003,49 @@
   <div id="importModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
-        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import from Zeta App</h2>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import Story Data</h2>
         <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
-
-      <div class="p-4 sm:p-6 space-y-3 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
-        <p class="text-[11px] sm:text-xs text-[#b9a6ff]/70">
-          Paste copied logs or a story transcript. Each speaker will automatically become their own message bubble with their respective avatar.
-        </p>
-
-        <textarea
-          id="importTranscriptText"
-          rows="8"
-          placeholder="Lyra: &quot;Hey there.&quot;&#10;*Takes a seat beside you.*&#10;Me: &quot;Glad you made it.&quot;&#10;Guard: &quot;Keep it down!&quot;"
-          class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-3 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-zetaAccent"
-        ></textarea>
-
-        <div class="flex items-center gap-2">
+      <div class="p-4 sm:p-6 space-y-4 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button type="button" onclick="setImportMode('text')" id="importModeText" class="bg-zetaAccent text-white border border-zetaAccent rounded-xl px-3 py-2 text-xs font-semibold">Zeta App Text</button>
+          <button type="button" onclick="setImportMode('md')" id="importModeMd" class="bg-zetaCard text-slate-300 border border-zetaBorder rounded-xl px-3 py-2 text-xs font-semibold">ZetaForge Markdown</button>
+          <button type="button" onclick="setImportMode('json')" id="importModeJson" class="bg-zetaCard text-slate-300 border border-zetaBorder rounded-xl px-3 py-2 text-xs font-semibold">ZetaForge JSON</button>
+        </div>
+        <div id="importTextPanel" class="space-y-3">
+          <p class="text-[11px] text-[#b9a6ff]/70">Paste copied Zeta app logs. Speakers become message entries automatically.</p>
+          <textarea id="importTranscriptText" rows="10" placeholder="Lyra: "Hey there."
+*She smiles.*
+Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-3 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-zetaAccent"></textarea>
+        </div>
+        <div id="importMdPanel" class="hidden space-y-3">
+          <p class="text-[11px] text-[#b9a6ff]/70">Choose a Markdown transcript exported by ZetaForge.</p>
+          <label class="block bg-zetaCard border border-zetaBorder rounded-xl p-4 text-center cursor-pointer hover:bg-zetaBorder"><span>📄 Select .md file</span><input type="file" id="importMdFile" accept=".md,.markdown,text/markdown" class="hidden" onchange="processMarkdownImport(event)" /></label>
+        </div>
+        <div id="importJsonPanel" class="hidden space-y-3">
+          <p class="text-[11px] text-[#b9a6ff]/70">Restore all scenarios or a single ZetaForge scenario JSON export.</p>
+          <label class="block bg-zetaCard border border-zetaBorder rounded-xl p-4 text-center cursor-pointer hover:bg-zetaBorder"><span>🧩 Select .json file</span><input type="file" id="importJsonFile" accept=".json,application/json" class="hidden" onchange="importJsonBackup(event)" /></label>
+        </div>
+        <div class="flex items-center gap-2" id="importAppendWrap">
           <input type="checkbox" id="appendTranscriptCheck" class="rounded bg-zetaInput border-zetaBorder text-zetaAccent" checked />
           <label for="appendTranscriptCheck" class="text-xs text-slate-300">Append to current chat</label>
         </div>
       </div>
-
       <div class="p-3 sm:p-4 border-t border-zetaBorder bg-zetaCard flex justify-end gap-2 shrink-0">
-        <button onclick="closeModal('importModal')" class="bg-zetaBorder hover:bg-[#3f3554] text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Cancel</button>
-        <button onclick="processZetaImport()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Story</button>
+        <button onclick="closeModal('importModal')" class="bg-zetaBorder hover:bg-[#3f3554] text-slate-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium">Close</button>
+        <button onclick="processImportMode()" id="importActionBtn" class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-medium shadow">Import Text</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><h2 class="text-sm font-bold text-white">📤 Export ZetaForge</h2><button onclick="closeModal('exportModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button></div>
+      <div class="p-4 sm:p-5 space-y-2">
+        <button onclick="performExport('all-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📦 All Scenarios — JSON</div><div class="text-[10px] text-slate-500 mt-1">Complete app backup including every scenario.</div></button>
+        <button onclick="performExport('scenario-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">🧩 Current Scenario — JSON</div><div class="text-[10px] text-slate-500 mt-1">Portable single-scenario backup.</div></button>
+        <button onclick="performExport('scenario-md')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📝 Current Scenario — Markdown</div><div class="text-[10px] text-slate-500 mt-1">Human-readable transcript.</div></button>
       </div>
     </div>
   </div>
@@ -1133,6 +1216,7 @@
         viewMode: 'chat',
         artStyle: 'Anime',
         vnBackground: '',
+        manualVnBackground: '',
         userPersona: {
           name: 'Bob',
           role: 'Middle-aged businessman',
@@ -1188,7 +1272,7 @@
     const LOREBOOK_INJECTION_LIMIT = 5;
     const RECAP_COMPACTION_THRESHOLD = 12;
     const RECAP_COMPACTION_BATCH = 6;
-    const CONTEXT_CACHE_TTL_SECONDS = 1800;
+    const CONTEXT_CACHE_TTL_SECONDS = 3600;
     const CONTEXT_CACHE_MIN_TOKENS = 4096;
     // Background maintenance can tolerate extra latency, so use Google's Flex
     // inference tier where supported; this is separate from the interactive turn.
@@ -1217,6 +1301,10 @@
       temperature: 0.85,
       tokenThreshold: 120000,
       removeSpriteSheetBackground: true,
+      themeMode: 'dark',
+      accentColor: '#7c65e8',
+      ttsEnabled: false,
+      vnReadingSpeed: 1,
       activeScenarioId: 'default_scen',
       scenarios: [],
       usageStats: {
@@ -1244,6 +1332,9 @@
     let vnTypewriterGeneration = 0;
     let isVnAutoPlaying = false;
     let vnAutoTimeout = null;
+    let vnSpeechToken = 0;
+    let lastVnBackground = '';
+    let selectedImportMode = 'text';
 
     let isNarrateModeActive = false;
     let activeSuggestedReplies = [];
@@ -1323,6 +1414,10 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       await loadState();
+      applyThemeMode(appState.themeMode || 'dark');
+      applyAccentColor(appState.accentColor || '#7c65e8');
+      appState.vnReadingSpeed = Number(appState.vnReadingSpeed || 1);
+      appState.ttsEnabled = !!appState.ttsEnabled;
       ensureActiveScenario();
       closeAllDrawers();
       closeImageLibraryModal();
@@ -1395,16 +1490,21 @@
       };
     }
 
-    async function saveState() {
+    let saveStateTimer = null;
+    let saveStatePending = null;
+    async function flushSaveState() {
       const active = getActiveScenario();
-      if (active) {
-        active.updatedAt = Date.now();
-        syncLocalMemoryIndex(active);
-      }
-      if (appState.activeScenarioId) {
-        localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
-      }
+      if (active) { active.updatedAt = Date.now(); syncLocalMemoryIndex(active); }
+      if (appState.activeScenarioId) localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
       await saveStateDb(appState);
+    }
+    function saveState(immediate = false) {
+      if (saveStateTimer) clearTimeout(saveStateTimer);
+      if (immediate) return flushSaveState();
+      saveStatePending = new Promise(resolve => {
+        saveStateTimer = setTimeout(async () => { saveStateTimer = null; try { await flushSaveState(); } finally { resolve(); saveStatePending = null; } }, 700);
+      });
+      return saveStatePending;
     }
 
     async function loadState() {
@@ -1456,6 +1556,9 @@
         appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
       }
       if (!appState.model) appState.model = MODEL_ROUTINE_DEFAULT;
+      if (!['light','dark'].includes(appState.themeMode)) appState.themeMode = 'dark';
+      if (!/^#[0-9a-f]{6}$/i.test(appState.accentColor || '')) appState.accentColor = '#7c65e8';
+      if (!Number.isFinite(Number(appState.vnReadingSpeed))) appState.vnReadingSpeed = 1;
 
       ensureActiveScenario();
 
@@ -1469,6 +1572,7 @@
         s.userPersona.outfits = Array.isArray(s.userPersona.outfits) ? s.userPersona.outfits : [];
         s.userPersona.outfits.forEach(o => { if (!o.id) o.id = 'outfit_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); o.name = o.name || 'Outfit'; o.triggers = o.triggers || ''; o.description = o.description || ''; });
         s.userPersona.currentOutfitId = s.userPersona.currentOutfitId || '';
+        s.userPersona.ttsVoice = s.userPersona.ttsVoice || '';
         if (!s.sideCharacterProfiles) s.sideCharacterProfiles = {};
         (s.characters || []).forEach(c => {
           c.persona = c.persona || c.personality || '';
@@ -1476,6 +1580,7 @@
           c.outfits = Array.isArray(c.outfits) ? c.outfits : [];
           c.outfits.forEach(o => { if (!o.id) o.id = 'outfit_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); o.name = o.name || 'Outfit'; o.triggers = o.triggers || ''; o.description = o.description || ''; });
           c.currentOutfitId = c.currentOutfitId || '';
+          c.ttsVoice = c.ttsVoice || '';
         });
         s.suggestionCache = s.suggestionCache || null;
         if (!Array.isArray(s.archivedRecapsRaw)) s.archivedRecapsRaw = Array.isArray(s.archivedRecaps) ? s.archivedRecaps.slice() : [];
@@ -1540,126 +1645,6 @@
       });
       return Math.ceil(totalChars / 3.8);
     }
-
-    function recordTextUsage(model, data, fallbackInputText = '', fallbackMaxOutput = 0) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      const meta = (data && data.usageMetadata) || {};
-      const totalPromptTokens = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : estimateTokens(fallbackInputText);
-      const outputTokens = typeof meta.candidatesTokenCount === 'number' ? meta.candidatesTokenCount : fallbackMaxOutput;
-      const cachedTokens = typeof meta.cachedContentTokenCount === 'number' ? meta.cachedContentTokenCount : (typeof meta.totalCachedTokens === 'number' ? meta.totalCachedTokens : 0);
-      const inputTokens = Math.max(0, totalPromptTokens - cachedTokens);
-      if (cachedTokens > 0) {
-        appState.usageStats.cachedInputTokens += cachedTokens;
-        appState.usageStats.cacheHits += 1;
-      }
-      if (model === MODEL_ADVANCED) {
-        appState.usageStats.advancedInputTokens += inputTokens;
-        appState.usageStats.advancedOutputTokens += outputTokens;
-      } else {
-        appState.usageStats.routineInputTokens += inputTokens;
-        appState.usageStats.routineOutputTokens += outputTokens;
-      }
-    }
-
-    function recordImageUsage(kind) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      if (kind === '4K') appState.usageStats.images4K += 1;
-      else appState.usageStats.images1K += 1;
-    }
-
-    function capSliceToTokenBudget(slice, budgetTokens) {
-      if (!slice || slice.length === 0) return slice;
-      const kept = [];
-      let totalChars = 0;
-      const minKeep = 6; // always keep at least a few most-recent turns
-      for (let i = slice.length - 1; i >= 0; i--) {
-        const m = slice[i];
-        const chars = (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
-        if (kept.length >= minKeep && Math.ceil((totalChars + chars) / 3.8) > budgetTokens) break;
-        kept.unshift(m);
-        totalChars += chars;
-      }
-      return kept;
-    }
-
-    function estimateNextTurnContextTokens() {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) { lastDividerIdx = i; break; }
-      }
-      let slice;
-      if (lastDividerIdx === -1) {
-        slice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        slice = overlap.concat(currentTurns);
-      }
-      slice = capSliceToTokenBudget(slice, CONTEXT_TOKEN_CAP);
-      let chars = 0;
-      slice.forEach(m => { chars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0); });
-      const dialogueTokens = Math.ceil(chars / 3.8);
-      const systemTokens = estimateTokens(buildSystemInstruction());
-      return dialogueTokens + systemTokens;
-    }
-
-    function buildApiContents(extraDirective = null) {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
-          lastDividerIdx = i;
-          break;
-        }
-      }
-
-      let activeSlice;
-      if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        activeSlice = overlap.concat(currentTurns);
-      }
-
-      // Cost/context optimization: cap the dialogue actually sent to Gemini to
-      // ~12k recent-dialogue tokens instead of continually sending everything
-      // since the last chapter divider. The full transcript stays intact in
-      // active.messages (IndexedDB) — only this ephemeral API payload shrinks.
-      activeSlice = capSliceToTokenBudget(activeSlice, CONTEXT_TOKEN_CAP);
-
-      const contents = activeSlice.map(m => {
-        const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
-        return {
-          role: isUserTurn ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-        };
-      });
-
-      if (extraDirective) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: extraDirective }]
-        });
-      }
-
-      if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
-        contents.push({
-          role: 'user',
-          parts: [{ text: `[Scene update / Narration: React to the unfolding events and dialogue naturally.]` }]
-        });
-      }
-
-      return contents;
-    }
-
 
     function autoExpandTextarea(el) {
       el.style.height = '42px';
@@ -1879,47 +1864,6 @@
       return defaultAvatar;
     }
 
-    // Client-Side Image Compression Engine
-    function compressImageFile(file, maxDimension = 1024, quality = 0.82) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            let { width, height } = img;
-            if (width > maxDimension || height > maxDimension) {
-              if (width > height) {
-                height = Math.round((height * maxDimension) / width);
-                width = maxDimension;
-              } else {
-                width = Math.round((width * maxDimension) / height);
-                height = maxDimension;
-              }
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, 0, 0, width, height);
-
-            let dataUrl = canvas.toDataURL('image/webp', quality);
-            if (!dataUrl.startsWith('data:image/webp')) {
-              dataUrl = canvas.toDataURL('image/jpeg', quality);
-            }
-            resolve(dataUrl);
-          };
-          img.onerror = reject;
-          img.src = e.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // Enhanced Checkerboard & White Tone Detector
     function isCheckerboardColor(r, g, b) {
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
@@ -2071,6 +2015,43 @@
       return { src: p.src || '', caption: p.caption || '' };
     }
 
+    // Client-Side Image Compression Engine. Heavy decode/resize/encode work is
+    // moved into an OffscreenCanvas worker when available, with a safe main-thread fallback.
+    let imageCompressionWorkerPromise = null;
+    function getImageCompressionWorker() {
+      if (imageCompressionWorkerPromise) return imageCompressionWorkerPromise;
+      imageCompressionWorkerPromise = new Promise((resolve, reject) => {
+        if (!window.Worker || !window.OffscreenCanvas || !window.createImageBitmap) return resolve(null);
+        const code = `self.onmessage=async e=>{try{const {buffer,type,maxDimension,quality}=e.data;const blob=new Blob([buffer],{type});const bmp=await createImageBitmap(blob);let w=bmp.width,h=bmp.height;if(w>maxDimension||h>maxDimension){if(w>h){h=Math.round(h*maxDimension/w);w=maxDimension}else{w=Math.round(w*maxDimension/h);h=maxDimension}}const c=new OffscreenCanvas(w,h),ctx=c.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(bmp,0,0,w,h);const out=await c.convertToBlob({type:'image/webp',quality});const ab=await out.arrayBuffer();postMessage({buffer:ab,type:out.type},[ab]);}catch(err){postMessage({error:err.message})}};`;
+        const worker = new Worker(URL.createObjectURL(new Blob([code], {type:'application/javascript'})));
+        worker.onerror = () => { try { worker.terminate(); } catch(e) {} resolve(null); };
+        resolve(worker);
+      });
+      return imageCompressionWorkerPromise;
+    }
+    async function compressImageFile(file, maxDimension = 1024, quality = 0.82) {
+      const worker = await getImageCompressionWorker();
+      if (worker) {
+        const buffer = await file.arrayBuffer();
+        const result = await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Compression worker timeout')), 20000);
+          const handler = e => { clearTimeout(timer); worker.removeEventListener('message', handler); e.data?.error ? reject(new Error(e.data.error)) : resolve(e.data); };
+          worker.addEventListener('message', handler);
+          worker.postMessage({buffer, type:file.type || 'image/jpeg', maxDimension, quality}, [buffer]);
+        }).catch(() => null);
+        if (result?.buffer) {
+          const blob = new Blob([result.buffer], {type: result.type || 'image/webp'});
+          return await new Promise((resolve, reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(blob); });
+        }
+      }
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = e => { const img = new Image(); img.onload = () => { let {width,height}=img;if(width>maxDimension||height>maxDimension){if(width>height){height=Math.round(height*maxDimension/width);width=maxDimension}else{width=Math.round(width*maxDimension/height);height=maxDimension}} const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(img,0,0,width,height);let dataUrl=canvas.toDataURL('image/webp',quality);if(!dataUrl.startsWith('data:image/webp')) dataUrl=canvas.toDataURL('image/jpeg',quality);resolve(dataUrl); }; img.onerror=reject; img.src=e.target.result; };
+        reader.readAsDataURL(file);
+      });
+    }
+
     function getPhotoTargetObject() {
       const active = getActiveScenario();
       if (currentAvatarManagerTarget === 'user') {
@@ -2188,7 +2169,21 @@
     function setSpriteSheetBackgroundRemoval(enabled) {
       const active = getActiveScenario();
       active.removeSpriteSheetBackground = !!enabled;
+      const toggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
+      if (toggle) {
+        toggle.setAttribute('aria-checked', active.removeSpriteSheetBackground ? 'true' : 'false');
+        toggle.classList.toggle('bg-zetaAccent', active.removeSpriteSheetBackground);
+        toggle.classList.toggle('bg-slate-700', !active.removeSpriteSheetBackground);
+        const knob = toggle.querySelector('span');
+        if (knob) knob.style.transform = active.removeSpriteSheetBackground ? 'translateX(0)' : 'translateX(-22px)';
+      }
       saveState();
+    }
+
+    function toggleSpriteSheetBackgroundRemoval() {
+      const toggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
+      const enabled = toggle ? toggle.getAttribute('aria-checked') !== 'true' : true;
+      setSpriteSheetBackgroundRemoval(enabled);
     }
 
     function getCharacterPersona(char) {
@@ -2262,6 +2257,7 @@
       const user = getActiveScenario().userPersona;
       getCharacterOutfits(user).push(createOutfit());
       renderUserOutfitsSetup();
+      populateTtsVoiceSelect('userTtsVoice', active.userPersona.ttsVoice || '');
     }
 
     function setUserCurrentOutfit(outfitId) {
@@ -2599,17 +2595,33 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       saveState();
     }
 
-    function getRelevantLorebookInjections() {
+    let semanticEmbedderPromise = null;
+    let semanticLorebookCache = { scenarioId:'', entries:[], embeddings:[] };
+    async function getSemanticEmbedder() {
+      if (semanticEmbedderPromise) return semanticEmbedderPromise;
+      semanticEmbedderPromise = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.0.1').then(({pipeline}) => pipeline('feature-extraction','Xenova/all-MiniLM-L6-v2',{dtype:'q8'})).catch(err => { console.warn('Semantic lorebook model unavailable; keyword fallback enabled.', err); return null; });
+      return semanticEmbedderPromise;
+    }
+    function cosineSimilarity(a,b){let dot=0,na=0,nb=0;for(let i=0;i<a.length;i++){dot+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return dot/(Math.sqrt(na)*Math.sqrt(nb)||1)}
+    function loreEntryDigest(e){return `${e.title||''}. ${e.content||''}`.replace(/\s+/g,' ').trim().slice(0,900)}
+    async function getRelevantLorebookInjections() {
       const active=getActiveScenario(); if(!active.lorebook?.length) return '';
       const recent=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider).slice(-12).map(m=>m.text||'').join(' ')+' '+(document.getElementById('userInput')?.value||'');
       const lower=recent.toLowerCase();
-      const scored=active.lorebook.map(entry=>{
-        const keys=String(entry.keywords||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
-        const score=keys.reduce((n,k)=>n+(lower.includes(k)?1:0),0);
-        return {entry,score};
-      }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score || String(a.entry.title||'').localeCompare(String(b.entry.title||'')));
-      const matched=scored.slice(0,LOREBOOK_INJECTION_LIMIT).map(x=>x.entry);
-      return matched.length?`\n[TOP ${LOREBOOK_INJECTION_LIMIT} RELEVANT LOREBOOK ENTRIES]\n${matched.map(e=>`- ${e.title}: ${e.content}`).join('\n')}\n`:'';
+      const fallback=active.lorebook.map(entry=>{const keys=String(entry.keywords||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);const score=keys.reduce((n,k)=>n+(lower.includes(k)?1:0),0);return {entry,score};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,LOREBOOK_INJECTION_LIMIT).map(x=>x.entry);
+      const embedder=await getSemanticEmbedder();
+      if(!embedder) return fallback.length?`\n[TOP ${LOREBOOK_INJECTION_LIMIT} RELEVANT LOREBOOK ENTRIES]\n${fallback.map(e=>`- ${e.title}: ${e.content}`).join('\n')}\n`:'';
+      try {
+        if(semanticLorebookCache.scenarioId!==active.id || semanticLorebookCache.entries.length!==active.lorebook.length){
+          const texts=active.lorebook.map(loreEntryDigest); const out=await embedder(texts,{pooling:'mean',normalize:true});
+          semanticLorebookCache={scenarioId:active.id,entries:texts,embeddings:out.tolist()};
+        }
+        const q=await embedder(recent.slice(-5000),{pooling:'mean',normalize:true}); const qv=q.tolist()[0];
+        const scored=active.lorebook.map((entry,i)=>({entry,score:cosineSimilarity(qv,semanticLorebookCache.embeddings[i])})).sort((a,b)=>b.score-a.score);
+        const matched=scored.slice(0,LOREBOOK_INJECTION_LIMIT).filter(x=>x.score>=0.32).map(x=>x.entry);
+        const use=matched.length?matched:fallback;
+        return use.length?`\n[TOP ${LOREBOOK_INJECTION_LIMIT} SEMANTIC LOREBOOK ENTRIES]\n${use.map(e=>`- ${e.title}: ${loreEntryDigest(e)}`).join('\n')}\n`:'';
+      } catch(e){ console.warn('Semantic lorebook retrieval failed:',e); return fallback.length?`\n[TOP ${LOREBOOK_INJECTION_LIMIT} RELEVANT LOREBOOK ENTRIES]\n${fallback.map(e=>`- ${e.title}: ${e.content}`).join('\n')}\n`:''; }
     }
 
     // Visual Novel Stage View Engine with Left/Right Taps & Auto-Forward
@@ -2680,7 +2692,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       if (!vnTypewriter.isTyping) {
         const currentTurn = validTurns[currentVnIndex];
         const textLen = (currentTurn?.text || '').length;
-        const delay = Math.max(2200, Math.min(5500, textLen * 40 + 1400));
+        const speed = Math.max(0.5, Number(appState.vnReadingSpeed) || 1);
+        const delay = Math.max(1200, Math.min(7000, (textLen * 40 + 1400) / speed));
         vnAutoTimeout = setTimeout(() => {
           if (isVnAutoPlaying && currentVnIndex < validTurns.length - 1) {
             stepVnDialogue(1, true);
@@ -2733,9 +2746,11 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       sceneTitle.innerText = active.title || 'Scene Stage';
 
       if (active.vnBackground || active.cover) {
-        bgLayer.style.backgroundImage = `url('${active.vnBackground || active.cover}')`;
+        const nextBg = active.manualVnBackground || active.vnBackground || active.cover;
+        if (nextBg !== lastVnBackground) { bgLayer.classList.remove('vn-bg-fade'); void bgLayer.offsetWidth; bgLayer.classList.add('vn-bg-fade'); lastVnBackground = nextBg; }
+        bgLayer.style.backgroundImage = `url('${nextBg}')`;
       } else {
-        bgLayer.style.backgroundImage = `linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)`;
+        const nextBg = ''; if (lastVnBackground) { bgLayer.classList.remove('vn-bg-fade'); void bgLayer.offsetWidth; bgLayer.classList.add('vn-bg-fade'); lastVnBackground=''; } bgLayer.style.backgroundImage = `linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)`;
       }
 
       if (validTurns.length === 0) {
@@ -2750,6 +2765,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       currentVnIndex = Math.max(0, Math.min(currentVnIndex, validTurns.length - 1));
       const turn = validTurns[currentVnIndex];
       turnCounter.innerText = `${currentVnIndex + 1}/${validTurns.length}`;
+      const progressFill=document.getElementById('vnProgressFill'); if(progressFill) progressFill.style.width=`${((currentVnIndex+1)/validTurns.length)*100}%`;
+      const chapterIndicator=document.getElementById('vnChapterIndicator'); if(chapterIndicator) chapterIndicator.innerText=`Ch. ${active.currentChapter||1}`;
 
       const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
       const isUser = turn.role === 'user' && speakerName.toLowerCase() !== 'narrator' && speakerName.toLowerCase() !== 'scene';
@@ -2806,7 +2823,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
           visibleChars = totalChars;
         } else {
           visibleChars = Math.min(visibleChars + step, totalChars);
-          await new Promise(r => setTimeout(r, 16));
+          await new Promise(r => requestAnimationFrame(r));
         }
         dialogueBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
       }
@@ -2916,12 +2933,21 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         const outfitSelect = document.getElementById('spotlightEditOutfit');
         outfitSelect.innerHTML = `<option value="">No specific outfit</option>` + getCharacterOutfits(charObj).map(o => `<option value="${escapeHtml(o.id)}" ${charObj.currentOutfitId === o.id ? 'selected' : ''}>${escapeHtml(o.name || 'Outfit')}</option>`).join('');
         document.getElementById('spotlightEditRelationship').value = charObj.relationship || '';
+        populateTtsVoiceSelect('spotlightEditVoice', charObj.ttsVoice || '');
       } else {
         editBody.classList.add('hidden');
         viewBody.classList.remove('hidden');
         footerBar.classList.remove('hidden');
         toggleBtn.innerText = '✏️ Edit';
       }
+    }
+
+    let spotlightSaveTimer=null;
+    function autoSaveSpotlightField(field,value){
+      const found=findCharacterForSpotlight(currentSpotlightCharName); if(!found?.obj)return; const charObj=found.obj;
+      if(field==='persona') charObj.personality=value;
+      charObj[field]=value; if(field==='name'&&value.trim()) currentSpotlightCharName=value.trim();
+      if(spotlightSaveTimer)clearTimeout(spotlightSaveTimer); spotlightSaveTimer=setTimeout(async()=>{await saveState();renderSidebar();renderCharacterCardsSetup();if(getActiveScenario().viewMode==='vn')renderVnTurn(false);},500);
     }
 
     async function saveSpotlightEdits() {
@@ -3333,6 +3359,28 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
       return null;
     }
 
+    let backgroundMaintenanceBusy=false;
+    async function runBatchedBackgroundMaintenance(force=false){
+      if(backgroundMaintenanceBusy||!appState.apiKey)return;
+      const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(turns.length<3)return;
+      const event=force?{type:'forced',fingerprint:turns.slice(-6).map(m=>m.id||m.text).join('|')} : detectSignificantRelationshipEvent(active.messages);
+      const dueLore=turns.length>=6 && turns.length%LOREBOOK_ANALYSIS_INTERVAL===0;
+      if(!event&&!dueLore)return;
+      backgroundMaintenanceBusy=true;
+      try{
+        const dialogue=turns.slice(-20).map(m=>`${m.speakerName||'Speaker'}: ${m.text}`).join('\\n');
+        const cast=[active.userPersona.name,...active.characters.map(c=>c.name)];
+        const relBaseline=active.characters.map(c=>`${c.name}: ${c.relationship||'Unspecified'} | ${JSON.stringify(c.relationships||{})}`).join('\\n');
+        const loreExisting=(active.lorebook||[]).map(l=>`${l.title}|${l.keywords}|${l.content}`).join('\\n');
+        const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?'Extract only durable new facts.':'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
+        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER};
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)return;const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);let parsed={};try{parsed=JSON.parse((data.candidates?.[0]?.content?.parts?.[0]?.text||'{}').trim())}catch(e){}
+        const charMap=parsed.characters||{};for(const c of active.characters){const r=charMap[c.name];if(!r)continue;c.relationships=c.relationships||{};for(const [n,v] of Object.entries(r.relationships||{})){if(n!==c.name&&String(v||'').trim())c.relationships[n]=String(v).trim()}if(String(r.relationship||'').trim())c.relationship=String(r.relationship).trim();}
+        for(const e of (Array.isArray(parsed.lorebook)?parsed.lorebook:[]).slice(0,8)){if(!e?.title||!e?.content)continue;const dup=(active.lorebook||[]).some(l=>String(l.title||'').toLowerCase()===String(e.title).toLowerCase());if(!dup)active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:String(e.keywords||e.title).slice(0,240),content:String(e.content).slice(0,900),autoGenerated:true});}
+        active.relationshipState=active.relationshipState||{};if(event)active.relationshipState.lastUpdateFingerprint=event.fingerprint;if(dueLore&&active.localMemoryIndex)active.localMemoryIndex.lastLorebookAnalysisTurn=turns.length;await saveState();renderSidebar();renderLorebookSetup();
+      }catch(e){console.warn('Batched background maintenance skipped:',e.message)}finally{backgroundMaintenanceBusy=false}
+    }
+
     async function updateInterCharacterRelationships(force = false) {
       const active = getActiveScenario();
       if (!appState.apiKey || active.characters.length === 0) return;
@@ -3545,27 +3593,12 @@ IMPORTANT RULES:
       }
 
       thumbStrip.innerHTML = items.map((item, idx) => `
-        <button type="button" onclick="photoLibraryShowIndex(${idx})" style="width:calc((100% - 1rem) / 3)" class="relative shrink-0 snap-start aspect-square rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition">
+        <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square shrink-0 w-[31%] sm:w-[31%] rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition snap-start">
           <img src="${item.src}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
           ${item.isDefault ? `<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow">⭐</span>` : ''}
           ${item.kind === 'scene' ? `<span class="absolute bottom-1 right-1 bg-black/70 text-[8px] text-slate-200 px-1 py-0.5 rounded">🎬</span>` : ''}
         </button>
       `).join('');
-
-      // Keep the active thumbnail scrolled into view within the 3-wide window.
-      const activeBtn = thumbStrip.children[activeIndex];
-      if (activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-    }
-
-    // Scrolls the character photo thumbnail strip by roughly one thumbnail's
-    // width (+ gap) at a time, so the ‹ › nav buttons step through the set
-    // instead of jumping a full viewport.
-    function scrollCharacterPhotoThumbs(dir) {
-      const strip = document.getElementById('characterPhotoThumbStrip');
-      if (!strip) return;
-      const firstItem = strip.querySelector('button');
-      const step = firstItem ? firstItem.getBoundingClientRect().width + 8 : strip.clientWidth / 3;
-      strip.scrollBy({ left: dir * step, behavior: 'smooth' });
     }
 
     function photoLibraryShowIndex(idx) {
@@ -3592,168 +3625,6 @@ IMPORTANT RULES:
 
     function closeCharacterPhotoModal() {
       const modal = document.getElementById('characterPhotoModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    // Chat-only avatar crop tool ----------------------------------------------
-    // Lets the user crop the character's CURRENT default portrait for use only
-    // in text-chat message bubbles. Saved separately as charObj.chatAvatar —
-    // the library default (charObj.avatar / charObj.photos) is never touched.
-    let chatCropState = { charName: '', scale: 1, imgOffsetX: 0, imgOffsetY: 0, dispW: 0, dispH: 0, box: { x: 0, y: 0, w: 0, h: 0 } };
-
-    function openChatAvatarCropModal() {
-      const found = getCurrentSpotlightCharacter();
-      if (!found) return;
-      const charObj = found.obj;
-      const src = getCharacterDefaultAvatar(charObj);
-      if (!src) { alert('This character needs a default portrait before it can be cropped for chat.'); return; }
-
-      chatCropState.charName = charObj.name || currentSpotlightCharName;
-
-      const resetBtn = document.getElementById('chatAvatarCropResetBtn');
-      if (resetBtn) resetBtn.classList.toggle('hidden', !charObj.chatAvatar);
-
-      const modal = document.getElementById('chatAvatarCropModal');
-      const img = document.getElementById('chatAvatarCropImg');
-      img.onload = () => initChatAvatarCropBox();
-      img.src = src;
-
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      if (img.complete && img.naturalWidth) initChatAvatarCropBox();
-    }
-
-    function initChatAvatarCropBox() {
-      const stage = document.getElementById('chatAvatarCropStage');
-      const img = document.getElementById('chatAvatarCropImg');
-      if (!stage || !img.naturalWidth) return;
-
-      const stageSize = stage.getBoundingClientRect().width;
-      const scale = Math.min(stageSize / img.naturalWidth, stageSize / img.naturalHeight);
-      const dispW = img.naturalWidth * scale;
-      const dispH = img.naturalHeight * scale;
-      const offX = (stageSize - dispW) / 2;
-      const offY = (stageSize - dispH) / 2;
-
-      chatCropState.scale = scale;
-      chatCropState.imgOffsetX = offX;
-      chatCropState.imgOffsetY = offY;
-      chatCropState.dispW = dispW;
-      chatCropState.dispH = dispH;
-
-      const startSize = Math.min(dispW, dispH);
-      chatCropState.box = {
-        x: offX + (dispW - startSize) / 2,
-        y: offY + (dispH - startSize) / 2,
-        w: startSize,
-        h: startSize
-      };
-      renderChatAvatarCropBox();
-    }
-
-    function renderChatAvatarCropBox() {
-      const box = document.getElementById('chatAvatarCropBox');
-      if (!box) return;
-      const b = chatCropState.box;
-      box.style.left = b.x + 'px';
-      box.style.top = b.y + 'px';
-      box.style.width = b.w + 'px';
-      box.style.height = b.h + 'px';
-    }
-
-    function clampChatAvatarCropBox() {
-      const s = chatCropState;
-      const minX = s.imgOffsetX, minY = s.imgOffsetY;
-      const maxX = s.imgOffsetX + s.dispW, maxY = s.imgOffsetY + s.dispH;
-      const maxSize = Math.min(maxX - minX, maxY - minY);
-      s.box.w = Math.max(24, Math.min(s.box.w, maxSize));
-      s.box.h = s.box.w;
-      s.box.x = Math.min(Math.max(s.box.x, minX), maxX - s.box.w);
-      s.box.y = Math.min(Math.max(s.box.y, minY), maxY - s.box.h);
-    }
-
-    function startChatAvatarCropDrag(e, mode) {
-      e.preventDefault();
-      e.stopPropagation();
-      const stage = document.getElementById('chatAvatarCropStage');
-      const stageRect = stage.getBoundingClientRect();
-      const startPX = e.clientX - stageRect.left;
-      const startPY = e.clientY - stageRect.top;
-      const startBox = { ...chatCropState.box };
-
-      function onMove(ev) {
-        const px = ev.clientX - stageRect.left;
-        const py = ev.clientY - stageRect.top;
-        const dx = px - startPX, dy = py - startPY;
-        if (mode === 'move') {
-          chatCropState.box.x = startBox.x + dx;
-          chatCropState.box.y = startBox.y + dy;
-        } else {
-          chatCropState.box.w = startBox.w + dx;
-          chatCropState.box.h = chatCropState.box.w;
-        }
-        clampChatAvatarCropBox();
-        renderChatAvatarCropBox();
-      }
-      function onUp() {
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointerup', onUp);
-      }
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
-    }
-
-    async function confirmChatAvatarCrop() {
-      const s = chatCropState;
-      const found = findCharacterForSpotlight(s.charName);
-      if (!found) { closeChatAvatarCropModal(); return; }
-      const img = document.getElementById('chatAvatarCropImg');
-
-      const srcX = (s.box.x - s.imgOffsetX) / s.scale;
-      const srcY = (s.box.y - s.imgOffsetY) / s.scale;
-      const srcSize = s.box.w / s.scale;
-
-      const outSize = 512;
-      const canvas = document.createElement('canvas');
-      canvas.width = outSize; canvas.height = outSize;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, outSize, outSize);
-
-      // charObj.chatAvatar is used ONLY by text-chat message bubbles
-      // (getAvatarHtml with useChatAvatar=true) — the library default
-      // (charObj.avatar / charObj.photos) is left completely untouched.
-      found.obj.chatAvatar = canvas.toDataURL('image/png');
-      await saveState();
-
-      // Force the message list to fully re-render so already-rendered chat
-      // bubbles pick up the new crop immediately instead of only new turns.
-      lastRenderedMessageCount = -1;
-      renderAllUi();
-
-      if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (found.obj.name || '').toLowerCase()) {
-        openCharacterSpotlight(found.obj.name);
-      }
-      closeChatAvatarCropModal();
-    }
-
-    async function resetChatAvatarCrop() {
-      const found = findCharacterForSpotlight(chatCropState.charName || currentSpotlightCharName);
-      if (found && found.obj.chatAvatar) {
-        delete found.obj.chatAvatar;
-        await saveState();
-        lastRenderedMessageCount = -1;
-        renderAllUi();
-        if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (found.obj.name || '').toLowerCase()) {
-          openCharacterSpotlight(found.obj.name);
-        }
-      }
-      closeChatAvatarCropModal();
-    }
-
-    function closeChatAvatarCropModal() {
-      const modal = document.getElementById('chatAvatarCropModal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
@@ -3844,12 +3715,6 @@ IMPORTANT RULES:
       avatarBox.onclick = avatarSrc
         ? () => openCharacterPhotoModal(avatarSrc, charObj.name)
         : null;
-
-      const cropChatBtn = document.getElementById('spotlightCropChatBtn');
-      if (cropChatBtn) {
-        cropChatBtn.classList.toggle('hidden', !avatarSrc);
-        cropChatBtn.innerHTML = charObj.chatAvatar ? '✂️ Recrop Chat' : '✂️ Crop Chat';
-      }
 
       document.getElementById('spotlightName').innerText = charObj.name || 'Character';
       document.getElementById('spotlightRoleTags').innerHTML =
@@ -4175,7 +4040,10 @@ IMPORTANT RULES:
               <div class="flex items-start gap-3">
                 ${avatarHtml}
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
-                  <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium shrink-0">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                  </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
                       <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
@@ -4285,8 +4153,63 @@ JSON FORMAT:
       modal.classList.add('flex');
     }
 
+    function applyVnReadingSpeed(value) {
+      appState.vnReadingSpeed = Math.max(0.5, Math.min(2, Number(value) || 1));
+      const label=document.getElementById('vnSpeedValue'); if(label) label.innerText=`${appState.vnReadingSpeed.toFixed(1)}×`;
+      saveState();
+      if(isVnAutoPlaying) runVnAutoStep();
+    }
+    function applyThemeMode(mode = appState.themeMode || 'dark') {
+      appState.themeMode = mode === 'light' ? 'light' : 'dark';
+      document.documentElement.classList.toggle('light-mode', appState.themeMode==='light');
+      document.body.classList.toggle('light-mode', appState.themeMode==='light');
+      const btn=document.getElementById('themeModeToggle'); if(btn) btn.setAttribute('aria-checked', String(appState.themeMode==='light'));
+      const label=document.getElementById('themeModeLabel'); if(label) label.innerText=appState.themeMode==='light'?'☀️ Light Mode':'🌙 Dark Mode';
+      const knob=document.querySelector('#themeModeKnob > span'); if(knob) knob.style.transform=appState.themeMode==='light'?'translateX(12px)':'translateX(0)';
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', appState.themeMode==='light' ? '#f5f5f8' : '#131118');
+    }
+    function hexToRgb(hex){const h=String(hex||'#7c65e8').replace('#','');return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)}}
+    function shadeHex(hex, amount){const {r,g,b}=hexToRgb(hex);const f=(v)=>Math.max(0,Math.min(255,Math.round(v+(amount<0?v*amount:(255-v)*amount))));return '#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+    function rebuildLogoSvg(color) {
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="128" fill="#131118"/><path d="M290 80L140 280h110l-40 152 162-212H260z" fill="${color}"/></svg>`;
+      const data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      document.querySelectorAll('img[alt="ZetaForge"]').forEach(img=>img.src=data);
+      return {svg,data};
+    }
+    async function createPwaIconPng(color) {
+      try {
+        const {data}=rebuildLogoSvg(color); const img=new Image(); img.src=data; await new Promise((res,rej)=>{img.onload=res;img.onerror=rej});
+        const canvas=document.createElement('canvas'); canvas.width=512; canvas.height=512; canvas.getContext('2d').drawImage(img,0,0,512,512); const png=canvas.toDataURL('image/png');
+        document.getElementById('appleTouchIcon')?.setAttribute('href',png);
+        const manifest={name:'ZetaForge AI Roleplay',short_name:'ZetaForge',start_url:'./',display:'standalone',background_color:appState.themeMode==='light'?'#f5f5f8':'#131118',theme_color:color,icons:[{src:png,sizes:'512x512',type:'image/png',purpose:'any maskable'},{src:png,sizes:'192x192',type:'image/png',purpose:'any maskable'}]};
+        const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}); const link=document.getElementById('pwaManifest'); if(link){if(link.dataset.objectUrl)URL.revokeObjectURL(link.dataset.objectUrl);link.dataset.objectUrl=URL.createObjectURL(blob);link.href=link.dataset.objectUrl;}
+        window.zetaGeneratedPwaIconPng=png;
+      } catch(e){ console.warn('PWA icon generation skipped:',e); }
+    }
+    let pwaIconTimer=null;
+    function applyAccentColor(color) {
+      if(!/^#[0-9a-f]{6}$/i.test(color)) return;
+      appState.accentColor=color.toLowerCase(); document.documentElement.style.setProperty('--zeta-accent',appState.accentColor); document.documentElement.style.setProperty('--zeta-accent-hover',shadeHex(appState.accentColor,-0.12)); document.documentElement.style.setProperty('--zeta-glow',shadeHex(appState.accentColor,0.18)); document.documentElement.style.setProperty('--zeta-light',shadeHex(appState.accentColor,0.55));
+      const val=document.getElementById('accentColorValue'); if(val)val.innerText=appState.accentColor.toUpperCase(); const picker=document.getElementById('accentColorPicker');if(picker)picker.value=appState.accentColor;
+      rebuildLogoSvg(appState.accentColor); if(pwaIconTimer)clearTimeout(pwaIconTimer); pwaIconTimer=setTimeout(()=>createPwaIconPng(appState.accentColor),120); saveState();
+    }
+    function toggleThemeMode(){applyThemeMode(appState.themeMode==='light'?'dark':'light');saveState();createPwaIconPng(appState.accentColor||'#7c65e8');}
+    function speakVnTextForSpeaker(speakerName,text){
+      if(!('speechSynthesis' in window)||!text||!appState.ttsEnabled) return;
+      const active=getActiveScenario(); const target=(speakerName||'').toLowerCase(); const char=target===String(active.userPersona.name||'').toLowerCase()?active.userPersona:(active.characters||[]).find(c=>String(c.name||'').toLowerCase()===target);
+      if(!char||!char.ttsVoice) return;
+      const voices=speechSynthesis.getVoices(); const voice=voices.find(v=>v.name===char.ttsVoice); if(!voice)return;
+      const token=++vnSpeechToken; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text.replace(/[*_#`]/g,'')); u.voice=voice; u.rate=1; u.pitch=1; u.volume=1; u.onstart=()=>{}; u.onend=()=>{if(token!==vnSpeechToken)return}; speechSynthesis.speak(u);
+    }
+    if('speechSynthesis' in window) speechSynthesis.onvoiceschanged=()=>{document.querySelectorAll('select[id^=\"ttsVoiceChar\"]').forEach(el=>{const idx=Number(el.id.replace('ttsVoiceChar',''));const c=getActiveScenario()?.characters?.[idx];if(c)populateTtsVoiceSelect(el.id,c.ttsVoice||'')});populateTtsVoiceSelect('userTtsVoice',getActiveScenario()?.userPersona?.ttsVoice||'');populateTtsVoiceSelect('spotlightEditVoice',getCurrentSpotlightCharacter()?.obj?.ttsVoice||'');};
+    function populateTtsVoiceSelect(selectId, selected='') { const el=document.getElementById(selectId); if(!el||!('speechSynthesis' in window))return; const voices=speechSynthesis.getVoices();el.innerHTML='<option value="">No voice / Off</option>'+voices.map(v=>`<option value="${escapeHtml(v.name)}" ${v.name===selected?'selected':''}>${escapeHtml(v.name)}${v.lang?' · '+escapeHtml(v.lang):''}</option>`).join(''); }
+    function setManualVnBackground(event){const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async e=>{const active=getActiveScenario();active.manualVnBackground=e.target.result;await saveState();if(active.viewMode==='vn')renderVnTurn(false);};reader.readAsDataURL(file);}
+    function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode!=='text');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
+    function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')alert('Choose a Markdown file above.');}
+    async function processMarkdownImport(event){const file=event.target.files?.[0];if(!file)return;const raw=await file.text();const active=getActiveScenario();const lines=raw.split(/\r?\n/);const msgs=[];let current=null;for(const line of lines){const m=line.match(/^###\s+(.+?)(?:\s+\([^)]*\))?$/);if(m){if(current&&current.text.trim())msgs.push(current);current={id:'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),role:'model',speakerName:m[1].trim(),text:'',timestamp:'Imported'};}else if(current&&!/^---+$/.test(line.trim())&&!/^#/.test(line))current.text+=(current.text?'\n':'')+line;}if(current&&current.text.trim())msgs.push(current);if(!msgs.length){alert('No speaker entries were found in this Markdown file.');return;}const user=(active.userPersona.name||'User').toLowerCase();msgs.forEach(m=>{if(['me','you',user].includes(m.speakerName.toLowerCase())){m.role='user';m.speakerName=active.userPersona.name||'User';}});active.messages=document.getElementById('appendTranscriptCheck')?.checked?active.messages.concat(msgs):msgs;await saveState();renderAllUi();closeModal('importModal');event.target.value='';}
+
     function openModal(id) {
-      if (id === 'setupModal') syncModalForm();
+      if (id === 'setupModal') { syncModalForm(); requestAnimationFrame(()=>{ renderCharacterCardsSetup(); renderLorebookSetup(); }); }
       if (id === 'usageCostModal') renderUsageCostModal();
       closeAllDrawers();
       const modal = document.getElementById(id);
@@ -4367,6 +4290,9 @@ JSON FORMAT:
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
+      applyThemeMode(appState.themeMode || 'dark');
+      applyAccentColor(appState.accentColor || '#7c65e8');
+      const speedEl=document.getElementById('vnSpeedInput'); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
 
       document.getElementById('viewModeSelect').value = active.viewMode || 'chat';
       document.getElementById('artStyleSelect').value = active.artStyle || 'Anime';
@@ -4381,7 +4307,7 @@ JSON FORMAT:
       if (userPersonaEl) userPersonaEl.value = active.userPersona.persona || active.userPersona.desc || '';
       if (userVisualEl) userVisualEl.value = active.userPersona.visualProfile || active.userPersona.desc || '';
       const spriteToggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
-      if (spriteToggle) spriteToggle.checked = active.removeSpriteSheetBackground !== false;
+      if (spriteToggle) { const enabled = active.removeSpriteSheetBackground !== false; spriteToggle.setAttribute('aria-checked', enabled ? 'true' : 'false'); spriteToggle.classList.toggle('bg-zetaAccent', enabled); spriteToggle.classList.toggle('bg-slate-700', !enabled); const knob = spriteToggle.querySelector('span'); if (knob) knob.style.transform = enabled ? 'translateX(0)' : 'translateX(-22px)'; }
       renderUserOutfitsSetup();
       const userOutfitSelect = document.getElementById('userCurrentOutfit');
       if (userOutfitSelect) userOutfitSelect.value = active.userPersona.currentOutfitId || '';
@@ -4447,7 +4373,8 @@ JSON FORMAT:
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Name" value="${escapeHtml(char.name)}" oninput="getActiveScenario().characters[${index}].name = this.value; saveState();" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Role / Archetype Tags (e.g. tsundere, bold)" value="${escapeHtml(char.role)}" oninput="getActiveScenario().characters[${index}].role = this.value; saveState();" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <div class="flex items-center gap-2"><span class="text-[10px] text-slate-500 shrink-0">🔊 Voice</span><select id="ttsVoiceChar${index}" onchange="getActiveScenario().characters[${index}].ttsVoice=this.value;saveState()" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-xs text-white"><option value="">Off</option></select></div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
@@ -4502,6 +4429,7 @@ JSON FORMAT:
           </div>
         `;
         container.appendChild(card);
+        populateTtsVoiceSelect(`ttsVoiceChar${index}`, char.ttsVoice || '');
       });
     }
 
@@ -4523,10 +4451,13 @@ JSON FORMAT:
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
+      appState.themeMode = appState.themeMode || 'dark';
+      appState.accentColor = document.getElementById('accentColorPicker')?.value || appState.accentColor || '#7c65e8';
+      appState.vnReadingSpeed = Number(document.getElementById('vnSpeedInput')?.value || appState.vnReadingSpeed || 1);
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
       active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
-      active.removeSpriteSheetBackground = document.getElementById('spriteSheetRemoveBackgroundToggle')?.checked !== false;
+      active.removeSpriteSheetBackground = document.getElementById('spriteSheetRemoveBackgroundToggle')?.getAttribute('aria-checked') !== 'false';
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
       if (rawRecap) {
@@ -4610,7 +4541,101 @@ JSON FORMAT:
       </svg>`;
     }
 
-    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10', useChatAvatar = false) {
+    let chatAvatarCropState = { charName: '', src: '', image: null };
+
+    function getCharacterChatAvatar(char) {
+      if (!char) return '';
+      return char.chatAvatarCrop || getCharacterDefaultAvatar(char);
+    }
+
+    function openChatAvatarCropper() {
+      const found = getCurrentSpotlightCharacter();
+      if (!found) return;
+      const src = getCharacterDefaultAvatar(found.obj);
+      if (!src) { alert('This character does not have a default image to crop.'); return; }
+      const modal = document.getElementById('chatAvatarCropModal');
+      const img = new Image();
+      img.onload = () => {
+        chatAvatarCropState = { charName: found.obj.name || '', src, image: img };
+        document.getElementById('chatAvatarCropTitle').innerText = `${found.obj.name || 'Character'} · chat-only crop`;
+        ['chatCropX','chatCropY'].forEach(id => document.getElementById(id).value = 0);
+        ['chatCropW','chatCropH'].forEach(id => document.getElementById(id).value = 100);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        renderChatAvatarCropPreview();
+      };
+      img.onerror = () => alert('Unable to load the current default image for cropping.');
+      img.src = src;
+    }
+
+    function getChatCropRect() {
+      const x = Number(document.getElementById('chatCropX').value) || 0;
+      const y = Number(document.getElementById('chatCropY').value) || 0;
+      const w = Number(document.getElementById('chatCropW').value) || 100;
+      const h = Number(document.getElementById('chatCropH').value) || 100;
+      return { x: Math.min(x, 100 - w), y: Math.min(y, 100 - h), w, h };
+    }
+
+    function renderChatAvatarCropPreview() {
+      const state = chatAvatarCropState;
+      const canvas = document.getElementById('chatAvatarCropCanvas');
+      if (!state.image || !canvas) return;
+      const r = getChatCropRect();
+      const sx = state.image.naturalWidth * r.x / 100;
+      const sy = state.image.naturalHeight * r.y / 100;
+      const sw = state.image.naturalWidth * r.w / 100;
+      const sh = state.image.naturalHeight * r.h / 100;
+      const max = 700;
+      const scale = Math.min(1, max / Math.max(sw, sh));
+      canvas.width = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
+      canvas.getContext('2d').drawImage(state.image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    }
+
+    function closeChatAvatarCropper(event) {
+      if (event && event.target && event.target.id !== 'chatAvatarCropModal') return;
+      const modal = document.getElementById('chatAvatarCropModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function applyChatAvatarCrop() {
+      const state = chatAvatarCropState;
+      const found = getCurrentSpotlightCharacter();
+      if (!state.image || !found) return;
+      const r = getChatCropRect();
+      const sx = state.image.naturalWidth * r.x / 100;
+      const sy = state.image.naturalHeight * r.y / 100;
+      const sw = state.image.naturalWidth * r.w / 100;
+      const sh = state.image.naturalHeight * r.h / 100;
+      const canvas = document.createElement('canvas');
+      const max = 1024;
+      const scale = Math.min(1, max / Math.max(sw, sh));
+      canvas.width = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
+      canvas.getContext('2d').drawImage(state.image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      found.obj.chatAvatarCrop = canvas.toDataURL('image/jpeg', 0.88);
+      await saveState();
+      closeChatAvatarCropper();
+      renderSidebar();
+      renderMessages();
+      if (getActiveScenario().viewMode === 'vn') renderVnTurn(false);
+      alert('✂️ Cropped image saved for text chat only. The library default remains unchanged.');
+    }
+
+    async function clearChatAvatarCrop() {
+      const found = getCurrentSpotlightCharacter();
+      if (!found) return;
+      delete found.obj.chatAvatarCrop;
+      await saveState();
+      closeChatAvatarCropper();
+      renderSidebar();
+      renderMessages();
+      if (getActiveScenario().viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10', useChatCrop = false) {
       const active = getActiveScenario();
       const safeName = escapeHtml(speakerName || '?');
       const initial = (speakerName || '?')[0].toUpperCase();
@@ -4629,12 +4654,7 @@ JSON FORMAT:
         if (!charObj && !isUser) charObj = findSideCharacterProfile(speakerName);
       }
 
-      // Text-chat message bubbles (useChatAvatar=true) prefer the character's
-      // dedicated chat-crop image when one has been saved via Character
-      // Spotlight → ✂️ Crop Chat. It never affects any other surface (sidebar,
-      // Chapter Chronicle, spotlight itself, VN mode) and never overwrites the
-      // library default portrait — see charObj.chatAvatar in confirmChatAvatarCrop().
-      const avatarSrc = charObj ? ((useChatAvatar && charObj.chatAvatar) ? charObj.chatAvatar : getCharacterDefaultAvatar(charObj)) : '';
+      const avatarSrc = charObj ? (useChatCrop ? getCharacterChatAvatar(charObj) : getCharacterDefaultAvatar(charObj)) : '';
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
       const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
@@ -4716,19 +4736,15 @@ JSON FORMAT:
             <div class="space-y-2.5">
               ${active.characters.map(c => `
                 <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 hover:border-slate-700 transition">
-                  <div class="flex items-start gap-3">
-                    ${getAvatarHtml(c.name, false, 'w-16 h-16 sm:w-20 sm:h-20')}
-                    <div class="overflow-hidden flex-1 min-w-0 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                  <div class="flex items-center gap-3">
+                    <div class="shrink-0">${getAvatarHtml(c.name, false, 'w-16 h-16 sm:w-20 sm:h-20')}</div>
+                    <div class="overflow-hidden flex-1 min-w-0 flex flex-col gap-1.5 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
                       <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
-                      <span class="inline-flex self-start text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
-                      ${c.role ? `
-                        <span class="inline-block self-start text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
-                          ${escapeHtml(c.role)}
-                        </span>
-                      ` : ''}
-                      <span class="inline-flex items-center gap-1 text-[11px] text-zetaGlow font-medium truncate">
-                        <span class="text-[10px] shrink-0">🔗</span><span class="truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span>
-                      </span>
+                      <div class="flex flex-wrap gap-1">
+                        ${c.role ? c.role.split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="text-[9px] bg-slate-800/90 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700/60 leading-snug">${escapeHtml(x)}</span>`).join('') : ''}
+                      </div>
+                      <span class="inline-flex w-fit text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
+                      <span class="flex items-center gap-1 min-w-0 text-[10px] text-zetaGlow font-medium"><span>🔗</span><span class="truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span></span>
                     </div>
                   </div>
                 </div>
@@ -4833,7 +4849,7 @@ JSON FORMAT:
         const isNarrator = rawSpeaker.toLowerCase() === 'narrator' || rawSpeaker.toLowerCase() === 'scene';
         const isUser = !isNarrator && (m.role === 'user' || rawSpeaker.toLowerCase() === (active.userPersona.name || '').toLowerCase());
         const speaker = isNarrator ? 'Narrator' : (m.speakerName || (isUser ? (active.userPersona.name || 'You') : 'Companion'));
-        const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9', true);
+        const avatarHtml = getAvatarHtml(speaker, isUser, 'w-8 h-8 sm:w-9 sm:h-9');
         
         const cleanContent = formatDialogueSpacing((m.text || '').trim());
         const renderedHtml = marked.parse(cleanContent);
@@ -4918,7 +4934,7 @@ JSON FORMAT:
         const wrapper = document.createElement('div');
         wrapper.className = "flex gap-2.5 sm:gap-3.5 group justify-start transition-opacity duration-300";
         wrapper.innerHTML = `
-          ${getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9', true)}
+          ${getAvatarHtml(speaker, false, 'w-8 h-8 sm:w-9 sm:h-9')}
           <div class="max-w-[88%] sm:max-w-[80%]">
             <div class="flex items-center gap-2 mb-1 justify-start">
               <span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isNarrator ? 'text-amber-300' : 'text-slate-200'}">${escapeHtml(speaker)}</span>
@@ -5004,17 +5020,16 @@ JSON FORMAT:
         currentVnIndex = validTurns.length - 1;
         renderVnTurn(false);
       }
-      updateInterCharacterRelationships();
-      autoUpdateLorebookFromStory();
+      runBatchedBackgroundMaintenance();
     }
 
-    function buildSystemInstruction(includeDynamicLore = false) {
+    async function buildSystemInstruction(includeDynamicLore = false) {
       const active = getActiveScenario();
       const charListStr=(active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
       const memoryIndex=active.localMemoryIndex||{};
       const recaps=(memoryIndex.chapterRecaps||active.archivedRecaps||[]).map(r=>typeof r==='string'?r:(r.milestoneSummary||'')).filter(Boolean);
       const characterMemory=Object.entries(memoryIndex.characterMemory||{}).map(([name,note])=>note?`- ${name}: ${note}`:'').filter(Boolean).join('\n');
-      const dynamicLore=includeDynamicLore?getRelevantLorebookInjections():'';
+      const dynamicLore=includeDynamicLore?await getRelevantLorebookInjections():'';
       return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${active.setting||'An open roleplay world.'}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n2. Every reacting character must have a distinct turn with exact speaker name and current mood.\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.`;
     }
 
@@ -5043,7 +5058,7 @@ JSON FORMAT:
       }
       // Google's explicit cache endpoint requires a sufficiently large prefix.
       // If the stable prefix is too small, normal generateContent remains cheaper.
-      if (estimateTokens(stableInstruction) < CONTEXT_CACHE_MIN_TOKENS) return '';
+      if (estimateTokens(stableInstruction) < CONTEXT_CACHE_MIN_TOKENS) return ''; // Stable system instruction is cached independently of dynamic dialogue.
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${encodeURIComponent(appState.apiKey)}`;
         const payload = {
@@ -5073,7 +5088,7 @@ JSON FORMAT:
       if (model === MODEL_ROUTINE_DEFAULT && options.useCache !== false) cachedName = await ensureContextCache();
       const payload = {
         contents: contentsArray,
-        ...(cachedName ? {cachedContent: cachedName} : {systemInstruction:{parts:[{text:buildSystemInstruction(false)}]}}),
+        ...(cachedName ? {cachedContent: cachedName} : {systemInstruction:{parts:[{text:await buildSystemInstruction(false)}]}}),
         generationConfig: {
           temperature: appState.temperature || 0.85,
           maxOutputTokens: options.maxOutputTokens || 850,
@@ -5160,6 +5175,21 @@ JSON FORMAT:
         await saveState();
       } catch(e) { console.warn('Recap compaction skipped:',e.message); }
       finally { active._recapCompactionBusy = false; }
+    }
+
+    async function archiveCurrentChapterManually(){
+      const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(!turns.length){alert('There are no turns to archive yet.');return;}
+      const shouldGenerate=!!appState.apiKey;
+      showLoading(true,'Archiving current chapter...');
+      try{
+        let recap={milestoneSummary:`Chapter ${active.currentChapter||1} concluded.`,characterArcs:active.activeChapterArcs||{}};
+        if(shouldGenerate){
+          const dialogue=turns.map(m=>`${m.speakerName||'Speaker'}: ${m.text}`).join('\n'); const cast=[active.userPersona.name,...active.characters.map(c=>c.name)];
+          const payload={contents:[{role:'user',parts:[{text:`Summarize Chapter ${active.currentChapter||1}. Return JSON with milestoneSummary (2-3 sentences) and characterArcs mapping each of ${cast.join(', ')} to 3-4 sentences. Preserve only established facts.\n\n${dialogue}`}]}],generationConfig:{temperature:.25,maxOutputTokens:1000,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER};
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=JSON.parse((data.candidates?.[0]?.content?.parts?.[0]?.text||'{}').trim())||recap}catch(e){}}
+        }
+        active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:'msg_'+Date.now(),isChapterDivider:true,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;await saveState(true);renderAllUi();populateChapterChronicle();
+      }catch(e){alert('Manual archive notice: '+e.message)}finally{showLoading(false)}
     }
 
     async function checkAndTriggerChapterArchival() {
@@ -5645,72 +5675,11 @@ REQUIREMENTS:
       document.getElementById('importTranscriptText').value = '';
     }
 
-    function exportStory() {
-      const active = getActiveScenario();
-      if (active.messages.length === 0) {
-        alert("No story content to export in current scenario.");
-        return;
-      }
-      let markdown = `# ${active.title || 'Interactive Story'}\n\n`;
-      markdown += `**Setting:** ${active.setting || 'N/A'}\n\n`;
-      markdown += `**Presentation:** ${active.viewMode === 'vn' ? 'Visual Novel Stage' : 'Messenger Feed'} (${active.artStyle || 'Anime'})\n\n`;
-      markdown += `**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;
-
-      if ((active.lorebook || []).length > 0) {
-        markdown += `## World Codex & Lorebook\n\n`;
-        active.lorebook.forEach(l => {
-          markdown += `### ${l.title}\n*Keywords:* ${l.keywords}\n${l.content}\n\n`;
-        });
-        markdown += `---\n\n`;
-      }
-
-      if ((active.archivedRecaps || []).length > 0) {
-        markdown += `## Archived Story Recaps\n\n`;
-        active.archivedRecaps.forEach(r => {
-          if (typeof r === 'string') {
-            markdown += `${r}\n\n`;
-          } else {
-            markdown += `### Chapter ${r.chapterNum}\n${r.milestoneSummary}\n\n`;
-            if (r.characterArcs) {
-              for (let [name, arc] of Object.entries(r.characterArcs)) {
-                markdown += `- **${name}**: ${arc}\n`;
-              }
-              markdown += `\n`;
-            }
-          }
-        });
-        markdown += `---\n\n`;
-      }
-
-      active.messages.forEach(m => {
-        if (m.isChapterDivider) {
-          markdown += `\n## --- ${m.text} ---\n\n`;
-        } else if (m.isImage) {
-          markdown += `![Scene Snapshot](${m.imageUrl})\n*${m.text || m.prompt}*\n\n---\n\n`;
-        } else {
-          markdown += `### ${m.speakerName || 'Character'} (${m.timestamp || ''})\n\n${m.text}\n\n---\n\n`;
-        }
-      });
-
-      const blob = new Blob([markdown], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(active.title || 'story').toLowerCase().replace(/\s+/g, '_')}_transcript.md`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function exportJsonBackup() {
-      const backupData = JSON.stringify(appState, null, 2);
-      const blob = new Blob([backupData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `zetaforge_all_scenarios_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    function downloadBlob(content,type,filename){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    function exportStoryMarkdown(active){let markdown=`# ${active.title||'Interactive Story'}\n\n**Setting:** ${active.setting||'N/A'}\n\n**Presentation:** ${active.viewMode==='vn'?'Visual Novel Stage':'Messenger Feed'} (${active.artStyle||'Anime'})\n\n**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;if((active.lorebook||[]).length){markdown+='## World Codex & Lorebook\n\n';active.lorebook.forEach(l=>{markdown+=`### ${l.title}\n*Keywords:* ${l.keywords}\n${l.content}\n\n`});markdown+='---\n\n';}if((active.archivedRecaps||[]).length){markdown+='## Archived Story Recaps\n\n';active.archivedRecaps.forEach(r=>{markdown+=typeof r==='string'?`${r}\n\n`:`### Chapter ${r.chapterNum}\n${r.milestoneSummary}\n\n`});markdown+='---\n\n';}active.messages.forEach(m=>{if(m.isChapterDivider)markdown+=`\n## --- ${m.text} ---\n\n`;else if(m.isImage)markdown+=`![Scene Snapshot](${m.imageUrl})\n*${m.text||m.prompt}*\n\n---\n\n`;else markdown+=`### ${m.speakerName||'Character'} (${m.timestamp||''})\n\n${m.text}\n\n---\n\n`;});return markdown;}
+    function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(appState,null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){downloadBlob(JSON.stringify(active,null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){alert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
+    function exportStory(){openModal('exportModal');}
+    function exportJsonBackup(){performExport('all-json');}
 
     function importJsonBackup(event) {
       const file = event.target.files[0];
@@ -5731,7 +5700,7 @@ REQUIREMENTS:
             renderAllUi();
             syncModalForm();
             alert("All scenarios, codex, and backfiles restored successfully!");
-            closeModal('setupModal');
+            closeModal('importModal');
           } else {
             alert("Invalid backup file structure.");
           }
@@ -5782,34 +5751,32 @@ REQUIREMENTS:
     let lastRenderedMessageCount = -1;
     let lastRenderedScenarioId = '';
     let lastRenderedMessageSignature = '';
-    function renderMessages() {
-      const container=document.getElementById('messagesContainer');
-      const active=getActiveScenario();
-      if(!container||!active) return;
+    let messageSearchQuery='';
+    function toggleMessageSearch(show){const bar=document.getElementById('messageSearchBar');if(!bar)return;bar.classList.toggle('hidden',!show);if(show){document.getElementById('messageSearchInput')?.focus()}else{messageSearchQuery='';const i=document.getElementById('messageSearchInput');if(i)i.value='';filterMessageArchive('')}}
+    function filterMessageArchive(query){messageSearchQuery=String(query||'').trim().toLowerCase();const active=getActiveScenario();const matches=messageSearchQuery?(active.messages||[]).map((m,i)=>({m,i})).filter(x=>`${x.m.speakerName||''} ${x.m.text||''}`.toLowerCase().includes(messageSearchQuery)):[];const out=document.getElementById('messageSearchResults');if(out){if(!messageSearchQuery){out.innerHTML='';}else{out.innerHTML=`${matches.length} match${matches.length===1?'':'es'}${matches.length>12?' — showing first 12':''}<div class="flex gap-1 overflow-x-auto py-1 no-scrollbar">${matches.slice(0,12).map(x=>`<button type="button" onclick="jumpToMessage(${x.i})" class="shrink-0 max-w-[180px] truncate bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 text-[10px] text-zetaLight hover:text-white">${escapeHtml(x.m.speakerName||'Message')} · ${escapeHtml((x.m.text||'').slice(0,55))}</button>`).join('')}</div>`;}}if(messageSearchQuery){renderVirtualMessages(true,matches.map(x=>x.i));}else renderMessages();}
+
+    function jumpToMessage(index){messageSearchQuery='';const input=document.getElementById('messageSearchInput');if(input)input.value='';renderVirtualMessages(true);requestAnimationFrame(()=>{const el=document.getElementById(`msg-${index}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});});}
+    let virtualChatState={start:0,end:0,estimate:110,overscan:8,indices:[],query:''};
+    let virtualChatScrollBound=false;
+    function renderVirtualMessages(force=false, explicitIndices=null){
+      const container=document.getElementById('messagesContainer');const active=getActiveScenario();if(!container||!active)return;
       document.getElementById('chapterBadgeText').innerText=`Ch. ${active.currentChapter||1}`;
-      (active.messages||[]).forEach(m=>{if(!m.id)m.id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);});
-      const recentSig=(active.messages||[]).slice(-3).map(m=>`${m.id||''}|${m.text||''}|${m.speakerName||''}|${m.isImage?'i':''}|${m.isChapterDivider?'d':''}`).join('§');
-      const needsFull=lastRenderedScenarioId!==active.id || lastRenderedMessageCount<0 || active.messages.length<lastRenderedMessageCount || editingMessageId!==null || (lastRenderedMessageCount===active.messages.length && recentSig!==lastRenderedMessageSignature);
-      if(needsFull){
-        lastRenderedScenarioId=active.id; lastRenderedMessageCount=0; lastRenderedMessageSignature='';
-        container.innerHTML='';
-        if(!active.messages.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p><button onclick="openModal('setupModal')" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow">Configure & Start</button></div>`; return;}
+      const all=active.messages||[];if(!all.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p><button onclick="openModal('setupModal')" class="mt-2 bg-zetaAccent text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl">Configure & Start</button></div>`;return;}
+      if(!virtualChatScrollBound){container.addEventListener('scroll',()=>{if(messageSearchQuery)return;requestAnimationFrame(()=>renderVirtualMessages())},{passive:true});virtualChatScrollBound=true;}
+      const count=all.length;const h=virtualChatState.estimate;let start=explicitIndices?Math.max(0,Math.min(...explicitIndices)-2):Math.max(0,Math.floor(container.scrollTop/h)-virtualChatState.overscan);let end=explicitIndices?Math.min(count,Math.max(...explicitIndices)+3):Math.min(count,Math.ceil((container.scrollTop+container.clientHeight)/h)+virtualChatState.overscan);
+      if(!force&&!messageSearchQuery&&start===virtualChatState.start&&end===virtualChatState.end&&container.children.length>2)return;
+      virtualChatState.start=start;virtualChatState.end=end;virtualChatState.indices=explicitIndices||[];virtualChatState.query=messageSearchQuery;
+      const topH=start*h,bottomH=Math.max(0,(count-end)*h);const frag=document.createDocumentFragment();const top=document.createElement('div');top.className='virtual-chat-spacer';top.style.height=topH+'px';frag.appendChild(top);
+      for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
+        if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
+        else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        frag.appendChild(wrapper);
       }
-      const start=lastRenderedMessageCount;
-      for(let index=start; index<active.messages.length; index++){
-        const m=active.messages[index];
-        const wrapper=document.createElement('div'); wrapper.id=`msg-${index}`;
-        if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3'; wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`; container.appendChild(wrapper); continue;}
-        if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group'; wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`; container.appendChild(wrapper); continue;}
-        const rawSpeaker=m.speakerName||''; const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase()); const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase()); const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion')); const cleanContent=formatDialogueSpacing((m.text||'').trim()); const renderedHtml=marked.parse(cleanContent); const hasBranch=Boolean(messageBranches[m.id]); const isMostRecent=index===active.messages.length-1&&!isUser;
-        wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;
-        wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;
-        container.appendChild(wrapper);
-      }
-      lastRenderedMessageCount=active.messages.length;
-      lastRenderedMessageSignature=(active.messages||[]).slice(-3).map(m=>`${m.id||''}|${m.text||''}|${m.speakerName||''}|${m.isImage?'i':''}|${m.isChapterDivider?'d':''}`).join('§');
-      container.scrollTop=container.scrollHeight;
+      const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
+      if(messageSearchQuery&&explicitIndices?.length){const first=document.getElementById(`msg-${explicitIndices[0]}`);if(first)first.scrollIntoView({block:'center'});}
     }
+    function renderMessages(){renderVirtualMessages(true);}
 
     // Web Worker for expensive sprite-sheet background removal. Falls back to the
     // original algorithm on browsers that cannot construct workers.
