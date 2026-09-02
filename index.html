@@ -531,6 +531,7 @@
           <div class="flex sm:flex-col gap-2 shrink-0">
             <button type="button" onclick="generateSpotlightCharacterPhoto()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✨ Photo</button>
             <button type="button" onclick="generateSpotlightCharacterSpriteSheet()" class="bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">🎞️ Sheet</button>
+            <button type="button" onclick="openChatAvatarCropper()" class="bg-indigo-700 hover:bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✂️ Crop Chat</button>
           </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
             <div class="flex items-center justify-center sm:justify-start gap-2">
@@ -661,9 +662,38 @@
         <p id="characterPhotoCaption" class="text-[11px] text-slate-400"></p>
       </div>
       <div id="characterPhotoDefaultBtnWrap" class="w-full"></div>
-      <div id="characterPhotoThumbStrip" class="w-full max-h-[18vh] overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 p-1">
+      <div id="characterPhotoThumbStrip" class="w-full max-h-[18vh] overflow-x-auto overflow-y-hidden flex gap-2 p-1 snap-x snap-mandatory no-scrollbar">
       </div>
       <p class="text-[10px] text-[#b9a6ff]/70">Tap a thumbnail to preview it above. Swipe down or tap outside to return.</p>
+    </div>
+  </div>
+
+  <!-- Text Chat Avatar Cropper: stores a separate cropped copy and never overwrites the library/default image. -->
+  <div id="chatAvatarCropModal" onclick="closeChatAvatarCropper(event)" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[90] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div>
+          <h2 class="text-sm font-bold text-white">✂️ Crop for Text Chat</h2>
+          <p id="chatAvatarCropTitle" class="text-[10px] text-slate-500 mt-0.5">Creates a separate chat-only portrait.</p>
+        </div>
+        <button type="button" onclick="closeChatAvatarCropper()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-4">
+        <div class="rounded-xl border border-zetaBorder bg-black p-2 flex items-center justify-center">
+          <canvas id="chatAvatarCropCanvas" class="max-w-full max-h-[42vh] object-contain rounded-lg"></canvas>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="text-[10px] text-slate-400">Left <input id="chatCropX" type="range" min="0" max="100" value="0" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Top <input id="chatCropY" type="range" min="0" max="100" value="0" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Width <input id="chatCropW" type="range" min="10" max="100" value="100" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+          <label class="text-[10px] text-slate-400">Height <input id="chatCropH" type="range" min="10" max="100" value="100" class="w-full accent-zetaAccent" oninput="renderChatAvatarCropPreview()"></label>
+        </div>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Only the cropped copy is used by text chat. The original default portrait in the character library is never changed.</p>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex gap-2 justify-end shrink-0">
+        <button type="button" onclick="clearChatAvatarCrop()" class="px-3 py-2 bg-zetaCard hover:bg-zetaBorder text-slate-300 rounded-xl text-xs">Use Default</button>
+        <button type="button" onclick="applyChatAvatarCrop()" class="px-4 py-2 bg-zetaAccent hover:bg-zetaAccentHover text-white font-semibold rounded-xl text-xs shadow">Save Chat Crop</button>
+      </div>
     </div>
   </div>
 
@@ -696,13 +726,15 @@
             <button onclick="addAvatarFromUrlInput()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-3 py-1.5 rounded-lg transition active:scale-95">Add URL</button>
           </div>
 
-          <label class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg cursor-pointer">
+          <div class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg">
             <span class="text-[10px] text-slate-300 leading-tight">
               <strong class="text-white">Remove sprite-sheet background</strong><br>
               Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet. Turn off to keep the original cell background and remove it manually later.
             </span>
-            <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="w-4 h-4 accent-zetaAccent shrink-0" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
-          </label>
+            <button type="button" id="spriteSheetRemoveBackgroundToggle" role="switch" aria-checked="true" class="relative inline-flex w-10 h-5 shrink-0 rounded-full bg-zetaAccent transition focus:outline-none focus:ring-2 focus:ring-zetaAccent/50" onclick="toggleSpriteSheetBackgroundRemoval()" title="Toggle sprite-sheet background removal">
+              <span class="absolute top-0.5 left-[22px] w-4 h-4 rounded-full bg-white shadow transition-transform"></span>
+            </button>
+          </div>
           <p class="text-[10px] text-[#b9a6ff]/70 leading-tight">
             Sprite sheets (4×4 grid) automatically extract 16 emotion poses and label them with expression names.
           </p>
@@ -1496,126 +1528,6 @@
       return Math.ceil(totalChars / 3.8);
     }
 
-    function recordTextUsage(model, data, fallbackInputText = '', fallbackMaxOutput = 0) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      const meta = (data && data.usageMetadata) || {};
-      const totalPromptTokens = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : estimateTokens(fallbackInputText);
-      const outputTokens = typeof meta.candidatesTokenCount === 'number' ? meta.candidatesTokenCount : fallbackMaxOutput;
-      const cachedTokens = typeof meta.cachedContentTokenCount === 'number' ? meta.cachedContentTokenCount : (typeof meta.totalCachedTokens === 'number' ? meta.totalCachedTokens : 0);
-      const inputTokens = Math.max(0, totalPromptTokens - cachedTokens);
-      if (cachedTokens > 0) {
-        appState.usageStats.cachedInputTokens += cachedTokens;
-        appState.usageStats.cacheHits += 1;
-      }
-      if (model === MODEL_ADVANCED) {
-        appState.usageStats.advancedInputTokens += inputTokens;
-        appState.usageStats.advancedOutputTokens += outputTokens;
-      } else {
-        appState.usageStats.routineInputTokens += inputTokens;
-        appState.usageStats.routineOutputTokens += outputTokens;
-      }
-    }
-
-    function recordImageUsage(kind) {
-      if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
-      }
-      if (kind === '4K') appState.usageStats.images4K += 1;
-      else appState.usageStats.images1K += 1;
-    }
-
-    function capSliceToTokenBudget(slice, budgetTokens) {
-      if (!slice || slice.length === 0) return slice;
-      const kept = [];
-      let totalChars = 0;
-      const minKeep = 6; // always keep at least a few most-recent turns
-      for (let i = slice.length - 1; i >= 0; i--) {
-        const m = slice[i];
-        const chars = (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0);
-        if (kept.length >= minKeep && Math.ceil((totalChars + chars) / 3.8) > budgetTokens) break;
-        kept.unshift(m);
-        totalChars += chars;
-      }
-      return kept;
-    }
-
-    function estimateNextTurnContextTokens() {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) { lastDividerIdx = i; break; }
-      }
-      let slice;
-      if (lastDividerIdx === -1) {
-        slice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        slice = overlap.concat(currentTurns);
-      }
-      slice = capSliceToTokenBudget(slice, CONTEXT_TOKEN_CAP);
-      let chars = 0;
-      slice.forEach(m => { chars += (m.speakerName ? m.speakerName.length + 2 : 0) + (m.text ? m.text.length : 0); });
-      const dialogueTokens = Math.ceil(chars / 3.8);
-      const systemTokens = estimateTokens(buildSystemInstruction());
-      return dialogueTokens + systemTokens;
-    }
-
-    function buildApiContents(extraDirective = null) {
-      const active = getActiveScenario();
-      let lastDividerIdx = -1;
-      for (let i = active.messages.length - 1; i >= 0; i--) {
-        if (active.messages[i].isChapterDivider) {
-          lastDividerIdx = i;
-          break;
-        }
-      }
-
-      let activeSlice;
-      if (lastDividerIdx === -1) {
-        activeSlice = active.messages.filter(m => !m.isImage);
-      } else {
-        const priorTurns = active.messages.slice(0, lastDividerIdx).filter(m => !m.isImage && !m.isChapterDivider);
-        const overlap = priorTurns.slice(-16);
-        const currentTurns = active.messages.slice(lastDividerIdx + 1).filter(m => !m.isImage);
-        activeSlice = overlap.concat(currentTurns);
-      }
-
-      // Cost/context optimization: cap the dialogue actually sent to Gemini to
-      // ~12k recent-dialogue tokens instead of continually sending everything
-      // since the last chapter divider. The full transcript stays intact in
-      // active.messages (IndexedDB) — only this ephemeral API payload shrinks.
-      activeSlice = capSliceToTokenBudget(activeSlice, CONTEXT_TOKEN_CAP);
-
-      const contents = activeSlice.map(m => {
-        const isUserTurn = m.role === 'user' && m.speakerName?.toLowerCase() !== 'narrator' && m.speakerName?.toLowerCase() !== 'scene';
-        return {
-          role: isUserTurn ? 'user' : 'model',
-          parts: [{ text: `${m.speakerName ? m.speakerName + ': ' : ''}${m.text}` }]
-        };
-      });
-
-      if (extraDirective) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: extraDirective }]
-        });
-      }
-
-      if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
-        contents.push({
-          role: 'user',
-          parts: [{ text: `[Scene update / Narration: React to the unfolding events and dialogue naturally.]` }]
-        });
-      }
-
-      return contents;
-    }
-
-
     function autoExpandTextarea(el) {
       el.style.height = '42px';
       el.style.height = Math.max(42, Math.min(el.scrollHeight, 144)) + 'px';
@@ -2143,7 +2055,21 @@
     function setSpriteSheetBackgroundRemoval(enabled) {
       const active = getActiveScenario();
       active.removeSpriteSheetBackground = !!enabled;
+      const toggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
+      if (toggle) {
+        toggle.setAttribute('aria-checked', active.removeSpriteSheetBackground ? 'true' : 'false');
+        toggle.classList.toggle('bg-zetaAccent', active.removeSpriteSheetBackground);
+        toggle.classList.toggle('bg-slate-700', !active.removeSpriteSheetBackground);
+        const knob = toggle.querySelector('span');
+        if (knob) knob.style.transform = active.removeSpriteSheetBackground ? 'translateX(0)' : 'translateX(-22px)';
+      }
       saveState();
+    }
+
+    function toggleSpriteSheetBackgroundRemoval() {
+      const toggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
+      const enabled = toggle ? toggle.getAttribute('aria-checked') !== 'true' : true;
+      setSpriteSheetBackgroundRemoval(enabled);
     }
 
     function getCharacterPersona(char) {
@@ -3500,7 +3426,7 @@ IMPORTANT RULES:
       }
 
       thumbStrip.innerHTML = items.map((item, idx) => `
-        <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition">
+        <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square shrink-0 w-[31%] sm:w-[31%] rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition snap-start">
           <img src="${item.src}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
           ${item.isDefault ? `<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow">⭐</span>` : ''}
           ${item.kind === 'scene' ? `<span class="absolute bottom-1 right-1 bg-black/70 text-[8px] text-slate-200 px-1 py-0.5 rounded">🎬</span>` : ''}
@@ -3906,7 +3832,7 @@ IMPORTANT RULES:
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <div class="flex items-center gap-1.5">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
-                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(member.mood || 'Neutral')}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -3947,7 +3873,10 @@ IMPORTANT RULES:
               <div class="flex items-start gap-3">
                 ${avatarHtml}
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
-                  <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium shrink-0">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                  </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
                       <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
@@ -4153,7 +4082,7 @@ JSON FORMAT:
       if (userPersonaEl) userPersonaEl.value = active.userPersona.persona || active.userPersona.desc || '';
       if (userVisualEl) userVisualEl.value = active.userPersona.visualProfile || active.userPersona.desc || '';
       const spriteToggle = document.getElementById('spriteSheetRemoveBackgroundToggle');
-      if (spriteToggle) spriteToggle.checked = active.removeSpriteSheetBackground !== false;
+      if (spriteToggle) { const enabled = active.removeSpriteSheetBackground !== false; spriteToggle.setAttribute('aria-checked', enabled ? 'true' : 'false'); spriteToggle.classList.toggle('bg-zetaAccent', enabled); spriteToggle.classList.toggle('bg-slate-700', !enabled); const knob = spriteToggle.querySelector('span'); if (knob) knob.style.transform = enabled ? 'translateX(0)' : 'translateX(-22px)'; }
       renderUserOutfitsSetup();
       const userOutfitSelect = document.getElementById('userCurrentOutfit');
       if (userOutfitSelect) userOutfitSelect.value = active.userPersona.currentOutfitId || '';
@@ -4298,7 +4227,7 @@ JSON FORMAT:
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
       active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
-      active.removeSpriteSheetBackground = document.getElementById('spriteSheetRemoveBackgroundToggle')?.checked !== false;
+      active.removeSpriteSheetBackground = document.getElementById('spriteSheetRemoveBackgroundToggle')?.getAttribute('aria-checked') !== 'false';
 
       const rawRecap = document.getElementById('chapterRecapsText').value.trim();
       if (rawRecap) {
@@ -4382,6 +4311,100 @@ JSON FORMAT:
       </svg>`;
     }
 
+    let chatAvatarCropState = { charName: '', src: '', image: null };
+
+    function getCharacterChatAvatar(char) {
+      if (!char) return '';
+      return char.chatAvatarCrop || getCharacterDefaultAvatar(char);
+    }
+
+    function openChatAvatarCropper() {
+      const found = getCurrentSpotlightCharacter();
+      if (!found) return;
+      const src = getCharacterDefaultAvatar(found.obj);
+      if (!src) { alert('This character does not have a default image to crop.'); return; }
+      const modal = document.getElementById('chatAvatarCropModal');
+      const img = new Image();
+      img.onload = () => {
+        chatAvatarCropState = { charName: found.obj.name || '', src, image: img };
+        document.getElementById('chatAvatarCropTitle').innerText = `${found.obj.name || 'Character'} · chat-only crop`;
+        ['chatCropX','chatCropY'].forEach(id => document.getElementById(id).value = 0);
+        ['chatCropW','chatCropH'].forEach(id => document.getElementById(id).value = 100);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        renderChatAvatarCropPreview();
+      };
+      img.onerror = () => alert('Unable to load the current default image for cropping.');
+      img.src = src;
+    }
+
+    function getChatCropRect() {
+      const x = Number(document.getElementById('chatCropX').value) || 0;
+      const y = Number(document.getElementById('chatCropY').value) || 0;
+      const w = Number(document.getElementById('chatCropW').value) || 100;
+      const h = Number(document.getElementById('chatCropH').value) || 100;
+      return { x: Math.min(x, 100 - w), y: Math.min(y, 100 - h), w, h };
+    }
+
+    function renderChatAvatarCropPreview() {
+      const state = chatAvatarCropState;
+      const canvas = document.getElementById('chatAvatarCropCanvas');
+      if (!state.image || !canvas) return;
+      const r = getChatCropRect();
+      const sx = state.image.naturalWidth * r.x / 100;
+      const sy = state.image.naturalHeight * r.y / 100;
+      const sw = state.image.naturalWidth * r.w / 100;
+      const sh = state.image.naturalHeight * r.h / 100;
+      const max = 700;
+      const scale = Math.min(1, max / Math.max(sw, sh));
+      canvas.width = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
+      canvas.getContext('2d').drawImage(state.image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    }
+
+    function closeChatAvatarCropper(event) {
+      if (event && event.target && event.target.id !== 'chatAvatarCropModal') return;
+      const modal = document.getElementById('chatAvatarCropModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function applyChatAvatarCrop() {
+      const state = chatAvatarCropState;
+      const found = getCurrentSpotlightCharacter();
+      if (!state.image || !found) return;
+      const r = getChatCropRect();
+      const sx = state.image.naturalWidth * r.x / 100;
+      const sy = state.image.naturalHeight * r.y / 100;
+      const sw = state.image.naturalWidth * r.w / 100;
+      const sh = state.image.naturalHeight * r.h / 100;
+      const canvas = document.createElement('canvas');
+      const max = 1024;
+      const scale = Math.min(1, max / Math.max(sw, sh));
+      canvas.width = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
+      canvas.getContext('2d').drawImage(state.image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      found.obj.chatAvatarCrop = canvas.toDataURL('image/jpeg', 0.88);
+      await saveState();
+      closeChatAvatarCropper();
+      renderSidebar();
+      renderMessages();
+      if (getActiveScenario().viewMode === 'vn') renderVnTurn(false);
+      alert('✂️ Cropped image saved for text chat only. The library default remains unchanged.');
+    }
+
+    async function clearChatAvatarCrop() {
+      const found = getCurrentSpotlightCharacter();
+      if (!found) return;
+      delete found.obj.chatAvatarCrop;
+      await saveState();
+      closeChatAvatarCropper();
+      renderSidebar();
+      renderMessages();
+      if (getActiveScenario().viewMode === 'vn') renderVnTurn(false);
+    }
+
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       const safeName = escapeHtml(speakerName || '?');
@@ -4401,7 +4424,7 @@ JSON FORMAT:
         if (!charObj && !isUser) charObj = findSideCharacterProfile(speakerName);
       }
 
-      const avatarSrc = charObj ? getCharacterDefaultAvatar(charObj) : '';
+      const avatarSrc = charObj ? getCharacterChatAvatar(charObj) : '';
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
       const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
@@ -4482,28 +4505,17 @@ JSON FORMAT:
             </div>
             <div class="space-y-2.5">
               ${active.characters.map(c => `
-                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
-                  <div class="flex items-start gap-2.5">
-                    ${getAvatarHtml(c.name, false, 'w-14 h-14 sm:w-16 sm:h-16')}
-                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
-                      <div class="min-w-0">
-                        <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
-                        <div class="mt-1">
-                          <span class="inline-flex text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
-                        </div>
+                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                  <div class="flex items-center gap-3">
+                    <div class="shrink-0">${getAvatarHtml(c.name, false, 'w-16 h-16 sm:w-20 sm:h-20')}</div>
+                    <div class="overflow-hidden flex-1 min-w-0 flex flex-col gap-1.5 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                      <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
+                      <div class="flex flex-wrap gap-1">
+                        ${c.role ? c.role.split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="text-[9px] bg-slate-800/90 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700/60 leading-snug">${escapeHtml(x)}</span>`).join('') : ''}
                       </div>
-                      ${c.role ? `
-                        <div class="flex flex-wrap gap-1">
-                          <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
-                            ${escapeHtml(c.role)}
-                          </span>
-                        </div>
-                      ` : ''}
+                      <span class="inline-flex w-fit text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
+                      <span class="flex items-center gap-1 min-w-0 text-[10px] text-zetaGlow font-medium"><span>🔗</span><span class="truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span></span>
                     </div>
-                  </div>
-                  <div class="flex items-center gap-1.5 pt-0.5">
-                    <span class="text-[10px] text-zetaGlow">🔗</span>
-                    <span class="text-[11px] text-zetaGlow font-medium truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span>
                   </div>
                 </div>
               `).join('')}
