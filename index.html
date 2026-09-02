@@ -202,7 +202,7 @@
       </div>
 
       <div class="p-3 bg-zetaCard/60 border-t border-zetaBorder text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-10 h-10 rounded-xl bg-zetaAccent flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-zetaLight/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div id="sidebarUserAvatar" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-zetaAccent flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-zetaLight/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
           U
         </div>
         <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
@@ -648,18 +648,22 @@
     </div>
   </div>
 
-  <!-- Fullscreen Photo Modal -->
-  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] items-center justify-center p-4 hidden">
-    <div onclick="event.stopPropagation()" class="relative max-w-md w-full flex flex-col items-center gap-3">
+  <!-- Fullscreen Photo Modal: character-specific scrollable visual library -->
+  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="relative max-w-lg w-full max-h-full flex flex-col items-center gap-3">
       <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
         &times;
       </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
+      <div id="characterPhotoContainer" class="w-full max-h-[58vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
       </div>
-      <div class="text-center space-y-2 w-full">
+      <div class="text-center space-y-1.5 w-full">
         <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p class="text-[11px] text-[#b9a6ff]/70 mt-1">Tap anywhere outside or swipe down to return</p>
+        <p id="characterPhotoCaption" class="text-[11px] text-slate-400"></p>
       </div>
+      <div id="characterPhotoDefaultBtnWrap" class="w-full"></div>
+      <div id="characterPhotoThumbStrip" class="w-full max-h-[18vh] overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 p-1">
+      </div>
+      <p class="text-[10px] text-[#b9a6ff]/70">Tap a thumbnail to preview it above. Swipe down or tap outside to return.</p>
     </div>
   </div>
 
@@ -1286,7 +1290,18 @@
       closeModal('importModal');
       renderAllUi();
       syncModalForm();
+      bindDefensiveClickListeners();
     });
+
+    // Belt-and-suspenders click bindings for controls that must keep working
+    // even if a future UI redraw ever replaces their inline onclick markup.
+    function bindDefensiveClickListeners() {
+      const tokenCounterBtn = document.getElementById('statActiveTokens');
+      if (tokenCounterBtn && !tokenCounterBtn.dataset.defensiveBound) {
+        tokenCounterBtn.addEventListener('click', openUsageCostModal);
+        tokenCounterBtn.dataset.defensiveBound = '1';
+      }
+    }
 
     // Rebuild the scenario's compact localMemoryIndex from its source-of-truth
     // fields (recaps, lorebook, relationships, arcs, outfits). This does not
@@ -1612,6 +1627,58 @@
     }
 
     // Visual Novel avatar: select an expression sprite that matches the current mood.
+    // Fully local — no AI/API call is made to pick a sprite for a VN turn. The
+    // character's mood already arrives for free as part of the main story-turn
+    // response; this just maps that mood text onto an uploaded sprite caption.
+    //
+    // 12 primary sprite emotions (a curated subset/merge of the 16-slot sprite
+    // sheet slugs above) plus a synonym table so related moods the model writes
+    // (e.g. "frustrated") resolve to the closest primary sprite the character
+    // actually has (e.g. "angry"), instead of missing the match entirely.
+    const PRIMARY_SPRITE_EMOTIONS = [
+      'neutral', 'happy', 'sad', 'angry', 'confident', 'surprised',
+      'tired_bored', 'embarrassed', 'flirtatious', 'smug_teasing', 'determined', 'disgusted'
+    ];
+
+    const EMOTION_SYNONYM_MAP = {
+      neutral: ['calm', 'relaxed', 'composed', 'indifferent', 'still', 'fine', 'thinking', 'pensive', 'curious'],
+      happy: ['delighted', 'joyful', 'glad', 'cheerful', 'excited', 'pleased', 'elated', 'content', 'amused', 'playful', 'touched', 'grateful'],
+      sad: ['unhappy', 'down', 'depressed', 'melancholy', 'heartbroken', 'sorrowful', 'gloomy', 'crying', 'tearful', 'hurt', 'defeated', 'dejected'],
+      angry: ['frustrated', 'mad', 'furious', 'irritated', 'annoyed', 'enraged', 'livid', 'resentful', 'agitated'],
+      confident: ['proud', 'bold', 'assured', 'resolute', 'brave', 'cocky'],
+      surprised: ['shocked', 'startled', 'stunned', 'astonished', 'amazed'],
+      tired_bored: ['exhausted', 'sleepy', 'weary', 'drained', 'bored', 'unimpressed', 'apathetic'],
+      embarrassed: ['nervous', 'shy', 'flustered', 'awkward', 'bashful', 'self-conscious', 'anxious', 'worried', 'scared', 'afraid'],
+      flirtatious: ['seductive', 'romantic', 'loving', 'affectionate', 'coy', 'infatuated'],
+      smug_teasing: ['smirking', 'teasing', 'self-satisfied', 'arrogant', 'condescending', 'mischievous'],
+      determined: ['focused', 'driven', 'motivated', 'resolved', 'stubborn', 'serious'],
+      disgusted: ['repulsed', 'grossed out', 'revolted', 'disturbed', 'disdainful']
+    };
+
+    // Reverse-index every synonym (and the primary label itself) to its canonical emotion for O(1) lookup.
+    const EMOTION_LOOKUP = (() => {
+      const map = {};
+      PRIMARY_SPRITE_EMOTIONS.forEach(primary => {
+        map[primary.replace(/_/g, '')] = primary;
+        (EMOTION_SYNONYM_MAP[primary] || []).forEach(syn => {
+          map[syn.replace(/[^a-z0-9]/g, '')] = primary;
+        });
+      });
+      return map;
+    })();
+
+    function resolvePrimaryEmotion(moodText) {
+      const normalized = String(moodText || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!normalized) return '';
+      if (EMOTION_LOOKUP[normalized]) return EMOTION_LOOKUP[normalized];
+      // Fall back to matching the mood text against any known word as a substring
+      // (handles multi-word moods like "quietly frustrated with him").
+      for (const key in EMOTION_LOOKUP) {
+        if (normalized.includes(key)) return EMOTION_LOOKUP[key];
+      }
+      return '';
+    }
+
     function getCharacterActiveAvatar(char, moodOverride = null) {
       if (!char) return '';
       const defaultAvatar = getCharacterDefaultAvatar(char);
@@ -1622,12 +1689,29 @@
       if (!currentMood) return defaultAvatar;
 
       const normalizedMood = currentMood.replace(/[^a-z0-9]/g, '');
-      const matched = photos.find(p => {
-        const cap = (p.caption || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const captionOf = p => (p.caption || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // 1) Direct match against whatever the photo/sprite is actually captioned.
+      const direct = photos.find(p => {
+        const cap = captionOf(p);
         return cap && (cap.includes(normalizedMood) || normalizedMood.includes(cap));
       });
+      if (direct) return direct.src;
 
-      return matched ? matched.src : defaultAvatar;
+      // 2) Local synonym resolution onto one of the 12 primary sprite emotions
+      //    (e.g. "frustrated" -> angry, "nervous" -> embarrassed, "delighted" -> happy).
+      const primary = resolvePrimaryEmotion(normalizedMood);
+      if (primary) {
+        const primaryWords = primary.split('_');
+        const synonymMatch = photos.find(p => {
+          const cap = captionOf(p);
+          return cap && primaryWords.some(word => cap.includes(word));
+        });
+        if (synonymMatch) return synonymMatch.src;
+      }
+
+      // 3) No appropriate sprite available — fall back to the character's default photo.
+      return defaultAvatar;
     }
 
     // Client-Side Image Compression Engine
@@ -3206,16 +3290,61 @@ IMPORTANT RULES:
       }
     }
 
-    function openCharacterPhotoModal(imageSrc, charName) {
-      if (!imageSrc) return;
-      const modal = document.getElementById('characterPhotoModal');
-      const container = document.getElementById('characterPhotoContainer');
-      const title = document.getElementById('characterPhotoTitle');
+    // Character-specific fullscreen photo library ----------------------------
+    // Gathers a character's uploaded photos/sprites plus any generated scene
+    // visualizations whose prompt names that character, and lets the user
+    // page through them and set a new default portrait — all client-side.
+    let photoLibraryState = { charName: '', items: [], activeIndex: 0 };
 
-      title.innerText = charName ? `${charName}'s Portrait` : 'Character Visual';
-      container.innerHTML = `<img src="${imageSrc}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
+    function characterNameInPrompt(promptText, charName) {
+      if (!promptText || !charName) return false;
+      const haystack = String(promptText).toLowerCase();
+      const firstToken = String(charName).trim().split(/\s+/)[0].toLowerCase();
+      if (!firstToken || firstToken.length < 2) return false;
+      // Word-boundary match so short names don't false-positive inside other words.
+      const re = new RegExp(`\\b${firstToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return re.test(haystack);
+    }
+
+    function buildCharacterPhotoLibraryItems(charName) {
+      const active = getActiveScenario();
+      const found = findCharacterForSpotlight(charName);
+      const charObj = found ? found.obj : null;
+
+      const photos = charObj ? (charObj.photos || []).map(normalizePhoto).filter(p => p.src) : [];
+      const currentDefault = charObj ? (charObj.avatar || photos[0]?.src || '') : '';
+
+      const items = photos.map(p => ({
+        src: p.src,
+        caption: p.caption || 'Photo',
+        kind: 'photo',
+        isDefault: !!currentDefault && p.src === currentDefault
+      }));
+
+      const sceneVisuals = (active.messages || [])
+        .filter(m => m.isImage && m.imageUrl && characterNameInPrompt(m.prompt || m.text, charName))
+        .map(m => ({ src: m.imageUrl, caption: 'Scene Visual', kind: 'scene', isDefault: false, timestamp: m.timestamp || '' }));
+
+      return { charObj, currentDefault, items: items.concat(sceneVisuals) };
+    }
+
+    function openCharacterPhotoModal(imageSrc, charName) {
+      const { items } = buildCharacterPhotoLibraryItems(charName);
+      if (items.length === 0) {
+        if (!imageSrc) return;
+        items.push({ src: imageSrc, caption: 'Portrait', kind: 'photo', isDefault: true });
+      }
+
+      let startIndex = items.findIndex(i => i.src === imageSrc);
+      if (startIndex < 0) startIndex = 0;
+
+      photoLibraryState = { charName: charName || '', items, activeIndex: startIndex };
+
+      const modal = document.getElementById('characterPhotoModal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+
+      renderCharacterPhotoLibrary();
 
       let touchStartY = 0;
       modal.ontouchstart = (e) => { touchStartY = e.touches[0].clientY; };
@@ -3225,6 +3354,60 @@ IMPORTANT RULES:
           closeCharacterPhotoModal();
         }
       };
+    }
+
+    function renderCharacterPhotoLibrary() {
+      const { charName, items, activeIndex } = photoLibraryState;
+      const container = document.getElementById('characterPhotoContainer');
+      const title = document.getElementById('characterPhotoTitle');
+      const captionEl = document.getElementById('characterPhotoCaption');
+      const defaultBtnWrap = document.getElementById('characterPhotoDefaultBtnWrap');
+      const thumbStrip = document.getElementById('characterPhotoThumbStrip');
+      if (!container || items.length === 0) return;
+
+      const active = items[Math.max(0, Math.min(activeIndex, items.length - 1))];
+
+      title.innerText = charName ? `${charName}'s Visual Library` : 'Character Visual';
+      captionEl.innerText = active.kind === 'scene' ? `Scene Visual${active.timestamp ? ' · ' + active.timestamp : ''}` : (active.caption || 'Photo');
+      container.innerHTML = `<img src="${active.src}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[58vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
+
+      if (active.kind === 'photo') {
+        defaultBtnWrap.innerHTML = active.isDefault
+          ? `<span class="block text-center text-[11px] text-indigo-300 font-semibold bg-zetaCard border border-indigo-500/60 rounded-xl py-2">⭐ Active Default Portrait</span>`
+          : `<button type="button" onclick="photoLibrarySetDefault()" class="w-full bg-zetaCard hover:bg-indigo-600 text-slate-200 hover:text-white text-xs font-semibold py-2 rounded-xl transition shadow active:scale-95">Set as Default Portrait</button>`;
+      } else {
+        defaultBtnWrap.innerHTML = `<span class="block text-center text-[10px] text-slate-500 italic py-1">Scene visuals aren't used as portraits.</span>`;
+      }
+
+      thumbStrip.innerHTML = items.map((item, idx) => `
+        <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition">
+          <img src="${item.src}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
+          ${item.isDefault ? `<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow">⭐</span>` : ''}
+          ${item.kind === 'scene' ? `<span class="absolute bottom-1 right-1 bg-black/70 text-[8px] text-slate-200 px-1 py-0.5 rounded">🎬</span>` : ''}
+        </button>
+      `).join('');
+    }
+
+    function photoLibraryShowIndex(idx) {
+      photoLibraryState.activeIndex = idx;
+      renderCharacterPhotoLibrary();
+    }
+
+    async function photoLibrarySetDefault() {
+      const { charName, items, activeIndex } = photoLibraryState;
+      const active = items[activeIndex];
+      if (!active || active.kind !== 'photo') return;
+
+      const found = findCharacterForSpotlight(charName);
+      if (!found) return;
+      found.obj.avatar = active.src;
+
+      await saveState();
+      photoLibraryState.items = photoLibraryState.items.map(i => ({ ...i, isDefault: i.kind === 'photo' && i.src === active.src }));
+      renderCharacterPhotoLibrary();
+      renderSidebar();
+      renderCharacterCardsSetup();
+      if (document.getElementById('characterSpotlightModal').classList.contains('flex')) openCharacterSpotlight(charName);
     }
 
     function closeCharacterPhotoModal() {
@@ -3543,6 +3726,7 @@ IMPORTANT RULES:
       const currentRawTokens = getActiveRawTokens();
       const limit = (appState.tokenThreshold || 120000);
       document.getElementById('statActiveTokens').innerText = `${(currentRawTokens/1000).toFixed(1)}k / ${(limit/1000).toFixed(0)}k tokens`;
+      bindDefensiveClickListeners();
 
       select.innerHTML = '';
 
@@ -4023,11 +4207,67 @@ JSON FORMAT:
       }
     }
 
+    // Local Side-Character Placeholder Engine ---------------------------------
+    // Generates a deterministic inline SVG "bust" placeholder for any character
+    // who has no uploaded photo yet. Runs entirely client-side (no image-gen API
+    // call). Appearance (male/female/neutral) is inferred heuristically from
+    // whatever text is already on the character (role/persona/visual profile),
+    // falling back to a neutral silhouette when there isn't enough information.
+    function hashStringToHue(str) {
+      const s = String(str || 'Unknown');
+      let hash = 0;
+      for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+      return hash % 360;
+    }
+
+    function findSideCharacterProfile(speakerName) {
+      const active = getActiveScenario();
+      if (!speakerName || !active.sideCharacterProfiles) return null;
+      return active.sideCharacterProfiles[speakerName.trim().toLowerCase()] || null;
+    }
+
+    function inferCharacterGender(charObj, speakerName) {
+      const text = [
+        charObj?.role, charObj?.relationship, getCharacterPersona(charObj || {}), getCharacterVisualProfile(charObj || {}),
+        speakerName
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      const maleHits = (text.match(/\b(he|him|his|himself|man|male|boy|gentleman|father|husband|brother|son|king|prince|guy|dude|mr)\b/g) || []).length;
+      const femaleHits = (text.match(/\b(she|her|hers|herself|woman|female|girl|lady|mother|wife|sister|daughter|queen|princess|gal|ms|mrs)\b/g) || []).length;
+
+      if (maleHits === 0 && femaleHits === 0) return 'neutral';
+      return maleHits >= femaleHits ? 'male' : 'female';
+    }
+
+    function buildPlaceholderAvatarSvg(seedName, gender) {
+      const hue = hashStringToHue(seedName);
+      const bg = `hsl(${hue}, 32%, 20%)`;
+      const skin = `hsl(${hue}, 45%, 68%)`;
+      const hair = `hsl(${(hue + 30) % 360}, 25%, 30%)`;
+
+      let hairShape = '';
+      if (gender === 'male') {
+        hairShape = `<path d="M13 20c0-7.2 4.9-12.5 11-12.5s11 5.3 11 12.5h-3.2c0-5.4-3.4-9.3-7.8-9.3s-7.8 3.9-7.8 9.3z" fill="${hair}" />`;
+      } else if (gender === 'female') {
+        hairShape = `<path d="M9 22c-1.2-10.4 5.6-17.5 15-17.5s16.2 7.1 15 17.5c-.2 2.2-1.6 2.6-2.6.9-.6 4.6-1.7 8-1.7 8H13.3s-1.1-3.4-1.7-8c-1 1.7-2.4 1.3-2.6-.9z" fill="${hair}" />`;
+      } else {
+        hairShape = `<path d="M14 17c0-6 4.5-10.5 10-10.5s10 4.5 10 10.5h-2.6c0-4.6-3.3-8-7.4-8s-7.4 3.4-7.4 8z" fill="${hair}" opacity="0.85" />`;
+      }
+
+      return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" preserveAspectRatio="xMidYMid slice">
+        <rect width="48" height="48" fill="${bg}" />
+        <circle cx="24" cy="21" r="10" fill="${skin}" />
+        <path d="M5 46c0-11.6 8.5-19 19-19s19 7.4 19 19z" fill="${skin}" />
+        ${hairShape}
+      </svg>`;
+    }
+
     function getAvatarHtml(speakerName, isUser = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
       const active = getActiveScenario();
       const safeName = escapeHtml(speakerName || '?');
       const initial = (speakerName || '?')[0].toUpperCase();
       const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
+      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
 
       let charObj = null;
       if (!isNarrator) {
@@ -4036,6 +4276,9 @@ JSON FORMAT:
         } else if (active.characters) {
           charObj = active.characters.find(c => c.name && c.name.toLowerCase() === (speakerName || '').toLowerCase());
         }
+        // Uploaded photos on a previously-spotlighted side character should
+        // still override the placeholder, so fall back to their dossier too.
+        if (!charObj && !isUser) charObj = findSideCharacterProfile(speakerName);
       }
 
       const avatarSrc = charObj ? getCharacterDefaultAvatar(charObj) : '';
@@ -4047,8 +4290,13 @@ JSON FORMAT:
         return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
       }
 
-      const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
+      if (!isNarrator && !isUser && !isMain) {
+        // Side character with no uploaded photo — synthesize a local placeholder.
+        const gender = inferCharacterGender(charObj, speakerName);
+        return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl overflow-hidden shrink-0 shadow border border-slate-700/60">${buildPlaceholderAvatarSvg(speakerName, gender)}</div>`;
+      }
+
+      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
       return `<div ${clickAttr} class="${size} ${cursorClass} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60">${initial}</div>`;
     }
 
@@ -4057,12 +4305,20 @@ JSON FORMAT:
       const initial = (speakerName || '?')[0].toUpperCase();
       const isNarrator = (speakerName || '').toLowerCase() === 'narrator' || (speakerName || '').toLowerCase() === 'scene';
       const isMain = active.characters.some(c => (c.name || '').toLowerCase() === (speakerName || '').toLowerCase());
-      const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : (isMain ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-amber-300'));
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
 
       const div = document.createElement('div');
-      div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl ${bg} flex items-center justify-center font-bold text-xs shrink-0 shadow border border-slate-700/60`;
-      div.innerText = initial;
+      div.className = `${size} ${isInteractive ? 'cursor-pointer active:scale-95 transition' : ''} rounded-xl shrink-0 shadow border border-slate-700/60 overflow-hidden`;
+
+      if (!isNarrator && !isUser && !isMain) {
+        const charObj = findSideCharacterProfile(speakerName);
+        const gender = inferCharacterGender(charObj, speakerName);
+        div.innerHTML = buildPlaceholderAvatarSvg(speakerName, gender);
+      } else {
+        const bg = !isNarrator && isUser ? 'bg-indigo-600 text-white' : (isNarrator ? 'bg-slate-800 text-amber-300' : 'bg-emerald-700 text-white');
+        div.className += ` ${bg} flex items-center justify-center font-bold text-xs`;
+        div.innerText = initial;
+      }
 
       if (isInteractive) {
         div.onclick = (e) => {
@@ -4108,7 +4364,7 @@ JSON FORMAT:
               ${active.characters.map(c => `
                 <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
                   <div class="flex items-start gap-2.5">
-                    ${getAvatarHtml(c.name, false, 'w-10 h-10')}
+                    ${getAvatarHtml(c.name, false, 'w-14 h-14 sm:w-16 sm:h-16')}
                     <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
                       <div class="min-w-0">
                         <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
@@ -4125,7 +4381,10 @@ JSON FORMAT:
                       ` : ''}
                     </div>
                   </div>
-                  ${c.personality ? `<p class="text-[11px] text-slate-300 leading-relaxed pt-0.5 line-clamp-2">${escapeHtml(c.personality)}</p>` : ''}
+                  <div class="flex items-center gap-1.5 pt-0.5">
+                    <span class="text-[10px] text-zetaGlow">🔗</span>
+                    <span class="text-[11px] text-zetaGlow font-medium truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span>
+                  </div>
                 </div>
               `).join('')}
             </div>
