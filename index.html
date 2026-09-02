@@ -201,21 +201,19 @@
       <div class="flex-1 overflow-y-auto p-3 space-y-4 scroll-touch" id="sidebarCharacterList">
       </div>
 
-      <div class="p-3 bg-zetaCard/60 border-t border-zetaBorder text-xs flex items-center gap-3 shrink-0">
-        <div id="sidebarUserAvatar" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-zetaAccent flex items-center justify-center font-bold text-white shrink-0 overflow-hidden border border-zetaLight/40 shadow cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
-          U
+      <div class="p-3 bg-zetaCard/60 border-t border-zetaBorder text-xs flex items-center gap-3 shrink-0 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
+        <div id="sidebarUserAvatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl shrink-0 overflow-hidden shadow border border-slate-700"></div>
+          <div class="flex-1 min-w-0 flex flex-col gap-1.5 justify-center">
+            <div class="font-bold text-sm text-indigo-200 truncate" id="sidebarUserName">User</div>
+              <div class="flex items-center gap-1.5">
+                <span id="sidebarUserMood" class="inline-flex text-[10px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 Neutral</span>
+              </div>
+              <div class="flex flex-wrap gap-1" id="sidebarUserDescWrap">
+                <span class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700/60 truncate max-w-full" id="sidebarUserDesc">Protagonist</span>
+              </div>
+           </div>
         </div>
-        <div class="overflow-hidden flex-1 cursor-pointer" onclick="openCharacterSpotlight(getActiveScenario().userPersona.name)">
-          <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight" id="sidebarUserName">User</div>
-          <div class="mt-1">
-            <span id="sidebarUserMood" class="inline-flex text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 Neutral</span>
-          </div>
-          <div class="flex flex-wrap gap-1 mt-1" id="sidebarUserDescWrap">
-            <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full" id="sidebarUserDesc">Protagonist</span>
-          </div>
-        </div>
-      </div>
-    </aside>
+     </aside>
 
     <!-- Right Drawer 1: Chapter Chronicle & Lorebook Access -->
     <div id="chapterDrawer" class="fixed inset-y-0 right-0 z-50 w-80 sm:w-96 bg-zetaSidebar border-l border-zetaBorder flex flex-col shrink-0 transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
@@ -531,6 +529,7 @@
           <div class="flex sm:flex-col gap-2 shrink-0">
             <button type="button" onclick="generateSpotlightCharacterPhoto()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">✨ Photo</button>
             <button type="button" onclick="generateSpotlightCharacterSpriteSheet()" class="bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow">🎞️ Sheet</button>
+            <button type="button" onclick="openCropModal()" class="bg-indigo-700 hover:bg-indigo-600 text-white text-[10px] font-semibold px-2.5 py-2 rounded-lg shadow text-center leading-tight">✂️ Chat<br>Crop</button>
           </div>
           <div class="overflow-hidden flex-1 text-center sm:text-left space-y-1.5">
             <div class="flex items-center justify-center sm:justify-start gap-2">
@@ -648,22 +647,59 @@
     </div>
   </div>
 
-  <!-- Fullscreen Photo Modal: character-specific scrollable visual library -->
-  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
-    <div onclick="event.stopPropagation()" class="relative max-w-lg w-full max-h-full flex flex-col items-center gap-3">
-      <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
-        &times;
-      </button>
-      <div id="characterPhotoContainer" class="w-full max-h-[58vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
+    <!-- Horizontal Scrolling Photo Library Modal -->
+  <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[70] items-center justify-center hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="relative w-full h-full flex flex-col">
+      <div class="flex items-center justify-between w-full p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-0 z-10">
+        <div class="text-left space-y-0.5">
+          <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
+          <p id="characterPhotoCaption" class="text-[11px] text-slate-400"></p>
+        </div>
+        <button onclick="closeCharacterPhotoModal()" class="w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+          &times;
+        </button>
       </div>
-      <div class="text-center space-y-1.5 w-full">
-        <h4 id="characterPhotoTitle" class="text-sm font-bold text-white tracking-wide"></h4>
-        <p id="characterPhotoCaption" class="text-[11px] text-slate-400"></p>
+      
+      <!-- Snap Scrolling Carousel -->
+      <div id="characterPhotoCarousel" class="flex flex-row overflow-x-auto snap-x snap-mandatory w-full h-full items-center gap-4 px-[10vw] no-scrollbar pt-16 pb-24">
+         <!-- Images injected dynamically -->
       </div>
-      <div id="characterPhotoDefaultBtnWrap" class="w-full"></div>
-      <div id="characterPhotoThumbStrip" class="w-full max-h-[18vh] overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 p-1">
-      </div>
-      <p class="text-[10px] text-[#b9a6ff]/70">Tap a thumbnail to preview it above. Swipe down or tap outside to return.</p>
+      
+      <div id="characterPhotoDefaultBtnWrap" class="absolute bottom-6 w-full max-w-sm left-1/2 -translate-x-1/2 px-4 z-10"></div>
+    </div>
+  </div>
+
+  <!-- Crop Chat Avatar Modal -->
+  <div id="cropAvatarModal" onclick="closeCropModal(event)" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[80] items-center justify-center p-4 hidden">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-sm flex flex-col shadow-2xl overflow-hidden relative">
+       <div class="p-4 border-b border-zetaBorder text-white font-bold text-sm">Crop Avatar for Chat</div>
+       <div class="p-4 flex flex-col items-center gap-5">
+          <div class="text-[11px] text-slate-400 text-center leading-tight">
+             This creates a face-cropped version used only in the chat feed, preserving your original full portrait in the gallery.
+          </div>
+          <!-- 1:1 Aspect Ratio Cropping Viewport -->
+          <div class="relative w-48 h-48 bg-black rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-lg">
+              <img id="cropImageTarget" src="" class="absolute inset-0 w-full h-full object-cover transform origin-center cursor-move" />
+          </div>
+          <div class="w-full space-y-2.5 bg-black/30 p-3 rounded-xl border border-slate-800">
+             <div class="flex items-center gap-2">
+               <span class="text-[10px] text-slate-400 w-10">Zoom</span>
+               <input type="range" id="cropZoom" min="1" max="3" step="0.1" value="1" class="flex-1 accent-indigo-500" oninput="updateCropTransform()" />
+             </div>
+             <div class="flex items-center gap-2">
+               <span class="text-[10px] text-slate-400 w-10">Pan X</span>
+               <input type="range" id="cropPanX" min="-100" max="100" step="1" value="0" class="flex-1 accent-indigo-500" oninput="updateCropTransform()" />
+             </div>
+             <div class="flex items-center gap-2">
+               <span class="text-[10px] text-slate-400 w-10">Pan Y</span>
+               <input type="range" id="cropPanY" min="-100" max="100" step="1" value="0" class="flex-1 accent-indigo-500" oninput="updateCropTransform()" />
+             </div>
+          </div>
+       </div>
+       <div class="p-3 border-t border-zetaBorder flex justify-end gap-2 bg-zetaCard/50">
+          <button onclick="closeCropModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs transition">Cancel</button>
+          <button onclick="saveCroppedAvatar()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow">Save Crop</button>
+       </div>
     </div>
   </div>
 
@@ -697,12 +733,16 @@
           </div>
 
           <label class="flex items-center justify-between gap-3 p-2.5 bg-[#181422] border border-zetaBorder rounded-lg cursor-pointer">
-            <span class="text-[10px] text-slate-300 leading-tight">
-              <strong class="text-white">Remove sprite-sheet background</strong><br>
-              Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet. Turn off to keep the original cell background and remove it manually later.
-            </span>
-            <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="w-4 h-4 accent-zetaAccent shrink-0" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
-          </label>
+  <span class="text-[10px] text-slate-300 leading-tight">
+    <strong class="text-white">Remove sprite-sheet background</strong><br>
+    Automatically remove white/grey/checkerboard backgrounds when splitting a 4×4 sheet.
+  </span>
+  <div class="relative shrink-0 w-10 h-5">
+    <input type="checkbox" id="spriteSheetRemoveBackgroundToggle" class="peer sr-only" checked onchange="setSpriteSheetBackgroundRemoval(this.checked)" />
+    <div class="absolute inset-0 rounded-full bg-slate-700 transition-colors peer-checked:bg-zetaAccent"></div>
+    <div class="absolute left-1 top-1 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-5 shadow"></div>
+  </div>
+</label>
           <p class="text-[10px] text-[#b9a6ff]/70 leading-tight">
             Sprite sheets (4×4 grid) automatically extract 16 emotion poses and label them with expression names.
           </p>
@@ -3476,36 +3516,136 @@ IMPORTANT RULES:
       };
     }
 
-    function renderCharacterPhotoLibrary() {
+        function renderCharacterPhotoLibrary() {
       const { charName, items, activeIndex } = photoLibraryState;
-      const container = document.getElementById('characterPhotoContainer');
+      const carousel = document.getElementById('characterPhotoCarousel');
       const title = document.getElementById('characterPhotoTitle');
-      const captionEl = document.getElementById('characterPhotoCaption');
-      const defaultBtnWrap = document.getElementById('characterPhotoDefaultBtnWrap');
-      const thumbStrip = document.getElementById('characterPhotoThumbStrip');
-      if (!container || items.length === 0) return;
-
-      const active = items[Math.max(0, Math.min(activeIndex, items.length - 1))];
+      const btnWrap = document.getElementById('characterPhotoDefaultBtnWrap');
+      if (!carousel || items.length === 0) return;
 
       title.innerText = charName ? `${charName}'s Visual Library` : 'Character Visual';
-      captionEl.innerText = active.kind === 'scene' ? `Scene Visual${active.timestamp ? ' · ' + active.timestamp : ''}` : (active.caption || 'Photo');
-      container.innerHTML = `<img src="${active.src}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[58vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
-
-      if (active.kind === 'photo') {
-        defaultBtnWrap.innerHTML = active.isDefault
-          ? `<span class="block text-center text-[11px] text-indigo-300 font-semibold bg-zetaCard border border-indigo-500/60 rounded-xl py-2">⭐ Active Default Portrait</span>`
-          : `<button type="button" onclick="photoLibrarySetDefault()" class="w-full bg-zetaCard hover:bg-indigo-600 text-slate-200 hover:text-white text-xs font-semibold py-2 rounded-xl transition shadow active:scale-95">Set as Default Portrait</button>`;
-      } else {
-        defaultBtnWrap.innerHTML = `<span class="block text-center text-[10px] text-slate-500 italic py-1">Scene visuals aren't used as portraits.</span>`;
-      }
-
-      thumbStrip.innerHTML = items.map((item, idx) => `
-        <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition">
-          <img src="${item.src}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
-          ${item.isDefault ? `<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow">⭐</span>` : ''}
-          ${item.kind === 'scene' ? `<span class="absolute bottom-1 right-1 bg-black/70 text-[8px] text-slate-200 px-1 py-0.5 rounded">🎬</span>` : ''}
-        </button>
+      
+      carousel.innerHTML = items.map((item, idx) => `
+        <div class="snap-center shrink-0 w-[80vw] sm:w-[320px] h-[60vh] sm:h-[450px] flex flex-col items-center justify-center relative group">
+          <img src="${item.src}" class="w-full h-full object-contain rounded-2xl shadow-2xl bg-black/60 border border-slate-700/80 transition-transform duration-300" />
+          <div class="absolute bottom-4 left-0 right-0 text-center">
+            <span class="bg-black/80 text-white text-[11px] font-medium px-4 py-1.5 rounded-full shadow-lg border border-slate-700/50 backdrop-blur-sm">
+              ${item.kind === 'scene' ? 'Scene Visual' : (item.caption || 'Photo')}
+            </span>
+            ${item.isDefault ? `<span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow border border-indigo-400 ml-2">⭐ Default</span>` : ''}
+          </div>
+        </div>
       `).join('');
+
+      carousel.onscroll = () => {
+         const centerItem = Math.max(0, Math.min(items.length - 1, Math.round(carousel.scrollLeft / carousel.children[0].offsetWidth)));
+         const active = items[centerItem];
+         if(!active) return;
+         document.getElementById('characterPhotoCaption').innerText = active.kind === 'scene' ? `Scene Visual${active.timestamp ? ' · ' + active.timestamp : ''}` : (active.caption || 'Photo');
+         
+         if (active.kind === 'photo') {
+            btnWrap.innerHTML = active.isDefault
+              ? `<span class="block text-center text-[11px] text-indigo-300 font-semibold bg-zetaCard/90 border border-indigo-500/60 rounded-xl py-3 shadow-lg backdrop-blur-md">⭐ Active Default Portrait</span>`
+              : `<button type="button" onclick="photoLibrarySetDefaultIndex(${centerItem})" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-3 rounded-xl transition shadow-lg active:scale-95 backdrop-blur-md">Set as Default Portrait</button>`;
+          } else {
+            btnWrap.innerHTML = `<span class="block text-center text-[10px] text-slate-400 italic py-2 bg-black/80 rounded-xl backdrop-blur-md border border-slate-800">Scene visuals aren't used as portraits.</span>`;
+          }
+      };
+      
+      setTimeout(() => {
+         const targetSlide = carousel.children[activeIndex];
+         if(targetSlide) {
+             targetSlide.scrollIntoView({ behavior: 'instant', inline: 'center' });
+         }
+         carousel.onscroll();
+      }, 50);
+    }
+
+    async function photoLibrarySetDefaultIndex(idx) {
+      const { charName, items } = photoLibraryState;
+      const active = items[idx];
+      if (!active || active.kind !== 'photo') return;
+      const found = findCharacterForSpotlight(charName);
+      if (!found) return;
+      found.obj.avatar = active.src;
+      await saveState();
+      photoLibraryState.items = photoLibraryState.items.map(i => ({ ...i, isDefault: i.kind === 'photo' && i.src === active.src }));
+      renderCharacterPhotoLibrary();
+      renderSidebar();
+      renderCharacterCardsSetup();
+      if (document.getElementById('characterSpotlightModal').classList.contains('flex')) openCharacterSpotlight(charName);
+    }
+
+    // --- Cropping Engine ---
+    let cropState = { scale: 1, panX: 0, panY: 0, src: '' };
+    
+    function openCropModal() {
+       const found = getCurrentSpotlightCharacter();
+       if (!found) return;
+       const charObj = found.obj;
+       const defaultImage = getCharacterDefaultAvatar(charObj);
+       if(!defaultImage) { alert('No default image available to crop.'); return; }
+       
+       cropState = { scale: 1, panX: 0, panY: 0, src: defaultImage };
+       document.getElementById('cropImageTarget').src = defaultImage;
+       document.getElementById('cropZoom').value = 1;
+       document.getElementById('cropPanX').value = 0;
+       document.getElementById('cropPanY').value = 0;
+       updateCropTransform();
+       
+       document.getElementById('cropAvatarModal').classList.remove('hidden');
+       document.getElementById('cropAvatarModal').classList.add('flex');
+    }
+    
+    function updateCropTransform() {
+       cropState.scale = parseFloat(document.getElementById('cropZoom').value);
+       cropState.panX = parseFloat(document.getElementById('cropPanX').value);
+       cropState.panY = parseFloat(document.getElementById('cropPanY').value);
+       const img = document.getElementById('cropImageTarget');
+       img.style.transform = `scale(${cropState.scale}) translate(${cropState.panX}%, ${cropState.panY}%)`;
+    }
+    
+    function closeCropModal(event) {
+       if (event && event.target && event.target.id !== 'cropAvatarModal') return;
+       document.getElementById('cropAvatarModal').classList.add('hidden');
+       document.getElementById('cropAvatarModal').classList.remove('flex');
+    }
+    
+    async function saveCroppedAvatar() {
+       const found = getCurrentSpotlightCharacter();
+       if (!found) return;
+       const charObj = found.obj;
+       
+       const canvas = document.createElement('canvas');
+       canvas.width = 256; 
+       canvas.height = 256;
+       const ctx = canvas.getContext('2d');
+       const img = new Image();
+       
+       img.onload = async () => {
+           ctx.fillStyle = '#131118';
+           ctx.fillRect(0, 0, 256, 256);
+           
+           const size = Math.min(img.width, img.height);
+           const scaleMultiplier = (256 / size) * cropState.scale;
+           const drawW = img.width * scaleMultiplier;
+           const drawH = img.height * scaleMultiplier;
+           const centerX = 256 / 2;
+           const centerY = 256 / 2;
+           const offsetX = (cropState.panX / 100) * (drawW / cropState.scale);
+           const offsetY = (cropState.panY / 100) * (drawH / cropState.scale);
+           const drawX = centerX - (drawW / 2) + offsetX;
+           const drawY = centerY - (drawH / 2) + offsetY;
+
+           ctx.drawImage(img, drawX, drawY, drawW, drawH);
+           
+           charObj.chatAvatar = canvas.toDataURL('image/jpeg', 0.9);
+           await saveState();
+           renderSidebar();
+           renderMessages();
+           closeCropModal();
+       };
+       img.src = cropState.src;
     }
 
     function photoLibraryShowIndex(idx) {
@@ -3906,7 +4046,8 @@ IMPORTANT RULES:
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <div class="flex items-center gap-1.5">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
-                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(member.mood || 'Neutral')}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -4401,7 +4542,7 @@ JSON FORMAT:
         if (!charObj && !isUser) charObj = findSideCharacterProfile(speakerName);
       }
 
-      const avatarSrc = charObj ? getCharacterDefaultAvatar(charObj) : '';
+      const avatarSrc = charObj ? (charObj.chatAvatar || getCharacterDefaultAvatar(charObj)) : '';
       const isInteractive = speakerName && speakerName !== 'Narrator' && speakerName !== 'Scene' && speakerName !== 'System';
       const cursorClass = isInteractive ? 'cursor-pointer active:scale-95 transition' : '';
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
@@ -4481,24 +4622,28 @@ JSON FORMAT:
               <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${active.characters.length}</span>
             </div>
             <div class="space-y-2.5">
-              ${active.characters.map(c => `
-                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 space-y-2 hover:border-slate-700 transition">
-                  <div class="flex items-start gap-2.5">
-                    ${getAvatarHtml(c.name, false, 'w-14 h-14 sm:w-16 sm:h-16')}
-                    <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
-                      <div class="min-w-0">
-                        <div class="font-bold text-xs sm:text-sm text-indigo-200 break-words leading-tight hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
-                        <div class="mt-1">
-                          <span class="inline-flex text-[9px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
-                        </div>
+                            ${active.characters.map(c => `
+                <div class="p-3 bg-zetaCard rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer group" onclick="openCharacterSpotlight('${escapeJsString(c.name)}')">
+                  <div class="flex items-center gap-3.5">
+                    ${getAvatarHtml(c.name, false, 'w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl shadow border border-slate-700 shrink-0')}
+                    <div class="flex-1 min-w-0 flex flex-col gap-1.5 justify-center">
+                      <div class="font-bold text-sm text-indigo-200 truncate group-hover:underline">${escapeHtml(c.name || 'Unnamed')}</div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="inline-flex text-[10px] bg-slate-900 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">🎭 ${escapeHtml(normalizeMoodTag(c.mood))}</span>
                       </div>
                       ${c.role ? `
                         <div class="flex flex-wrap gap-1">
-                          <span class="text-[10px] bg-slate-800/90 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60 leading-snug break-words max-w-full">
-                            ${escapeHtml(c.role)}
-                          </span>
+                          <span class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700/60 truncate max-w-full">${escapeHtml(c.role)}</span>
                         </div>
                       ` : ''}
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-zetaGlow">🔗</span>
+                        <span class="text-[10px] text-zetaGlow font-medium truncate">${escapeHtml(c.relationship || 'Relationship not yet established')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
                     </div>
                   </div>
                   <div class="flex items-center gap-1.5 pt-0.5">
