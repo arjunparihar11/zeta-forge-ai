@@ -176,6 +176,8 @@
     .hover\:border-indigo-500\/60:hover { border-color: color-mix(in srgb, var(--zeta-accent) 60%, transparent) !important; }
     .bg-indigo-950\/80 { background-color: color-mix(in srgb, var(--zeta-accent-deep) 80%, transparent) !important; }
     .bg-\[\#181422\] { background-color: var(--zeta-input) !important; }
+    .bg-slate-800\/90 { background-color: var(--zeta-border) !important; }
+    .border-slate-700\/60 { border-color: var(--zeta-border) !important; }
     /* Ring/shadow utilities carry their color in a separate --tw-* custom
        property rather than a plain CSS property, and arbitrary-opacity
        variants of the named colors (ring-zetaAccent/60, shadow-zetaAccent/30,
@@ -551,23 +553,24 @@
 
         <!-- Top Stage Scene Bar -->
         <div class="relative z-20 max-w-4xl mx-auto w-full pointer-events-auto space-y-1.5">
-          <div class="flex items-center justify-between gap-2 flex-wrap">
-            <span id="vnChapterIndicator" class="bg-[#1a1622]/80 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-zetaBorder text-[10px] text-zetaGlow font-mono shrink-0 shadow">Ch. 1</span>
-          <div class="flex items-center gap-1.5">
-            <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
-              <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
-            </button>
-            <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
-              <span id="vnTtsToggleIcon">🔇</span>
-            </button>
-            <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
-              <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
-            </button>
-            <label class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow cursor-pointer" title="Choose a local VN background">
-              <span>📂</span> <span class="hidden sm:inline">Local BG</span>
-              <input type="file" accept="image/*" class="hidden" onchange="setManualVnBackground(event)" />
-            </label>
-          </div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
+                <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
+              </button>
+              <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
+                <span id="vnTtsToggleIcon">🔇</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
+                <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
+              </button>
+              <label class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow cursor-pointer" title="Choose a local VN background">
+                <span>📂</span> <span class="hidden sm:inline">Local BG</span>
+                <input type="file" accept="image/*" class="hidden" onchange="setManualVnBackground(event)" />
+              </label>
+            </div>
           </div>
           <div class="vn-progress-track w-full"><div id="vnProgressFill" class="vn-progress-fill" style="width:0%"></div></div>
         </div>
@@ -581,16 +584,16 @@
         <!-- Visual Novel Dialog Box -->
         <div class="relative z-20 max-w-4xl mx-auto w-full space-y-2 pointer-events-auto">
           <div class="bg-[#1a1622]/95 backdrop-blur-md border border-zetaAccent/40 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-2.5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span id="vnSpeakerNameBadge" class="bg-zetaAccent text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow-md cursor-pointer hover:underline" onclick="openCurrentVnCharacterSpotlight()">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <span id="vnSpeakerNameBadge" class="bg-zetaAccent text-white text-xs sm:text-sm font-bold px-3 py-1 rounded-xl shadow-md cursor-pointer hover:underline truncate max-w-[60%]" onclick="openCurrentVnCharacterSpotlight()">
                   Speaker
                 </span>
-                <span id="vnSpeakerMoodBadge" class="text-[10px] bg-zetaCard text-amber-300 border border-zetaBorder px-2 py-0.5 rounded-full font-medium"></span>
+                <span id="vnSpeakerMoodBadge" class="text-[10px] bg-zetaCard text-amber-300 border border-zetaBorder px-2 py-0.5 rounded-full font-medium shrink-0"></span>
               </div>
-              <div class="flex items-center gap-2 text-xs text-[#b9a6ff]/70 font-mono">
+              <div class="flex items-center gap-0.5 text-xs text-[#b9a6ff]/70 font-mono shrink-0">
                 <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
-                <button type="button" id="vnTurnCounter" onclick="promptVnJump()" class="cursor-pointer hover:text-white hover:underline transition" title="Tap to jump to a message">Turn 0/0</button>
+                <button type="button" id="vnTurnCounter" onclick="promptVnJump()" class="cursor-pointer hover:text-white hover:underline transition px-0.5" title="Tap to jump to a message">0/0</button>
                 <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
               </div>
             </div>
@@ -2770,6 +2773,7 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
+      if (!confirm(`Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`)) return;
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
@@ -2793,6 +2797,7 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
+      if (!confirm(`Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.`)) return;
       const reference = getCharacterReferencePhoto(char);
       const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${getCurrentOutfitDescription(char)}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
       const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the attached character reference. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets. All character sprites must maintain absolute physical identity consistency, matching the face, hair, and base outfit of the provided reference. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
@@ -3223,9 +3228,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
       currentVnIndex = Math.max(0, Math.min(currentVnIndex, validTurns.length - 1));
       const turn = validTurns[currentVnIndex];
-      turnCounter.innerText = `Turn ${currentVnIndex + 1}/${validTurns.length}`;
+      turnCounter.innerText = `${currentVnIndex + 1}/${validTurns.length}`;
       const progressFill=document.getElementById('vnProgressFill'); if(progressFill) progressFill.style.width=`${((currentVnIndex+1)/validTurns.length)*100}%`;
-      const chapterIndicator=document.getElementById('vnChapterIndicator'); if(chapterIndicator) chapterIndicator.innerText=`Ch. ${active.currentChapter||1}`;
 
       const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
       const isUser = turn.role === 'user' && speakerName.toLowerCase() !== 'narrator' && speakerName.toLowerCase() !== 'scene';
@@ -3310,6 +3314,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         openModal('setupModal');
         return;
       }
+      if (!confirm('Generate a new VN backdrop? This uses image generation tokens.')) return;
 
       const btn = document.getElementById('vnGenBgBtn');
       btn.disabled = true;
@@ -4916,7 +4921,57 @@ JSON FORMAT:
       }
       return out;
     }
-    let vnActiveAudioSource = null;
+    let vnAudioElement = null;
+    let vnAudioUnlocked = false;
+    let vnActiveAudioUrl = null;
+    // A persistent, reused <audio> element for VN voice playback. On iOS,
+    // audio routed straight to AudioContext.destination (raw Web Audio
+    // output) is silenced by the physical ringer/mute switch, but an actual
+    // <audio>/<video> element's playback is not — so the final step of TTS
+    // playback goes through this element instead of an AudioBufferSourceNode.
+    function getVnAudioElement() {
+      if (!vnAudioElement) {
+        vnAudioElement = document.createElement('audio');
+        vnAudioElement.setAttribute('playsinline', '');
+        vnAudioElement.style.display = 'none';
+        document.body.appendChild(vnAudioElement);
+      }
+      return vnAudioElement;
+    }
+    // iOS only allows an <audio> element to start playing on its own later
+    // (e.g. from an Auto-advance timer, not a direct tap) if it was already
+    // "unlocked" by a real play() call inside a genuine user gesture earlier
+    // in the session. Turning the TTS toggle on IS such a gesture, so that's
+    // where this runs — a near-silent one-sample clip, played and immediately
+    // left to finish, costs nothing audible.
+    function unlockVnAudioElement() {
+      if (vnAudioUnlocked) return;
+      const audio = getVnAudioElement();
+      audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => {});
+      vnAudioUnlocked = true;
+    }
+    // Bakes the Pitch/Intonation slider into the buffer via an offline render
+    // (AudioBufferSourceNode.detune is a true pitch-only shift, no speed
+    // change) so the result can be played back through a plain <audio>
+    // element instead of staying tied to a live AudioContext graph.
+    async function renderBufferWithPitch(buffer, detuneCents) {
+      if (!detuneCents) return buffer;
+      try {
+        const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        const offlineCtx = new OfflineCtx(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+        const src = offlineCtx.createBufferSource();
+        src.buffer = buffer;
+        src.detune.value = detuneCents;
+        src.connect(offlineCtx.destination);
+        src.start();
+        return await offlineCtx.startRendering();
+      } catch (e) {
+        console.warn('Pitch render failed, using unshifted audio:', e?.message || e);
+        return buffer;
+      }
+    }
     let vnAutoWaitingForSpeech = false;
     function setVnTtsStatus(state) {
       const vnBtn = document.getElementById('vnTtsToggleBtn');
@@ -4951,7 +5006,8 @@ JSON FORMAT:
     }
     async function speakVnTextForSpeaker(speakerName, text) {
       const token = ++vnSpeechToken;
-      if (vnActiveAudioSource) { try { vnActiveAudioSource.stop(); } catch (e) {} vnActiveAudioSource = null; }
+      const audioEl = getVnAudioElement();
+      try { audioEl.pause(); } catch (e) {}
       if (!text || !appState.ttsEnabled) return;
       const active = getActiveScenario();
       const target = String(speakerName || '').toLowerCase();
@@ -4960,17 +5016,20 @@ JSON FORMAT:
       const profile = char.voiceLab || Object.assign(defaultVoiceLabProfile(), { voice: char.ttsVoice });
       try {
         setVnTtsStatus('loading');
-        const buffer = await generateKokoroAudioBuffer(text.replace(/[_#`]/g, ''), profile);
+        let buffer = await generateKokoroAudioBuffer(text.replace(/[_#`]/g, ''), profile);
         if (token !== vnSpeechToken) return;
-        const ctx = getVnAudioContext();
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        try { source.detune.value = Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)); } catch (e) {}
-        source.connect(ctx.destination);
-        vnActiveAudioSource = source;
+        const pitch = Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0));
+        buffer = await renderBufferWithPitch(buffer, pitch);
+        if (token !== vnSpeechToken) return;
+        const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
+        const url = URL.createObjectURL(wavBlob);
+        if (vnActiveAudioUrl) URL.revokeObjectURL(vnActiveAudioUrl);
+        vnActiveAudioUrl = url;
+        audioEl.src = url;
         setVnTtsStatus('playing');
-        source.onended = () => { if (token === vnSpeechToken) { vnActiveAudioSource = null; setVnTtsStatus('idle'); onVnSpeechEnded(); } };
-        source.start();
+        audioEl.onended = () => { if (token === vnSpeechToken) { setVnTtsStatus('idle'); onVnSpeechEnded(); } };
+        audioEl.onerror = () => { if (token === vnSpeechToken) { setVnTtsStatus('error'); onVnSpeechEnded(); } };
+        await audioEl.play();
       } catch (e) {
         console.warn('Kokoro TTS generation failed:', e?.message || e);
         setVnTtsStatus('error');
@@ -4982,7 +5041,12 @@ JSON FORMAT:
     // other regardless of which one the user tapped.
     function toggleTtsEnabled(force) {
       appState.ttsEnabled = force !== undefined ? !!force : !appState.ttsEnabled;
-      if (!appState.ttsEnabled && vnActiveAudioSource) { try { vnActiveAudioSource.stop(); } catch (e) {} vnActiveAudioSource = null; vnSpeechToken++; }
+      if (appState.ttsEnabled) {
+        unlockVnAudioElement();
+      } else if (vnAudioElement) {
+        try { vnAudioElement.pause(); } catch (e) {}
+        vnSpeechToken++;
+      }
       syncTtsToggleButtons();
       saveState();
     }
@@ -5273,8 +5337,12 @@ JSON FORMAT:
     async function processMarkdownImport(event){const file=event.target.files?.[0];if(!file)return;const raw=await file.text();const active=getActiveScenario();const lines=raw.split(/\r?\n/);const msgs=[];let current=null;for(const line of lines){const m=line.match(/^###\s+(.+?)(?:\s+\([^)]*\))?$/);if(m){if(current&&current.text.trim())msgs.push(current);current={id:'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),role:'model',speakerName:m[1].trim(),text:'',timestamp:'Imported'};}else if(current&&!/^---+$/.test(line.trim())&&!/^#/.test(line))current.text+=(current.text?'\n':'')+line;}if(current&&current.text.trim())msgs.push(current);if(!msgs.length){alert('No speaker entries were found in this Markdown file.');return;}const user=(active.userPersona.name||'User').toLowerCase();msgs.forEach(m=>{if(['me','you',user].includes(m.speakerName.toLowerCase())){m.role='user';m.speakerName=active.userPersona.name||'User';}});active.messages=document.getElementById('appendTranscriptCheck')?.checked?active.messages.concat(msgs):msgs;await saveState();renderAllUi();closeModal('importModal');event.target.value='';}
 
     function openModal(id) {
-      if (id === 'setupModal') { syncModalForm(); requestAnimationFrame(()=>{ renderCharacterCardsSetup(); renderLorebookSetup(); }); }
-      if (id === 'usageCostModal') renderUsageCostModal();
+      try {
+        if (id === 'setupModal') { syncModalForm(); requestAnimationFrame(()=>{ renderCharacterCardsSetup(); renderLorebookSetup(); }); }
+        if (id === 'usageCostModal') renderUsageCostModal();
+      } catch (e) {
+        console.error('openModal sync error (modal will still open):', e);
+      }
       closeAllDrawers();
       const modal = document.getElementById(id);
       modal.classList.remove('hidden');
@@ -5368,7 +5436,8 @@ JSON FORMAT:
       applyThemeMode(appState.themeMode || 'dark');
       applyAccentColor(appState.accentColor || '#7c65e8');
       syncTtsToggleButtons();
-      syncVoiceSelectButtons(); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
+      syncVoiceSelectButtons();
+      const speedEl=document.getElementById('vnSpeedInput'); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
 
       document.getElementById('viewModeSelect').value = active.viewMode || 'chat';
       document.getElementById('artStyleSelect').value = active.artStyle || 'Anime';
@@ -6595,6 +6664,7 @@ TASK: Return a JSON object with:
         alert("Start a story or send a message before generating a visual.");
         return;
       }
+      if (!confirm('Generate a scene visual from the recent dialogue? This uses image generation tokens.')) return;
 
       showLoading(true, "Analyzing cast appearances and scene layout...");
 
