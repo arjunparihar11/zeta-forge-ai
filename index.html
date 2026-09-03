@@ -259,8 +259,18 @@
     .scroll-touch {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
-      touch-action: pan-y;
     }
+    /* pan-y is a touch-input hint; restricting it to actual touch devices
+       avoids it interfering with wheel/trackpad scrolling on desktop. */
+    @media (hover: none) and (pointer: coarse) {
+      .scroll-touch { touch-action: pan-y; }
+    }
+    #imageLibraryContainer:focus { outline: none; }
+    #imageLibraryContainer::-webkit-scrollbar { width: 10px; }
+    #imageLibraryContainer::-webkit-scrollbar-thumb {
+      background: var(--zeta-border); border-radius: 999px;
+    }
+    #imageLibraryContainer::-webkit-scrollbar-thumb:hover { background: var(--zeta-accent); }
 
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -1380,6 +1390,64 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
   </div>
 
   <!-- Image Lightbox Modal -->
+  <!-- Voice Lab (in-app drawer, replaces the old popup window) -->
+  <div id="voiceLabModal" onclick="closeVoiceLab(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[62] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder bg-zetaCard flex items-center justify-between">
+        <div class="min-w-0">
+          <h2 id="vlTitle" class="text-sm font-bold text-white truncate">🎙️ Voice Lab</h2>
+          <p id="vlModelStatus" class="text-[10px] text-slate-500 mt-0.5">Model loads on first play (one-time download, cached after).</p>
+        </div>
+        <button onclick="closeVoiceLab()" class="text-slate-400 hover:text-white text-2xl leading-none shrink-0 ml-2">&times;</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Primary Voice</label>
+          <select id="vlVoice" onchange="onVoiceLabFieldChange()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent"></select>
+        </div>
+
+        <div class="space-y-1.5 p-3 bg-zetaCard border border-zetaBorder rounded-xl">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Voice Blend</label>
+          <select id="vlBlendVoice" onchange="onVoiceLabFieldChange()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent"></select>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-[11px] text-slate-400">Blend weight</span>
+            <span id="vlBlendWeightVal" class="text-[11px] text-zetaGlow font-semibold">0%</span>
+          </div>
+          <input type="range" id="vlBlendWeight" min="0" max="60" step="1" value="0" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <p id="vlBlendHint" class="text-[10px] text-slate-500 leading-relaxed">Blends the two voices' style vectors before synthesis, producing one combined voice. Useful for nudging accent (e.g. a US voice toward a UK one).</p>
+        </div>
+
+        <div class="space-y-2 p-3 bg-zetaCard border border-zetaBorder rounded-xl">
+          <div class="flex items-center justify-between"><span class="text-[11px] text-slate-400">Pitch / Intonation</span><span id="vlPitchVal" class="text-[11px] text-zetaGlow font-semibold">0 cents</span></div>
+          <input type="range" id="vlPitch" min="-600" max="600" step="10" value="0" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <div class="flex items-center justify-between pt-1"><span class="text-[11px] text-slate-400">Pacing / Speed</span><span id="vlPaceVal" class="text-[11px] text-zetaGlow font-semibold">1.0×</span></div>
+          <input type="range" id="vlPace" min="0.5" max="2" step="0.1" value="1" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <div class="flex items-center justify-between pt-1"><span class="text-[11px] text-slate-400">Emphasis / Stress</span><span id="vlEmphasisVal" class="text-[11px] text-zetaGlow font-semibold">0%</span></div>
+          <input type="range" id="vlEmphasis" min="0" max="100" step="5" value="0" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <p class="text-[10px] text-slate-500 leading-relaxed">Emphasis adds natural pauses around *action* text, and at higher strength punches up ALL-CAPS words.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Pronunciation Dictionary</label>
+          <textarea id="vlPronunciation" oninput="onVoiceLabFieldChange()" rows="3" placeholder="One per line:  Kagome=>Kah-go-may" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-[11px] font-mono text-white focus:border-zetaAccent"></textarea>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Test Voice</label>
+          <input type="text" id="vlTestText" value="Hello, this is a ZetaForge voice test." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent" />
+          <button onclick="playVoiceLabPreview()" id="vlPlayBtn" class="w-full bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold py-2 rounded-lg transition active:scale-95">▶ Play Preview</button>
+          <div id="vlStatus" class="text-[10px] text-slate-500 min-h-[14px]"></div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
+        <button onclick="closeVoiceLab()" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Close</button>
+        <button onclick="saveVoiceLab()" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow transition active:scale-95">💾 Save Voice</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Sprite sheet preview / confirm -->
   <div id="spritePreviewModal" class="fixed inset-0 bg-black/75 z-[66] items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden">
@@ -2449,7 +2517,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
     }
     function isModalOrDrawerOpen() {
-      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal'];
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','voiceLabModal'];
       if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
       const chapterDrawer = document.getElementById('chapterDrawer');
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
@@ -3655,9 +3723,20 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
       const newIdx = Math.max(0, Math.min(currentVnIndex + delta, validTurns.length - 1));
       if (newIdx !== currentVnIndex || animate) {
+        // The user moved: stop whatever line is currently speaking so it can't
+        // keep playing over the turn they just navigated to.
+        if (newIdx !== currentVnIndex) stopVnSpeech();
         currentVnIndex = newIdx;
         renderVnTurn(animate);
+        prefetchNextVnLine();
       }
+    }
+    // Hard-stop any in-flight or playing TTS line.
+    function stopVnSpeech() {
+      vnSpeechToken++;               // invalidates any in-flight generation
+      vnAutoWaitingForSpeech = false;
+      if (vnAudioElement) { try { vnAudioElement.pause(); vnAudioElement.currentTime = 0; } catch (e) {} }
+      setVnTtsStatus('idle');
     }
 
     async function renderVnTurn(animate = false) {
@@ -4758,7 +4837,41 @@ IMPORTANT RULES:
       if (!modal) return;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      // Give the scroll container focus so desktop arrow / Page / Home / End
+      // keys act on it — without focus the browser had no scroll target and
+      // only touch dragging worked.
+      const container = document.getElementById('imageLibraryContainer');
+      if (container) {
+        container.setAttribute('tabindex', '-1');
+        setTimeout(() => container.focus({ preventScroll: true }), 40);
+      }
     }
+
+    // Desktop keyboard scrolling for the image library.
+    function handleImageLibraryKeys(event) {
+      const modal = document.getElementById('imageLibraryModal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      const container = document.getElementById('imageLibraryContainer');
+      if (!container) return;
+      const page = Math.max(200, container.clientHeight - 60);
+      const map = {
+        ArrowDown: 120, ArrowUp: -120,
+        PageDown: page, PageUp: -page
+      };
+      if (event.key in map) {
+        event.preventDefault();
+        container.scrollBy({ top: map[event.key], behavior: 'smooth' });
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      } else if (event.key === 'Escape') {
+        closeImageLibraryModal();
+      }
+    }
+    window.addEventListener('keydown', handleImageLibraryKeys);
 
     function closeImageLibraryModal(event) {
       if (event && event.target && event.target.id !== 'imageLibraryModal') return;
@@ -5421,31 +5534,49 @@ JSON FORMAT:
     // model level, so "voice blending" mixes two independently generated
     // voice takes in the amplitude domain via Web Audio — an always-working
     // approximation rather than a speculative internal API call.
+    // True voice blending happens on the style vector BEFORE synthesis, so the
+    // model produces one voice with blended characteristics. The previous
+    // approach generated two full takes and mixed the waveforms — because each
+    // generation has its own timing and phrasing, that produced two voices
+    // talking slightly out of sync rather than one blended voice.
+    let styleBlendSupported = null; // null = untested, true/false once probed
+    const blendedVoiceCache = new Map();
+
+    async function resolveBlendedVoice(tts, primaryId, blendId, weight) {
+      if (!blendId || weight <= 0) return primaryId;
+      const key = `${primaryId}|${blendId}|${weight}`;
+      if (blendedVoiceCache.has(key)) return blendedVoiceCache.get(key);
+      try {
+        // kokoro-js exposes voice style tensors through its voice data loader.
+        // Names differ across builds, so probe rather than assume.
+        const loader = tts.getVoiceData || tts.get_voice_data || tts._getVoiceData;
+        if (typeof loader !== 'function') { styleBlendSupported = false; return primaryId; }
+        const a = await loader.call(tts, primaryId);
+        const b = await loader.call(tts, blendId);
+        if (!a || !b || !a.length || a.length !== b.length) { styleBlendSupported = false; return primaryId; }
+        const w = weight / 100;
+        const mixed = a instanceof Float32Array ? new Float32Array(a.length) : new Array(a.length);
+        for (let i = 0; i < a.length; i++) mixed[i] = a[i] * (1 - w) + b[i] * w;
+        styleBlendSupported = true;
+        blendedVoiceCache.set(key, mixed);
+        return mixed;
+      } catch (e) {
+        styleBlendSupported = false;
+        return primaryId;
+      }
+    }
+
     async function generateKokoroAudioBuffer(text, profile) {
       const tts = await loadKokoroTTS();
       const ctx = getVnAudioContext();
       const prepped = applyEmphasisMarkup(applyPronunciationDictionary(text, profile.pronunciations), Number(profile.emphasis) || 0);
       const pace = Math.max(0.5, Math.min(2, Number(profile.pace) || 1));
-      async function renderVoice(voiceId) {
-        const raw = await tts.generate(prepped, { voice: voiceId, speed: pace });
-        const wavBlob = typeof raw.toBlob === 'function' ? raw.toBlob() : pcmToWavBlob(raw.audio, raw.sampling_rate);
-        const arrBuf = await wavBlob.arrayBuffer();
-        return await ctx.decodeAudioData(arrBuf);
-      }
-      const primary = await renderVoice(profile.voice || 'af_heart');
-      const blendWeight = Math.max(0, Math.min(100, Number(profile.blendWeight) || 0));
-      if (!profile.blendVoice || blendWeight <= 0) return primary;
-      const secondary = await renderVoice(profile.blendVoice);
-      const length = Math.max(primary.length, secondary.length);
-      const out = ctx.createBuffer(Math.max(primary.numberOfChannels, secondary.numberOfChannels), length, ctx.sampleRate);
-      const wA = 1 - blendWeight / 100, wB = blendWeight / 100;
-      for (let ch = 0; ch < out.numberOfChannels; ch++) {
-        const a = primary.getChannelData(Math.min(ch, primary.numberOfChannels - 1));
-        const b = secondary.getChannelData(Math.min(ch, secondary.numberOfChannels - 1));
-        const data = out.getChannelData(ch);
-        for (let i = 0; i < length; i++) data[i] = (a[i] || 0) * wA + (b[i] || 0) * wB;
-      }
-      return out;
+      const blendWeight = Math.max(0, Math.min(60, Number(profile.blendWeight) || 0));
+      const voiceArg = await resolveBlendedVoice(tts, profile.voice || 'af_heart', profile.blendVoice, blendWeight);
+      const raw = await tts.generate(prepped, { voice: voiceArg, speed: pace });
+      const wavBlob = typeof raw.toBlob === 'function' ? raw.toBlob() : pcmToWavBlob(raw.audio, raw.sampling_rate);
+      const arrBuf = await wavBlob.arrayBuffer();
+      return await ctx.decodeAudioData(arrBuf);
     }
     let vnAudioElement = null;
     let vnAudioUnlocked = false;
@@ -5531,6 +5662,72 @@ JSON FORMAT:
       // renderVnTurn's trailing runVnAutoStep() call picks it back up the
       // moment a new turn arrives.
     }
+    // --- TTS preloading / lookahead --------------------------------------
+    // VN playback was laggy because each line synthesized on demand: the model
+    // loaded on first use, then every turn blocked while Kokoro generated that
+    // line's audio. Now the model warms up as soon as TTS is switched on, and
+    // the NEXT line is rendered in the background while the current one plays,
+    // so stepping forward usually hits a ready buffer.
+    const vnAudioCache = new Map(); // cache key -> AudioBuffer
+    const VN_AUDIO_CACHE_LIMIT = 24;
+    let vnPrefetchInFlight = null;
+
+    function vnAudioCacheKey(speakerName, text, profile) {
+      return `${speakerName}::${profile.voice}::${profile.blendVoice || ''}::${profile.blendWeight || 0}::${profile.pace || 1}::${profile.pitch || 0}::${profile.emphasis || 0}::${(text || '').slice(0, 400)}`;
+    }
+    function cacheVnAudio(key, buffer) {
+      vnAudioCache.set(key, buffer);
+      while (vnAudioCache.size > VN_AUDIO_CACHE_LIMIT) {
+        vnAudioCache.delete(vnAudioCache.keys().next().value);
+      }
+    }
+    function getVoiceProfileForSpeaker(speakerName) {
+      const active = getActiveScenario();
+      const target = String(speakerName || '').toLowerCase();
+      const char = target === String(active.userPersona?.name || '').toLowerCase()
+        ? active.userPersona
+        : (active.characters || []).find(c => String(c.name || '').toLowerCase() === target);
+      if (!char || !char.ttsVoice) return null;
+      return char.voiceLab || Object.assign(defaultVoiceLabProfile(), { voice: char.ttsVoice });
+    }
+    async function renderVnAudioCached(speakerName, text, profile) {
+      const key = vnAudioCacheKey(speakerName, text, profile);
+      if (vnAudioCache.has(key)) return vnAudioCache.get(key);
+      let buffer = await generateKokoroAudioBuffer(String(text).replace(/[_#`]/g, ''), profile);
+      buffer = await renderBufferWithPitch(buffer, Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)));
+      cacheVnAudio(key, buffer);
+      return buffer;
+    }
+    // Warm the model (and optionally a short sample) without blocking the UI.
+    async function warmUpTtsEngine() {
+      try {
+        setVnTtsStatus('loading');
+        await loadKokoroTTS();
+        setVnTtsStatus('idle');
+        prefetchNextVnLine();
+      } catch (e) {
+        console.warn('TTS warm-up failed:', e?.message || e);
+        setVnTtsStatus('error');
+      }
+    }
+    // Render the upcoming line in the background so the next step is instant.
+    function prefetchNextVnLine() {
+      if (!appState.ttsEnabled || !kokoroTTS || vnPrefetchInFlight) return;
+      const active = getActiveScenario();
+      if (!active || active.viewMode !== 'vn') return;
+      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+      const next = validTurns[currentVnIndex + 1];
+      if (!next || !(next.text || '').trim()) return;
+      const speakerName = next.speakerName || (next.role === 'user' ? active.userPersona.name : 'Narrator');
+      const profile = getVoiceProfileForSpeaker(speakerName);
+      if (!profile) return;
+      const key = vnAudioCacheKey(speakerName, next.text, profile);
+      if (vnAudioCache.has(key)) return;
+      vnPrefetchInFlight = renderVnAudioCached(speakerName, next.text, profile)
+        .catch(e => console.warn('VN audio prefetch skipped:', e?.message || e))
+        .finally(() => { vnPrefetchInFlight = null; });
+    }
+
     // renderVnTurn() is called from many incidental places (backdrop change,
     // spotlight autosave, sprite/photo generation, mid-stream refresh). Only
     // speak when the *displayed turn* actually changed — otherwise each of
@@ -5547,17 +5744,14 @@ JSON FORMAT:
       const audioEl = getVnAudioElement();
       try { audioEl.pause(); } catch (e) {}
       if (!text || !appState.ttsEnabled) return;
-      const active = getActiveScenario();
-      const target = String(speakerName || '').toLowerCase();
-      const char = target === String(active.userPersona.name || '').toLowerCase() ? active.userPersona : (active.characters || []).find(c => String(c.name || '').toLowerCase() === target);
-      if (!char || !char.ttsVoice) return;
-      const profile = char.voiceLab || Object.assign(defaultVoiceLabProfile(), { voice: char.ttsVoice });
+      const profile = getVoiceProfileForSpeaker(speakerName);
+      if (!profile) return;
       try {
-        setVnTtsStatus('loading');
-        let buffer = await generateKokoroAudioBuffer(text.replace(/[_#`]/g, ''), profile);
-        if (token !== vnSpeechToken) return;
-        const pitch = Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0));
-        buffer = await renderBufferWithPitch(buffer, pitch);
+        const cacheKey = vnAudioCacheKey(speakerName, text, profile);
+        // Only show the loading state if this line isn't already rendered —
+        // a cache hit should feel instant, not flash a spinner.
+        if (!vnAudioCache.has(cacheKey)) setVnTtsStatus('loading');
+        const buffer = await renderVnAudioCached(speakerName, text, profile);
         if (token !== vnSpeechToken) return;
         const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
         const url = URL.createObjectURL(wavBlob);
@@ -5568,6 +5762,8 @@ JSON FORMAT:
         audioEl.onended = () => { if (token === vnSpeechToken) { setVnTtsStatus('idle'); onVnSpeechEnded(); } };
         audioEl.onerror = () => { if (token === vnSpeechToken) { setVnTtsStatus('error'); onVnSpeechEnded(); } };
         await audioEl.play();
+        // Render the following line while this one plays.
+        prefetchNextVnLine();
       } catch (e) {
         console.warn('Kokoro TTS generation failed:', e?.message || e);
         setVnTtsStatus('error');
@@ -5582,6 +5778,7 @@ JSON FORMAT:
       lastSpokenVnKey = ''; // re-arm so the current line can speak after re-enabling
       if (appState.ttsEnabled) {
         unlockVnAudioElement();
+        warmUpTtsEngine();
       } else if (vnAudioElement) {
         try { vnAudioElement.pause(); } catch (e) {}
         vnSpeechToken++;
@@ -5602,14 +5799,13 @@ JSON FORMAT:
       }
     }
 
-    // === Voice Lab (popup window) ==========================================
-    // Selecting/editing a voice opens one shared popup window (reused across
-    // repeated opens via a window name + kept reference) that talks back to
-    // THIS window via `window.opener` — so it shares the same app state and
-    // the same loaded Kokoro model instance rather than being a disconnected
-    // second copy of the app.
-    let voiceLabWindow = null;
+    // === Voice Lab (in-app drawer) =========================================
+    // Previously a popup window that talked back via window.opener. Popups get
+    // blocked, lose state, and needed a whole duplicated document; as a drawer
+    // it shares appState and the loaded Kokoro instance directly.
     let voiceLabTargetRef = null;
+    let voiceLabDraft = null;
+
     function resolveVoiceLabTarget() {
       const active = getActiveScenario();
       if (!voiceLabTargetRef) return null;
@@ -5618,249 +5814,129 @@ JSON FORMAT:
       if (voiceLabTargetRef.type === 'spotlight') { const c = getCurrentSpotlightCharacter(); return c && c.obj ? { name: c.obj.name, obj: c.obj } : null; }
       return null;
     }
-    // --- Functions called BY the popup window via window.opener.* ---
-    function getVoiceLabTargetInfo() {
-      const t = resolveVoiceLabTarget();
-      if (!t || !t.obj) return null;
-      if (!t.obj.voiceLab) t.obj.voiceLab = Object.assign(defaultVoiceLabProfile(), { voice: t.obj.ttsVoice || '' });
-      return { name: t.name, profile: t.obj.voiceLab, voices: getKokoroVoiceList(), modelLoaded: !!kokoroTTS, loadError: kokoroLoadError };
+
+    function buildVoiceLabOptions(selectEl, selectedId, includeNone) {
+      const voices = getKokoroVoiceList();
+      selectEl.innerHTML = (includeNone ? '<option value="">Off / No blend</option>' : '') +
+        Object.keys(voices).map(id => `<option value="${escapeHtml(id)}"${id === selectedId ? ' selected' : ''}>${escapeHtml(voices[id])}</option>`).join('');
     }
-    function applyVoiceLabProfile(profile) {
-      const t = resolveVoiceLabTarget();
-      if (!t || !t.obj) return false;
-      t.obj.voiceLab = profile;
-      t.obj.ttsVoice = profile.voice || '';
-      saveState();
-      syncVoiceSelectButtons();
-      return true;
-    }
-    async function voiceLabLoadModel(onProgress) { return loadKokoroTTS(onProgress); }
-    async function voiceLabGeneratePreview(text, profile) {
-      let buffer = await generateKokoroAudioBuffer(text, profile);
-      // Match the VN playback path exactly — previously the preview skipped
-      // the pitch render, so auditioning a voice did not reflect the Pitch
-      // slider and what you heard here differed from what played in-scene.
-      const pitch = Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0));
-      buffer = await renderBufferWithPitch(buffer, pitch);
-      const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
-      return URL.createObjectURL(wavBlob);
-    }
-    // --- Opens (or focuses) the shared Voice Lab window ---
-    // Popup document written into the Voice Lab window via document.write().
-    // Its own inline script avoids template-literal backtick/${} syntax
-    // entirely (plain string concatenation) since this whole block is itself
-    // inside an outer template literal in index.html.
-    const VOICE_LAB_HTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>ZetaForge Voice Lab</title>
-<style>
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#15121c; color:#e8e4f5; padding:18px; }
-  h1 { font-size: 15px; margin: 0 0 14px; color:#d2c6ff; }
-  .vl-section { background:#201c2c; border:1px solid #35304a; border-radius:12px; padding:12px; margin-bottom:12px; }
-  .vl-label { display:block; font-size:11px; font-weight:600; color:#a79bd1; margin-bottom:6px; text-transform:uppercase; letter-spacing:.03em; }
-  select, input[type=text], textarea { width:100%; background:#15121c; border:1px solid #3a3454; border-radius:8px; color:#fff; padding:8px 10px; font-size:13px; }
-  input[type=range] { width:100%; accent-color:#7c65e8; }
-  textarea { min-height:70px; resize:vertical; font-family:monospace; font-size:11px; }
-  .vl-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
-  .vl-hint { font-size:10px; color:#7a7391; line-height:1.5; margin-top:6px; }
-  .vl-value { font-size:11px; color:#9a89f7; font-weight:600; white-space:nowrap; }
-  button { cursor:pointer; border:none; border-radius:8px; font-size:12px; font-weight:600; padding:9px 14px; }
-  .vl-btn-primary { background:#7c65e8; color:#fff; }
-  .vl-btn-primary:hover { background:#6650d6; }
-  .vl-btn-secondary { background:#2b2640; color:#d2c6ff; border:1px solid #3a3454; }
-  .vl-btn-secondary:hover { background:#35304a; }
-  .vl-actions { display:flex; gap:8px; margin-top:4px; }
-  .vl-actions button { flex:1; }
-  #vlStatus { font-size:11px; color:#a79bd1; min-height:14px; margin-top:6px; }
-  #vlModelStatus { font-size:10px; color:#7a7391; margin-bottom:10px; }
-</style>
-</head>
-<body>
-  <h1 id="vlTitle">🎙️ Voice Lab</h1>
-  <div id="vlEmpty" style="display:none;font-size:12px;color:#a79bd1;">No character selected. Reopen this from ZetaForge.</div>
-  <div id="vlBody">
-    <div id="vlModelStatus">Model loads on first Play (~one-time download, cached after).</div>
-
-    <div class="vl-section">
-      <label class="vl-label">Primary Voice</label>
-      <select id="vlVoice"></select>
-    </div>
-
-    <div class="vl-section">
-      <label class="vl-label">Voice Blend (experimental mix)</label>
-      <select id="vlBlendVoice"></select>
-      <div class="vl-row" style="margin-top:8px;">
-        <span style="font-size:11px;color:#a79bd1;">Blend / Accent Weight</span>
-        <span class="vl-value" id="vlBlendWeightVal">0%</span>
-      </div>
-      <input type="range" id="vlBlendWeight" min="0" max="60" step="1" value="0" />
-      <p class="vl-hint">Nudges the primary voice toward a second one (e.g. blend a US voice toward a UK voice for an accent shift). This mixes two separate takes, so heavy weights can sound hollow or phasey — it is capped at 60% for that reason. Use low values; if you want a fully different voice, change the primary instead.</p>
-    </div>
-
-    <div class="vl-section">
-      <div class="vl-row"><span style="font-size:11px;color:#a79bd1;">Pitch / Intonation</span><span class="vl-value" id="vlPitchVal">0 cents</span></div>
-      <input type="range" id="vlPitch" min="-600" max="600" step="10" value="0" />
-      <div class="vl-row" style="margin-top:10px;"><span style="font-size:11px;color:#a79bd1;">Pacing / Speed</span><span class="vl-value" id="vlPaceVal">1.0x</span></div>
-      <input type="range" id="vlPace" min="0.5" max="2" step="0.1" value="1" />
-      <div class="vl-row" style="margin-top:10px;"><span style="font-size:11px;color:#a79bd1;">Emphasis / Stress Strength</span><span class="vl-value" id="vlEmphasisVal">0%</span></div>
-      <input type="range" id="vlEmphasis" min="0" max="100" step="5" value="0" />
-      <p class="vl-hint">Emphasis adds natural pauses around *action* text (and, at higher strength, punches up ALL-CAPS words) since Kokoro has no direct SSML/stress input.</p>
-    </div>
-
-    <div class="vl-section">
-      <label class="vl-label">Pronunciation Dictionary</label>
-      <textarea id="vlPronunciation" placeholder="One per line: word=>how to say it&#10;e.g. Kagome=>Kah-go-may"></textarea>
-    </div>
-
-    <div class="vl-section">
-      <label class="vl-label">Test Voice</label>
-      <input type="text" id="vlTestText" value="Hello, this is a ZetaForge voice test." />
-      <div class="vl-actions" style="margin-top:8px;">
-        <button class="vl-btn-primary" id="vlPlayBtn">▶ Play</button>
-      </div>
-      <div id="vlStatus"></div>
-      <audio id="vlAudioPlayer" style="width:100%;margin-top:6px;" controls></audio>
-    </div>
-
-    <div class="vl-actions">
-      <button class="vl-btn-secondary" id="vlCloseBtn">Close</button>
-      <button class="vl-btn-primary" id="vlSaveBtn">💾 Save Voice</button>
-    </div>
-  </div>
-
-<script>
-(function () {
-  var opener = window.opener;
-  if (!opener || opener.closed) {
-    document.body.innerHTML = '<p style="padding:20px;">This window needs to stay linked to ZetaForge. Please reopen it from there.</p>';
-    return;
-  }
-  var profile = null;
-  var voices = {};
-  var testAudioUrl = null;
-
-  function $(id) { return document.getElementById(id); }
-
-  function buildVoiceOptions(selectEl, selectedId, includeNone) {
-    selectEl.innerHTML = '';
-    if (includeNone) {
-      var noneOpt = document.createElement('option');
-      noneOpt.value = '';
-      noneOpt.textContent = 'Off / No blend';
-      selectEl.appendChild(noneOpt);
-    }
-    Object.keys(voices).forEach(function (id) {
-      var opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = voices[id];
-      if (id === selectedId) opt.selected = true;
-      selectEl.appendChild(opt);
-    });
-  }
-
-  function refresh() {
-    var info = opener.getVoiceLabTargetInfo();
-    if (!info) {
-      $('vlTitle').textContent = 'Voice Lab';
-      $('vlBody').style.display = 'none';
-      $('vlEmpty').style.display = 'block';
-      return;
-    }
-    $('vlBody').style.display = '';
-    $('vlEmpty').style.display = 'none';
-    $('vlTitle').textContent = '🎙️ Voice Lab — ' + info.name;
-    profile = info.profile;
-    voices = info.voices;
-    buildVoiceOptions($('vlVoice'), profile.voice, false);
-    buildVoiceOptions($('vlBlendVoice'), profile.blendVoice, true);
-    $('vlBlendWeight').value = profile.blendWeight || 0;
-    $('vlBlendWeightVal').textContent = (profile.blendWeight || 0) + '%';
-    $('vlPitch').value = profile.pitch || 0;
-    $('vlPitchVal').textContent = (profile.pitch || 0) + ' cents';
-    $('vlPace').value = profile.pace || 1;
-    $('vlPaceVal').textContent = (profile.pace || 1) + 'x';
-    $('vlEmphasis').value = profile.emphasis || 0;
-    $('vlEmphasisVal').textContent = (profile.emphasis || 0) + '%';
-    $('vlPronunciation').value = profile.pronunciations || '';
-    if (info.modelLoaded) { $('vlModelStatus').textContent = '✅ Kokoro model loaded'; }
-    else if (info.loadError) { $('vlModelStatus').textContent = '⚠️ ' + info.loadError; }
-    else { $('vlModelStatus').textContent = 'Model loads on first Play (~one-time download, cached after).'; }
-  }
-  window.refreshVoiceLab = refresh;
-
-  function collectProfile() {
-    return {
-      voice: $('vlVoice').value,
-      blendVoice: $('vlBlendVoice').value,
-      blendWeight: Number($('vlBlendWeight').value) || 0,
-      pitch: Number($('vlPitch').value) || 0,
-      pace: Number($('vlPace').value) || 1,
-      emphasis: Number($('vlEmphasis').value) || 0,
-      pronunciations: $('vlPronunciation').value || ''
-    };
-  }
-
-  ['vlBlendWeight', 'vlPitch', 'vlPace', 'vlEmphasis'].forEach(function (id) {
-    $(id).addEventListener('input', function () {
-      $('vlBlendWeightVal').textContent = $('vlBlendWeight').value + '%';
-      $('vlPitchVal').textContent = $('vlPitch').value + ' cents';
-      $('vlPaceVal').textContent = $('vlPace').value + 'x';
-      $('vlEmphasisVal').textContent = $('vlEmphasis').value + '%';
-    });
-  });
-
-  $('vlPlayBtn').addEventListener('click', function () {
-    var text = $('vlTestText').value.trim();
-    if (!text) return;
-    $('vlStatus').textContent = 'Loading model / generating…';
-    $('vlPlayBtn').disabled = true;
-    var p = collectProfile();
-    opener.voiceLabLoadModel(function (progress) {
-      if (progress && progress.status === 'progress' && typeof progress.progress === 'number') {
-        $('vlStatus').textContent = 'Downloading voice model… ' + Math.round(progress.progress) + '%';
-      }
-    }).then(function () {
-      return opener.voiceLabGeneratePreview(text, p);
-    }).then(function (url) {
-      if (testAudioUrl) URL.revokeObjectURL(testAudioUrl);
-      testAudioUrl = url;
-      var audio = $('vlAudioPlayer');
-      audio.src = url;
-      audio.play();
-      $('vlStatus').textContent = 'Playing preview.';
-    }).catch(function (err) {
-      $('vlStatus').textContent = 'Error: ' + (err && err.message ? err.message : 'generation failed');
-    }).finally(function () {
-      $('vlPlayBtn').disabled = false;
-    });
-  });
-
-  $('vlSaveBtn').addEventListener('click', function () {
-    opener.applyVoiceLabProfile(collectProfile());
-    $('vlStatus').textContent = 'Saved.';
-  });
-  $('vlCloseBtn').addEventListener('click', function () { window.close(); });
-
-  refresh();
-})();
-<\/script>
-</body>
-</html>`;
 
     function openVoiceLab(type, index) {
       voiceLabTargetRef = index !== undefined ? { type, index } : { type };
-      if (voiceLabWindow && !voiceLabWindow.closed) {
-        voiceLabWindow.focus();
-        if (typeof voiceLabWindow.refreshVoiceLab === 'function') voiceLabWindow.refreshVoiceLab();
-        return;
+      const target = resolveVoiceLabTarget();
+      if (!target || !target.obj) return;
+      if (!target.obj.voiceLab) target.obj.voiceLab = Object.assign(defaultVoiceLabProfile(), { voice: target.obj.ttsVoice || '' });
+      voiceLabDraft = Object.assign(defaultVoiceLabProfile(), target.obj.voiceLab);
+      if (!voiceLabDraft.voice) voiceLabDraft.voice = Object.keys(getKokoroVoiceList())[0] || '';
+
+      document.getElementById('vlTitle').innerText = `🎙️ Voice Lab — ${target.name}`;
+      buildVoiceLabOptions(document.getElementById('vlVoice'), voiceLabDraft.voice, false);
+      buildVoiceLabOptions(document.getElementById('vlBlendVoice'), voiceLabDraft.blendVoice, true);
+      document.getElementById('vlBlendWeight').value = voiceLabDraft.blendWeight || 0;
+      document.getElementById('vlPitch').value = voiceLabDraft.pitch || 0;
+      document.getElementById('vlPace').value = voiceLabDraft.pace || 1;
+      document.getElementById('vlEmphasis').value = voiceLabDraft.emphasis || 0;
+      document.getElementById('vlPronunciation').value = voiceLabDraft.pronunciations || '';
+      document.getElementById('vlStatus').innerText = '';
+      updateVoiceLabLabels();
+      updateVoiceLabModelStatus();
+
+      const modal = document.getElementById('voiceLabModal');
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+      // Warm the model now so the first preview isn't a cold start.
+      if (!kokoroTTS) loadKokoroTTS(p => updateVoiceLabModelStatus(p)).then(() => updateVoiceLabModelStatus()).catch(() => updateVoiceLabModelStatus());
+    }
+
+    function closeVoiceLab(event) {
+      if (event && event.target && event.target.id !== 'voiceLabModal') return;
+      const modal = document.getElementById('voiceLabModal');
+      modal.classList.add('hidden'); modal.classList.remove('flex');
+    }
+
+    function updateVoiceLabModelStatus(progress) {
+      const el = document.getElementById('vlModelStatus');
+      if (!el) return;
+      if (kokoroTTS) {
+        el.innerText = styleBlendSupported === false
+          ? '✅ Voice model ready · blending unavailable in this build (primary voice is used)'
+          : '✅ Voice model ready';
+      } else if (progress && progress.status === 'progress' && typeof progress.progress === 'number') {
+        el.innerText = `Downloading voice model… ${Math.round(progress.progress)}%`;
+      } else if (kokoroLoadError) {
+        el.innerText = '⚠️ ' + kokoroLoadError;
+      } else {
+        el.innerText = 'Loading voice model…';
       }
-      voiceLabWindow = window.open('', 'zetaforge_voice_lab', 'width=480,height=760,resizable=yes,scrollbars=yes');
-      if (!voiceLabWindow) { zfAlert('Please allow popups for ZetaForge to open the Voice Lab.'); return; }
-      voiceLabWindow.document.write(VOICE_LAB_HTML);
-      voiceLabWindow.document.close();
+    }
+
+    function updateVoiceLabLabels() {
+      document.getElementById('vlBlendWeightVal').innerText = document.getElementById('vlBlendWeight').value + '%';
+      document.getElementById('vlPitchVal').innerText = document.getElementById('vlPitch').value + ' cents';
+      document.getElementById('vlPaceVal').innerText = Number(document.getElementById('vlPace').value).toFixed(1) + '×';
+      document.getElementById('vlEmphasisVal').innerText = document.getElementById('vlEmphasis').value + '%';
+    }
+
+    function collectVoiceLabDraft() {
+      return {
+        voice: document.getElementById('vlVoice').value,
+        blendVoice: document.getElementById('vlBlendVoice').value,
+        blendWeight: Number(document.getElementById('vlBlendWeight').value) || 0,
+        pitch: Number(document.getElementById('vlPitch').value) || 0,
+        pace: Number(document.getElementById('vlPace').value) || 1,
+        emphasis: Number(document.getElementById('vlEmphasis').value) || 0,
+        pronunciations: document.getElementById('vlPronunciation').value || ''
+      };
+    }
+
+    function onVoiceLabFieldChange() {
+      updateVoiceLabLabels();
+      voiceLabDraft = collectVoiceLabDraft();
+    }
+
+    async function playVoiceLabPreview() {
+      const text = (document.getElementById('vlTestText').value || '').trim();
+      if (!text) return;
+      const btn = document.getElementById('vlPlayBtn');
+      const status = document.getElementById('vlStatus');
+      const profile = collectVoiceLabDraft();
+      btn.disabled = true;
+      status.innerText = kokoroTTS ? 'Generating preview…' : 'Loading voice model…';
+      try {
+        await loadKokoroTTS(p => updateVoiceLabModelStatus(p));
+        updateVoiceLabModelStatus();
+        let buffer = await generateKokoroAudioBuffer(text, profile);
+        buffer = await renderBufferWithPitch(buffer, Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)));
+        const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
+        const url = URL.createObjectURL(wavBlob);
+        const audio = getVnAudioElement();
+        vnSpeechToken++; // don't let a VN line interleave with the preview
+        try { audio.pause(); } catch (e) {}
+        audio.src = url;
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+        status.innerText = (profile.blendVoice && profile.blendWeight > 0 && styleBlendSupported === false)
+          ? 'Playing preview. (Blending is not supported by this Kokoro build, so only the primary voice was used.)'
+          : 'Playing preview.';
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'preview failed');
+      } finally {
+        btn.disabled = false;
+        updateVoiceLabModelStatus();
+      }
+    }
+
+    async function saveVoiceLab() {
+      const target = resolveVoiceLabTarget();
+      if (!target || !target.obj) return;
+      const profile = collectVoiceLabDraft();
+      target.obj.voiceLab = profile;
+      target.obj.ttsVoice = profile.voice || '';
+      vnAudioCache.clear(); // voice settings changed — stale renders are wrong
+      await saveState();
+      syncVoiceSelectButtons();
+      renderCharacterCardsSetup();
+      document.getElementById('vlStatus').innerText = 'Saved.';
+      closeVoiceLab();
     }
     // ADD-1: Assign a distinct Kokoro voice to every cast member at once.
     // Gendered voice pools are matched against role/persona text where possible
@@ -6722,11 +6798,20 @@ JSON FORMAT:
 
           bubbleBody.innerHTML = marked.parse(fullText.slice(0, visibleChars));
 
-          // Keep the VN dialogue in sync while this exact character is speaking.
+          // Keep the VN dialogue in sync ONLY when the viewer is actually on
+          // the turn being generated. Previously this wrote the incoming text
+          // into the dialogue box no matter where the user was parked, so with
+          // Auto off the message appeared while the sprite stayed on the old
+          // speaker, then snapped back on the next render. With Auto off the
+          // stage now holds still and only the turn counter grows.
           if (liveMessage) {
             liveMessage.text = fullText.slice(0, visibleChars);
-            const dialogueBody = document.getElementById('vnDialogueBody');
-            if (dialogueBody) dialogueBody.innerHTML = marked.parse(liveMessage.text);
+            const validNow = (active.messages || []).filter(mm => !mm.isImage && !mm.isChapterDivider);
+            const liveIndex = validNow.indexOf(liveMessage);
+            if (liveIndex !== -1 && currentVnIndex === liveIndex) {
+              const dialogueBody = document.getElementById('vnDialogueBody');
+              if (dialogueBody) dialogueBody.innerHTML = marked.parse(liveMessage.text);
+            }
           }
 
           if (chatStickToBottom) container.scrollTop = container.scrollHeight;
