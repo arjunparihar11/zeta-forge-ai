@@ -119,8 +119,10 @@
     body.light-mode .bg-black\/60, body.light-mode .bg-black\/70, body.light-mode .bg-black\/80 { background-color: rgb(20 20 30 / .58) !important; }
     body.light-mode .prose strong { color: #22222c !important; }
     body.light-mode .prose em { color: color-mix(in srgb, var(--zeta-accent) 75%, #000 25%); }
-    body.light-mode ::-webkit-scrollbar-track { background: #e7e7ee; }
-    body.light-mode ::-webkit-scrollbar-thumb { background: #c5c5d2; }
+    /* Light mode keeps the same accent-derived thumb, just a touch darker so
+       it stays visible against pale surfaces. */
+    body.light-mode ::-webkit-scrollbar-track { background: transparent; }
+    body.light-mode ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--zeta-accent) 70%, #000 10%); }
     /* Theme-aware utility overrides: keep every previously hard-coded purple/dark
        surface readable in light mode while deriving accent shades from --zeta-accent. */
     :root {
@@ -268,7 +270,7 @@
     #imageLibraryContainer:focus { outline: none; }
     #imageLibraryContainer::-webkit-scrollbar { width: 10px; }
     #imageLibraryContainer::-webkit-scrollbar-thumb {
-      background: var(--zeta-border); border-radius: 999px;
+      background: color-mix(in srgb, var(--zeta-accent) 65%, var(--zeta-border)); border-radius: 999px;
     }
     #imageLibraryContainer::-webkit-scrollbar-thumb:hover { background: var(--zeta-accent); }
 
@@ -280,9 +282,17 @@
       scrollbar-width: none;
     }
 
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #131118; }
-    ::-webkit-scrollbar-thumb { background: #392f4e; border-radius: 2px; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--zeta-accent) 55%, var(--zeta-border));
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--zeta-accent); }
+    ::-webkit-scrollbar-corner { background: transparent; }
+    /* Firefox */
+    * { scrollbar-color: color-mix(in srgb, var(--zeta-accent) 55%, var(--zeta-border)) transparent; scrollbar-width: thin; }
+    .no-scrollbar { scrollbar-width: none; }
     
     .prose p { 
       margin-top: 0;
@@ -1998,6 +2008,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       flushUiRender(); // paint immediately on boot rather than a frame later
       syncModalForm();
       bindDefensiveClickListeners();
+      // If voice acting was already on from a previous session, start loading
+      // the model and the cast's voices now (in the background, after first
+      // paint) so the first spoken line doesn't wait on a cold start.
+      if (appState.ttsEnabled) {
+        setTimeout(() => { warmUpTtsEngine(); }, 800);
+      }
     });
 
     // Belt-and-suspenders click bindings for controls that must keep working
@@ -5445,7 +5461,14 @@ JSON FORMAT:
     // Known Kokoro-82M v1.0 voice pack, used as a label fallback and as the
     // Voice Lab's dropdown source before/if the loaded instance exposes its
     // own richer `tts.voices` metadata (merged in when present).
+    // Full Kokoro-82M v1.0 voice pack. English (a=US, b=UK) voices are the
+    // primary set — kokoro-js phonemizes English, so those are the ones with
+    // fully native pronunciation. The remaining language packs ship in the same
+    // model; on English text they read as accented English, which is genuinely
+    // useful for characters, so they're exposed but grouped separately rather
+    // than mixed into the main list.
     const KOKORO_VOICES = {
+      // --- US English ---
       af_heart:'Heart — US Female', af_alloy:'Alloy — US Female', af_aoede:'Aoede — US Female',
       af_bella:'Bella — US Female', af_jessica:'Jessica — US Female', af_kore:'Kore — US Female',
       af_nicole:'Nicole — US Female', af_nova:'Nova — US Female', af_river:'River — US Female',
@@ -5453,9 +5476,29 @@ JSON FORMAT:
       am_adam:'Adam — US Male', am_echo:'Echo — US Male', am_eric:'Eric — US Male',
       am_fenrir:'Fenrir — US Male', am_liam:'Liam — US Male', am_michael:'Michael — US Male',
       am_onyx:'Onyx — US Male', am_puck:'Puck — US Male', am_santa:'Santa — US Male',
+      // --- UK English ---
       bf_alice:'Alice — UK Female', bf_emma:'Emma — UK Female', bf_isabella:'Isabella — UK Female', bf_lily:'Lily — UK Female',
-      bm_daniel:'Daniel — UK Male', bm_fable:'Fable — UK Male', bm_george:'George — UK Male', bm_lewis:'Lewis — UK Male'
+      bm_daniel:'Daniel — UK Male', bm_fable:'Fable — UK Male', bm_george:'George — UK Male', bm_lewis:'Lewis — UK Male',
+      // --- Other language packs (accented English on English text) ---
+      jf_alpha:'Alpha — Japanese Female', jf_gongitsune:'Gongitsune — Japanese Female',
+      jf_nezumi:'Nezumi — Japanese Female', jf_tebukuro:'Tebukuro — Japanese Female',
+      jm_kumo:'Kumo — Japanese Male',
+      zf_xiaobei:'Xiaobei — Mandarin Female', zf_xiaoni:'Xiaoni — Mandarin Female',
+      zf_xiaoxiao:'Xiaoxiao — Mandarin Female', zf_xiaoyi:'Xiaoyi — Mandarin Female',
+      zm_yunjian:'Yunjian — Mandarin Male', zm_yunxi:'Yunxi — Mandarin Male',
+      zm_yunxia:'Yunxia — Mandarin Male', zm_yunyang:'Yunyang — Mandarin Male',
+      ef_dora:'Dora — Spanish Female', em_alex:'Alex — Spanish Male', em_santa:'Santa — Spanish Male',
+      ff_siwis:'Siwis — French Female',
+      hf_alpha:'Alpha — Hindi Female', hf_beta:'Beta — Hindi Female',
+      hm_omega:'Omega — Hindi Male', hm_psi:'Psi — Hindi Male',
+      if_sara:'Sara — Italian Female', im_nicola:'Nicola — Italian Male',
+      pf_dora:'Dora — Portuguese Female', pm_alex:'Alex — Portuguese Male', pm_santa:'Santa — Portuguese Male'
     };
+    // Voices whose language matches kokoro-js's English phonemizer. Bulk
+    // assignment draws only from these so auto-assigned casts don't
+    // accidentally end up with heavy non-native accents.
+    const KOKORO_ENGLISH_PREFIXES = ['af_', 'am_', 'bf_', 'bm_'];
+    function isEnglishVoice(id) { return KOKORO_ENGLISH_PREFIXES.some(p => String(id).startsWith(p)); }
     let kokoroTTS = null;
     let kokoroLoadingPromise = null;
     let kokoroLoadError = '';
@@ -5542,20 +5585,38 @@ JSON FORMAT:
     let styleBlendSupported = null; // null = untested, true/false once probed
     const blendedVoiceCache = new Map();
 
+    // Probe for a way to read a voice's style tensor. kokoro-js has exposed
+    // this under several shapes across versions, so try each before declaring
+    // blending unavailable — otherwise we'd report "unsupported" just because
+    // one method name didn't match.
+    async function loadVoiceStyleVector(tts, voiceId) {
+      const candidates = [tts.getVoiceData, tts.get_voice_data, tts._getVoiceData, tts.getVoiceStyle, tts.loadVoice];
+      for (const fn of candidates) {
+        if (typeof fn === 'function') {
+          try {
+            const data = await fn.call(tts, voiceId);
+            const vec = data?.data || data?.style || data;
+            if (vec && typeof vec.length === 'number' && vec.length > 0) return vec;
+          } catch (e) { /* try the next shape */ }
+        }
+      }
+      // Some builds keep the loaded packs on a voices map.
+      const entry = tts.voices?.[voiceId];
+      const fromMap = entry?.data || entry?.style || (typeof entry?.length === 'number' ? entry : null);
+      if (fromMap && fromMap.length) return fromMap;
+      return null;
+    }
+
     async function resolveBlendedVoice(tts, primaryId, blendId, weight) {
       if (!blendId || weight <= 0) return primaryId;
       const key = `${primaryId}|${blendId}|${weight}`;
       if (blendedVoiceCache.has(key)) return blendedVoiceCache.get(key);
       try {
-        // kokoro-js exposes voice style tensors through its voice data loader.
-        // Names differ across builds, so probe rather than assume.
-        const loader = tts.getVoiceData || tts.get_voice_data || tts._getVoiceData;
-        if (typeof loader !== 'function') { styleBlendSupported = false; return primaryId; }
-        const a = await loader.call(tts, primaryId);
-        const b = await loader.call(tts, blendId);
-        if (!a || !b || !a.length || a.length !== b.length) { styleBlendSupported = false; return primaryId; }
+        const a = await loadVoiceStyleVector(tts, primaryId);
+        const b = await loadVoiceStyleVector(tts, blendId);
+        if (!a || !b || a.length !== b.length) { styleBlendSupported = false; return primaryId; }
         const w = weight / 100;
-        const mixed = a instanceof Float32Array ? new Float32Array(a.length) : new Array(a.length);
+        const mixed = new Float32Array(a.length);
         for (let i = 0; i < a.length; i++) mixed[i] = a[i] * (1 - w) + b[i] * w;
         styleBlendSupported = true;
         blendedVoiceCache.set(key, mixed);
@@ -5633,7 +5694,7 @@ JSON FORMAT:
     function setVnTtsStatus(state) {
       const vnBtn = document.getElementById('vnTtsToggleBtn');
       if (!vnBtn) return;
-      const labels = { idle: appState.ttsEnabled ? 'Voice narration: On (tap to mute)' : 'Voice narration: Off (tap to enable)', loading: 'Generating voice line…', playing: 'Playing voice line…', error: 'Voice generation failed — tap to retry next line' };
+      const labels = { idle: appState.ttsEnabled ? (voiceWarmInFlight ? 'Voice narration: On — preloading voices…' : 'Voice narration: On (tap to mute)') : 'Voice narration: Off (tap to enable)', loading: 'Generating voice line…', playing: 'Playing voice line…', error: 'Voice generation failed — tap to retry next line' };
       vnBtn.title = labels[state] || labels.idle;
     }
     function vnCurrentTurnHasVoice() {
@@ -5699,11 +5760,61 @@ JSON FORMAT:
       return buffer;
     }
     // Warm the model (and optionally a short sample) without blocking the UI.
+    // Which voices this scenario will actually need — no point preloading all
+    // 28 when a cast of four uses four.
+    function getCastVoiceIds() {
+      const active = getActiveScenario();
+      if (!active) return [];
+      const ids = [active.userPersona, ...(active.characters || [])]
+        .filter(Boolean)
+        .flatMap(p => {
+          const out = [];
+          if (p.ttsVoice) out.push(p.ttsVoice);
+          // A configured blend needs its partner voice loaded too.
+          if (p.voiceLab?.blendVoice && (p.voiceLab.blendWeight || 0) > 0) out.push(p.voiceLab.blendVoice);
+          return out;
+        });
+      return [...new Set(ids)].filter(Boolean);
+    }
+
+    const warmedVoices = new Set();
+    let voiceWarmInFlight = false;
+    // Preload voice style data (and warm the inference graph) so the first
+    // spoken line isn't a cold start. Runs in the background, one voice at a
+    // time, yielding between each so it never blocks the UI.
+    async function preloadCastVoices() {
+      if (voiceWarmInFlight || !kokoroTTS) return;
+      const pending = getCastVoiceIds().filter(v => !warmedVoices.has(v));
+      if (!pending.length) return;
+      voiceWarmInFlight = true;
+      try {
+        for (const voiceId of pending) {
+          try {
+            // Cheap path: pull the style tensor into memory/cache.
+            const vec = await loadVoiceStyleVector(kokoroTTS, voiceId);
+            if (!vec) {
+              // Fallback: a single very short synthesis loads the voice and
+              // warms the graph. Result is discarded; the side effect is what
+              // we want.
+              await kokoroTTS.generate('Mm.', { voice: voiceId, speed: 1 });
+            }
+            warmedVoices.add(voiceId);
+          } catch (e) {
+            console.warn(`Voice preload skipped for ${voiceId}:`, e?.message || e);
+          }
+          // Yield so preloading never competes with rendering or playback.
+          await new Promise(r => setTimeout(r, 0));
+        }
+      } finally { voiceWarmInFlight = false; }
+    }
+
     async function warmUpTtsEngine() {
       try {
         setVnTtsStatus('loading');
         await loadKokoroTTS();
         setVnTtsStatus('idle');
+        // Load the cast's voices before anything is asked to speak.
+        await preloadCastVoices();
         prefetchNextVnLine();
       } catch (e) {
         console.warn('TTS warm-up failed:', e?.message || e);
@@ -5817,8 +5928,13 @@ JSON FORMAT:
 
     function buildVoiceLabOptions(selectEl, selectedId, includeNone) {
       const voices = getKokoroVoiceList();
-      selectEl.innerHTML = (includeNone ? '<option value="">Off / No blend</option>' : '') +
-        Object.keys(voices).map(id => `<option value="${escapeHtml(id)}"${id === selectedId ? ' selected' : ''}>${escapeHtml(voices[id])}</option>`).join('');
+      const opt = (id) => `<option value="${escapeHtml(id)}"${id === selectedId ? ' selected' : ''}>${escapeHtml(voices[id])}</option>`;
+      const english = Object.keys(voices).filter(isEnglishVoice);
+      const other = Object.keys(voices).filter(id => !isEnglishVoice(id));
+      selectEl.innerHTML =
+        (includeNone ? '<option value="">Off / No blend</option>' : '') +
+        `<optgroup label="English (native pronunciation)">${english.map(opt).join('')}</optgroup>` +
+        (other.length ? `<optgroup label="Other language packs (accented English)">${other.map(opt).join('')}</optgroup>` : '');
     }
 
     function openVoiceLab(type, index) {
@@ -5932,7 +6048,10 @@ JSON FORMAT:
       target.obj.voiceLab = profile;
       target.obj.ttsVoice = profile.voice || '';
       vnAudioCache.clear(); // voice settings changed — stale renders are wrong
+      warmedVoices.delete(profile.voice);
+      if (profile.blendVoice) warmedVoices.delete(profile.blendVoice);
       await saveState();
+      if (appState.ttsEnabled) preloadCastVoices();
       syncVoiceSelectButtons();
       renderCharacterCardsSetup();
       document.getElementById('vlStatus').innerText = 'Saved.';
@@ -5942,26 +6061,57 @@ JSON FORMAT:
     // Gendered voice pools are matched against role/persona text where possible
     // so the defaults are plausible rather than arbitrary; everything stays
     // editable per-character in the Voice Lab afterwards.
+    // Heuristic gender read for voice assignment. Scans every descriptive field
+    // (not just role), weighs explicit pronouns most heavily, and returns null
+    // rather than guessing when there's no evidence — the caller alternates
+    // pools in that case instead of defaulting everyone to one gender.
+    function guessCharacterVoiceGender(p) {
+      const text = [p.name, p.role, getCharacterPersona(p), p.visualProfile, p.relationship]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!text.trim()) return null;
+      const fem = (text.match(/\b(she|her|hers|herself|woman|women|girl|female|mother|mom|sister|daughter|queen|princess|lady|ladies|miss|mrs|ms|aunt|niece|wife|girlfriend|actress|waitress|maiden|matron)\b/g) || []).length;
+      const masc = (text.match(/\b(he|him|his|himself|man|men|boy|male|father|dad|brother|son|king|prince|lord|sir|mr|uncle|nephew|husband|boyfriend|actor|waiter|gentleman)\b/g) || []).length;
+      if (fem > masc) return 'f';
+      if (masc > fem) return 'm';
+      return null;
+    }
+
     async function autoAssignCastVoices(overwrite = false) {
       const active = getActiveScenario();
       const all = getKokoroVoiceList();
-      const ids = Object.keys(all);
+      // Bulk assignment stays within the English voices so an auto-assigned
+      // cast doesn't come out with unintended heavy accents; every other voice
+      // is still selectable by hand in the Voice Lab.
+      const ids = Object.keys(all).filter(isEnglishVoice);
       const female = ids.filter(v => /^[ab]f_/.test(v));
       const male = ids.filter(v => /^[ab]m_/.test(v));
       const people = [active.userPersona, ...(active.characters || [])].filter(p => p && p.name);
       const targets = people.filter(p => overwrite || !p.ttsVoice);
-      if (!targets.length) { await zfAlert('Every character already has a voice assigned. Use "Reassign all" if you want to shuffle them.', 'Nothing to Assign'); return; }
+      if (!targets.length) { await zfAlert('Every character already has a voice assigned. Use the ↻ button if you want to reassign the whole cast.', 'Nothing to Assign'); return; }
       if (!await zfConfirm(`Assign distinct voices to ${targets.length} character${targets.length === 1 ? '' : 's'}?${overwrite ? ' This overwrites existing voice choices.' : ''}`, 'Auto-Assign Voices', 'Assign')) return;
+
       const used = new Set(overwrite ? [] : people.map(p => p.ttsVoice).filter(Boolean));
-      let fi = 0, mi = 0;
-      const guessFemale = (p) => /\b(she|her|woman|girl|female|mother|sister|daughter|queen|lady|miss|mrs|ms)\b/i.test(`${p.role || ''} ${getCharacterPersona(p) || ''}`);
+      let unknownFlip = 0;  // fi/mi replaced by the fCur/mCur cursors below
+      const takeFrom = (pool, cursorRef) => {
+        for (let k = 0; k < pool.length; k++) {
+          const cand = pool[(cursorRef.i + k) % pool.length];
+          if (!used.has(cand)) { cursorRef.i = (cursorRef.i + k + 1) % pool.length; return cand; }
+        }
+        return '';
+      };
+      const fCur = { i: 0 }, mCur = { i: 0 };
+      let assignedUnknown = 0;
+
       for (const p of targets) {
-        const pool = guessFemale(p) ? female : male;
-        const alt = pool === female ? male : female;
-        let pick = '';
-        for (let k = 0; k < pool.length && !pick; k++) { const c = pool[(pool === female ? fi++ : mi++) % pool.length]; if (!used.has(c)) pick = c; }
-        for (let k = 0; k < alt.length && !pick; k++) { const c = alt[k]; if (!used.has(c)) pick = c; }
-        if (!pick) pick = ids[Math.floor(Math.random() * ids.length)];
+        let g = guessCharacterVoiceGender(p);
+        if (!g) { g = (unknownFlip++ % 2 === 0) ? 'f' : 'm'; assignedUnknown++; }
+        const primary = g === 'f' ? female : male;
+        const secondary = g === 'f' ? male : female;
+        // Prefer an unused voice from the matching pool, then the other pool,
+        // then allow a repeat rather than leaving anyone silent.
+        let pick = takeFrom(primary, g === 'f' ? fCur : mCur)
+                || takeFrom(secondary, g === 'f' ? mCur : fCur)
+                || ids[Math.floor(Math.random() * ids.length)];
         used.add(pick);
         p.ttsVoice = pick;
         p.voiceLab = Object.assign(defaultVoiceLabProfile(), p.voiceLab || {}, { voice: pick });
@@ -5969,7 +6119,12 @@ JSON FORMAT:
       await saveState();
       syncVoiceSelectButtons();
       renderCharacterCardsSetup();
-      await zfAlert(`Assigned voices to ${targets.length} character${targets.length === 1 ? '' : 's'}. Fine-tune any of them in the Voice Lab.`, 'Voices Assigned');
+      vnAudioCache.clear();           // cast voices changed — old renders are stale
+      if (appState.ttsEnabled) preloadCastVoices();
+      const note = assignedUnknown
+        ? ` ${assignedUnknown} had no gender cues in their description, so those were alternated — adjust any of them in the Voice Lab.`
+        : ' Fine-tune any of them in the Voice Lab.';
+      await zfAlert(`Assigned voices to ${targets.length} character${targets.length === 1 ? '' : 's'}.${note}`, 'Voices Assigned');
     }
 
     function syncVoiceSelectButtons() {
