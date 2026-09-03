@@ -70,12 +70,41 @@
       color-scheme: light;
     }
     body.light-mode { color: #252533; background: var(--zeta-bg); }
-    body.light-mode .bg-zetaBg { background-color: var(--zeta-bg) !important; }
-    body.light-mode .bg-zetaSidebar { background-color: var(--zeta-sidebar) !important; }
-    body.light-mode .bg-zetaCard { background-color: var(--zeta-card) !important; }
-    body.light-mode .bg-zetaInput { background-color: var(--zeta-input) !important; }
-    body.light-mode .border-zetaBorder { border-color: var(--zeta-border) !important; }
+    /* Container surfaces always resolve from the CSS vars (not Tailwind's
+       compiled static hex) so applyAccentColor()/applyContainerTint() can tint
+       them in BOTH light and dark mode, not just override them in light mode. */
+    .bg-zetaBg { background-color: var(--zeta-bg) !important; }
+    .bg-zetaSidebar { background-color: var(--zeta-sidebar) !important; }
+    .bg-zetaCard { background-color: var(--zeta-card) !important; }
+    .bg-zetaInput { background-color: var(--zeta-input) !important; }
+    .bg-zetaBorder { background-color: var(--zeta-border) !important; }
+    .bg-zetaUser { background-color: var(--zeta-user) !important; }
+    .border-zetaBorder { border-color: var(--zeta-border) !important; }
+    .hover\:bg-zetaBorder:hover { background-color: var(--zeta-border) !important; }
+    /* Legacy one-off hex utilities scattered through the markup (chapter badge,
+       VN stage chrome, spotlight chips, cancel-button hovers) — remapped onto
+       the theme vars so they track both light/dark mode and the accent tint. */
+    .bg-\[\#2a223c\], .bg-\[\#2a223c\]\/60 { background-color: var(--zeta-card) !important; }
+    .hover\:bg-\[\#352a4e\]:hover { background-color: var(--zeta-border) !important; }
+    .hover\:bg-\[\#3f3554\]:hover { background-color: var(--zeta-border) !important; }
+    .bg-\[\#1a1622\]\/80, .bg-\[\#1a1622\]\/95 { background-color: var(--zeta-sidebar) !important; }
+    .hover\:bg-\[\#1a1622\]\/80:hover { background-color: var(--zeta-sidebar) !important; }
+    .bg-\[\#0c0a10\] { background-color: var(--zeta-bg) !important; }
+    .bg-zetaBg\/80 { background-color: color-mix(in srgb, var(--zeta-bg) 80%, transparent) !important; }
+    .bg-slate-900\/70 { background-color: color-mix(in srgb, var(--zeta-card) 96%, #000 4%) !important; }
+    .text-\[\#b9a6ff\]\/70 { color: color-mix(in srgb, var(--zeta-light) 70%, transparent) !important; }
+    .text-\[\#b9a6ff\]\/80 { color: color-mix(in srgb, var(--zeta-light) 80%, transparent) !important; }
+    body.light-mode .bg-\[\#2a223c\], body.light-mode .bg-\[\#2a223c\]\/60,
+    body.light-mode .bg-\[\#1a1622\]\/80, body.light-mode .bg-\[\#1a1622\]\/95,
+    body.light-mode .bg-slate-900\/70 { background-color: var(--zeta-card) !important; border-color: var(--zeta-border) !important; }
+    body.light-mode .bg-zetaBg\/80 { background-color: color-mix(in srgb, var(--zeta-bg) 92%, transparent) !important; }
+    body.light-mode .text-\[\#b9a6ff\]\/70, body.light-mode .text-\[\#b9a6ff\]\/80 { color: color-mix(in srgb, var(--zeta-accent) 72%, #222 28%) !important; }
+    /* Buttons whose foreground is a bare text-white next to an accent-tinted
+       background need to flip to a dark foreground when the chosen accent is
+       too bright for white text to stay readable (see applyAccentColor()). */
+    .bg-zetaAccent, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-violet-600, .bg-purple-600 { color: var(--zeta-accent-fg, #ffffff) !important; }
     body.light-mode .text-white { color: #20202a !important; }
+    body.light-mode .hover\:text-white:hover { color: #20202a !important; }
     body.light-mode .text-slate-200 { color: #30303b !important; }
     body.light-mode .text-slate-300 { color: #464652 !important; }
     body.light-mode .text-slate-400 { color: #646472 !important; }
@@ -108,7 +137,7 @@
     body.light-mode .bg-slate-900, body.light-mode .bg-slate-900\/60,
     body.light-mode .bg-slate-800, body.light-mode .bg-slate-800\/90,
     body.light-mode .bg-slate-800\/60, body.light-mode .bg-slate-700 {
-      background-color: #ffffff !important;
+      background-color: var(--zeta-card) !important;
     }
     body.light-mode .border-slate-800, body.light-mode .border-slate-700,
     body.light-mode .border-slate-700\/80, body.light-mode .border-slate-700\/60,
@@ -124,6 +153,19 @@
     body.light-mode .prose-invert strong { color: #20202a !important; }
     body.light-mode .prose-invert a { color: color-mix(in srgb, var(--zeta-accent) 72%, #222 28%) !important; }
     .bg-zetaAccent { background-color: var(--zeta-accent) !important; }
+    /* Opacity-suffixed variants (bg-zetaCard/60, border-zetaAccent/50, etc.)
+       compile from Tailwind's static literal hex and otherwise ignore both
+       light mode and accent changes — every modal footer bar uses one of
+       these, so this closes that gap the same way the solid classes above do. */
+    .bg-zetaCard\/40 { background-color: color-mix(in srgb, var(--zeta-card) 40%, transparent) !important; }
+    .bg-zetaCard\/60 { background-color: color-mix(in srgb, var(--zeta-card) 60%, transparent) !important; }
+    .bg-zetaAccent\/30 { background-color: color-mix(in srgb, var(--zeta-accent) 30%, transparent) !important; }
+    .bg-zetaAccent\/50 { background-color: color-mix(in srgb, var(--zeta-accent) 50%, transparent) !important; }
+    .hover\:bg-zetaAccent\/50:hover { background-color: color-mix(in srgb, var(--zeta-accent) 50%, transparent) !important; }
+    .border-zetaAccent\/40 { border-color: color-mix(in srgb, var(--zeta-accent) 40%, transparent) !important; }
+    .border-zetaAccent\/50 { border-color: color-mix(in srgb, var(--zeta-accent) 50%, transparent) !important; }
+    .border-zetaAccent\/60 { border-color: color-mix(in srgb, var(--zeta-accent) 60%, transparent) !important; }
+    .border-zetaLight\/40 { border-color: color-mix(in srgb, var(--zeta-light) 40%, transparent) !important; }
     .text-zetaAccent { color: var(--zeta-accent) !important; }
     .border-zetaAccent { border-color: var(--zeta-accent) !important; }
     .hover\:bg-zetaAccent:hover { background-color: var(--zeta-accent-hover) !important; }
@@ -465,6 +507,9 @@
             <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
             </button>
+            <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
+              <span id="vnTtsToggleIcon">🔇</span>
+            </button>
             <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
               <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
             </button>
@@ -480,7 +525,7 @@
 
         <!-- Center Stage Speaker Portrait Area -->
         <div class="relative z-20 flex-1 flex items-end justify-center pb-2 pointer-events-none overflow-hidden min-h-0">
-          <div id="vnCharacterStageBox" class="max-h-[65vh] w-auto transition-all duration-300 transform flex items-end justify-center pointer-events-auto">
+          <div id="vnCharacterStageBox" class="h-full max-h-full w-auto min-h-0 transition-all duration-300 transform flex items-end justify-center pointer-events-auto">
           </div>
         </div>
 
@@ -898,6 +943,89 @@
 
         <hr class="border-zetaBorder" />
 
+        <!-- Local LLM Fallback: routine chat inference routing -->
+        <div class="space-y-3 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
+          <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px] flex items-center gap-1.5"><span>🖥️</span> Routine Chat Inference</h3>
+          <p class="text-[10px] text-slate-500 leading-snug">Choose where routine story turns (Send / Retry / Continue) are generated. Relationship analysis, chapter-level analysis, lorebook extraction, reply suggestions and profile synthesis always use the Gemini API regardless of this setting.</p>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1 text-xs">Active Profile</label>
+            <select id="llmProfileSelect" onchange="onLlmProfileSelectChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
+              <option value="gemini">☁️ Cloud (Gemini) — Default</option>
+              <option value="workstation">💻 Workstation (Laptop) — Magnum 12B v2</option>
+              <option value="deviceIphone">📱 On-Device (iPhone Pro) — Stheno 8B Q4_K_M</option>
+              <option value="deviceIpad">📱 On-Device (iPad Air) — Stheno 8B Q3_K_M</option>
+              <option value="auto">⚡ Smart Auto-Routing (Laptop → Device → Cloud)</option>
+            </select>
+            <p class="text-[10px] text-slate-500 mt-1" id="llmProfileActiveHint"></p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-2.5 bg-zetaCard border border-zetaBorder rounded-lg space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">Workstation</span>
+                <span id="llmTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span>
+              </div>
+              <input type="text" id="llmUrl_workstation" placeholder="http://192.168.1.45:1234/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmModel_workstation" placeholder="magnum-v2-12b" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="llmContextCap_workstation" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+                <span class="text-[9px] text-slate-500 shrink-0">tok cap</span>
+              </div>
+              <button type="button" onclick="testLocalEndpoint('workstation')" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button>
+            </div>
+            <div class="p-2.5 bg-zetaCard border border-zetaBorder rounded-lg space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPhone Pro</span>
+                <span id="llmTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span>
+              </div>
+              <input type="text" id="llmUrl_deviceIphone" placeholder="http://127.0.0.1:8080/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmModel_deviceIphone" placeholder="stheno-8b-q4_k_m" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="llmContextCap_deviceIphone" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+                <span class="text-[9px] text-slate-500 shrink-0">tok cap</span>
+              </div>
+              <button type="button" onclick="testLocalEndpoint('deviceIphone')" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button>
+            </div>
+            <div class="p-2.5 bg-zetaCard border border-zetaBorder rounded-lg space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPad Air</span>
+                <span id="llmTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span>
+              </div>
+              <input type="text" id="llmUrl_deviceIpad" placeholder="http://127.0.0.1:8080/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmModel_deviceIpad" placeholder="stheno-8b-q3_k_m" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <div class="flex items-center gap-1.5">
+                <input type="number" id="llmContextCap_deviceIpad" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+                <span class="text-[9px] text-slate-500 shrink-0">tok cap</span>
+              </div>
+              <button type="button" onclick="testLocalEndpoint('deviceIpad')" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button>
+            </div>
+          </div>
+
+          <details class="text-[11px] text-slate-400">
+            <summary class="cursor-pointer font-semibold text-zetaLight select-none">📋 Local Setup Instructions</summary>
+            <div class="mt-2 space-y-2.5 leading-relaxed">
+              <div>
+                <p class="font-semibold text-slate-300">💻 Workstation (Laptop) — Magnum 12B v2</p>
+                <p>1. Install <strong>LM Studio</strong> (or koboldcpp / text-generation-webui) on the laptop and download a Magnum-v2-12B GGUF quant (Q4_K_M or Q5_K_M is a good size/quality balance).</p>
+                <p>2. Load the model, then start LM Studio's local server (Developer → "Start Server"). LM Studio defaults to port <strong>1234</strong> and speaks the OpenAI-compatible <code>/v1</code> API this app expects.</p>
+                <p>3. Find the laptop's LAN IP (macOS: System Settings → Wi-Fi → Details; Windows: <code>ipconfig</code>) and enter <code>http://&lt;that-ip&gt;:1234/v1</code> above. Make sure the phone/tablet running ZetaForge and the laptop are on the same Wi-Fi network, and allow the app through the laptop's firewall.</p>
+                <p>4. Tap "🔌 Test Connection" — it should say ✅ Reachable once the server is running.</p>
+              </div>
+              <div>
+                <p class="font-semibold text-slate-300">📱 On-Device (iPhone Pro / iPad Air) — Llama 3.1 8B Stheno</p>
+                <p>1. Install a local GGUF runner on the device (e.g. an llama.cpp-server-based app such as "LM Pocket", or any app that exposes an OpenAI-compatible local server).</p>
+                <p>2. Download a Llama-3.1-8B-Stheno-v3.4 GGUF quant — <strong>Q4_K_M</strong> for the iPhone Pro profile, or the smaller <strong>Q3_K_M</strong> for the iPad Air profile if you want a more conservative memory/context footprint. Load it and start the local server on port <strong>8080</strong> (or whatever port your runner uses).</p>
+                <p>3. Leave the URL as <code>http://127.0.0.1:8080/v1</code> (127.0.0.1 = this same device — nothing leaves the device). Adjust the port to match your runner if it differs.</p>
+                <p>4. If ZetaForge is served over HTTPS, some browsers block a page from fetching plain <code>http://</code> localhost. If the Test Connection fails only in that scenario, run ZetaForge itself locally (e.g. from Claude Code / a local dev server) on the device, or use a runner that offers a local HTTPS option.</p>
+              </div>
+              <p class="text-slate-500">⚡ Smart Auto-Routing pings the Workstation profile (500ms timeout), then falls back to the current device's profile — automatically picking iPad Air vs iPhone Pro's context cap based on the device — and finally falls back to Gemini if neither answers. Useful if you move between your desk and your phone/tablet without wanting to switch this dropdown by hand.</p>
+            </div>
+          </details>
+        </div>
+
+        <hr class="border-zetaBorder" />
+
         <!-- Interface Appearance & VN Reading Settings -->
         <div class="space-y-3 p-3.5 bg-[#181422] rounded-xl border border-zetaBorder">
           <h3 class="font-bold text-zetaLight uppercase tracking-wider text-[11px] flex items-center gap-1.5"><span>🎨</span> Interface & Reading</h3>
@@ -917,7 +1045,7 @@
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">Voice Acting</label>
-              <button type="button" onclick="appState.ttsEnabled=!appState.ttsEnabled; this.innerText=appState.ttsEnabled?'🔊 Voice Acting: On':'🔇 Voice Acting: Off'; saveState()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
+              <button type="button" id="ttsEnabledToggleBtn" onclick="toggleTtsEnabled()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">VN Auto-Play Reading Speed <span id="vnSpeedValue">1.0×</span></label>
@@ -1134,6 +1262,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
             <div class="text-[10px] text-slate-500">Cached context is billed at the configured cached-input rate; cache storage is not included in this estimate.</div>
             <div class="flex items-center justify-between text-slate-300"><span>Text usage</span><span id="ucTextUsage" class="font-semibold text-white text-right">-</span></div>
             <div class="flex items-center justify-between text-slate-300"><span>Image usage</span><span id="ucImageUsage" class="font-semibold text-white text-right">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Local LLM turns served (free)</span><span id="ucLocalTurns" class="font-semibold text-emerald-300">-</span></div>
             <div class="flex items-center justify-between pt-1.5 mt-1.5 border-t border-zetaBorder text-slate-200 font-semibold"><span>Estimated accumulated cost</span><span id="ucAccumulatedCost" class="text-zetaGlow">-</span></div>
           </div>
         </div>
@@ -1282,6 +1411,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         characters: [],
         lorebook: [],
         messages: [],
+        // Full-resolution (4096x4096) sprite sheets are kept here after
+        // generation so the user can re-download the untouched 4K source and
+        // edit the alpha channel themselves, even after the 16 individual
+        // sprites have already been sliced out and background-removed.
+        spriteSheetLibrary: [],
         archivedRecaps: [],
         archivedRecapsRaw: [],
         currentChapter: 1,
@@ -1333,6 +1467,23 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     const API_RETRY_LIMIT = 3;
     const API_RETRY_BASE_MS = 700;
 
+    // --- Local LLM Fallback (routine turns only) --------------------------
+    // Routine story-turn generation (send / retry / continue) can be routed to
+    // a local OpenAI-compatible inference server instead of Gemini, to cut
+    // per-turn cost to zero. Advanced operations (updateInterCharacterRelationships,
+    // chapter-level analysis/archival, lorebook extraction, reply suggestions,
+    // profile synthesis) always call Gemini directly via MODEL_ADVANCED /
+    // MODEL_ROUTINE_DEFAULT regardless of this setting — see callGeminiApi().
+    // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
+    const LLM_PROFILE_DEFAULTS = {
+      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', model: 'magnum-v2-12b', contextCap: 8192 },
+      deviceIphone: { label: 'On-Device (iPhone Pro)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q4_K_M', contextCap: 8192 },
+      deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096 }
+    };
+    const LOCAL_PING_TIMEOUT_MS = { workstation: 500, deviceIphone: 400, deviceIpad: 400 };
+    const AUTO_ROUTE_CACHE_TTL_MS = 20000;
+    let autoRouteCache = { result: null, expiresAt: 0 };
+
 
     // Rough, approximate per-1M-token / per-image USD pricing used only to give
     // the user a ballpark cost estimate in the API Usage & Estimated Cost panel.
@@ -1355,6 +1506,10 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       accentColor: '#7c65e8',
       ttsEnabled: false,
       vnReadingSpeed: 1,
+      // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
+      llmProfile: 'gemini',
+      llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
+      localTurnsServed: 0,
       activeScenarioId: 'default_scen',
       scenarios: [],
       usageStats: {
@@ -1468,6 +1623,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       applyAccentColor(appState.accentColor || '#7c65e8');
       appState.vnReadingSpeed = Number(appState.vnReadingSpeed || 1);
       appState.ttsEnabled = !!appState.ttsEnabled;
+      syncTtsToggleButtons();
       ensureActiveScenario();
       closeAllDrawers();
       closeImageLibraryModal();
@@ -1609,6 +1765,19 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!['light','dark'].includes(appState.themeMode)) appState.themeMode = 'dark';
       if (!/^#[0-9a-f]{6}$/i.test(appState.accentColor || '')) appState.accentColor = '#7c65e8';
       if (!Number.isFinite(Number(appState.vnReadingSpeed))) appState.vnReadingSpeed = 1;
+      if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
+      if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
+      ['workstation','deviceIphone','deviceIpad'].forEach(key => {
+        const def = LLM_PROFILE_DEFAULTS[key];
+        const existing = appState.llmProfiles[key] || {};
+        appState.llmProfiles[key] = {
+          label: def.label,
+          url: typeof existing.url === 'string' ? existing.url : def.url,
+          model: typeof existing.model === 'string' && existing.model ? existing.model : def.model,
+          contextCap: Number.isFinite(Number(existing.contextCap)) && Number(existing.contextCap) > 0 ? Number(existing.contextCap) : def.contextCap
+        };
+      });
+      if (!Number.isFinite(Number(appState.localTurnsServed))) appState.localTurnsServed = 0;
 
       ensureActiveScenario();
 
@@ -1624,6 +1793,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         s.userPersona.currentOutfitId = s.userPersona.currentOutfitId || '';
         s.userPersona.ttsVoice = s.userPersona.ttsVoice || '';
         if (!s.sideCharacterProfiles) s.sideCharacterProfiles = {};
+        if (!Array.isArray(s.spriteSheetLibrary)) s.spriteSheetLibrary = [];
         (s.characters || []).forEach(c => {
           c.persona = c.persona || c.personality || '';
           c.visualProfile = c.visualProfile || '';
@@ -1828,6 +1998,48 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         handleUserSubmit(event);
       }
     }
+
+    // --- Desktop keyboard navigation -------------------------------------
+    // Arrow keys scroll the chat message list (Chat View) or step through
+    // dialogue (VN View), as an alternative to tap/drag-only navigation.
+    function isTypingInFormField() {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    }
+    function isModalOrDrawerOpen() {
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox'];
+      if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
+      const chapterDrawer = document.getElementById('chapterDrawer');
+      if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
+      const menuDrawer = document.getElementById('menuDrawer');
+      if (menuDrawer && !menuDrawer.classList.contains('translate-x-full')) return true;
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) return true;
+      return false;
+    }
+    window.addEventListener('keydown', (event) => {
+      if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
+      if (isTypingInFormField() || isModalOrDrawerOpen()) return;
+      const active = getActiveScenario();
+      if (!active) return;
+      if (active.viewMode === 'vn') {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          handleVnStageTap('prev');
+        } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          handleVnStageTap('next');
+        }
+        return;
+      }
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      const container = document.getElementById('messagesContainer');
+      if (!container) return;
+      event.preventDefault();
+      container.scrollBy({ top: event.key === 'ArrowDown' ? 140 : -140, behavior: 'smooth' });
+    });
 
     function closeAllDrawers() {
       toggleMobileSidebar(false);
@@ -2543,6 +2755,7 @@ Preserve the character's described physical identity consistently. Show the full
       const reference = getCharacterReferencePhoto(char);
       const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${getCurrentOutfitDescription(char)}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
       const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the attached character reference. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets. All character sprites must maintain absolute physical identity consistency, matching the face, hair, and base outfit of the provided reference. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
+Hands must default to natural, empty poses (relaxed at the side, gesturing, resting, crossed, etc.). Do NOT depict the character holding, removing, dangling, or offering any clothing item, accessory, or footwear (including their own shoes/sandals/boots) unless an item being held is explicitly and specifically described in their outfit or visual profile text below — clothing and footwear described as worn should stay worn, on the body, in every sprite, never carried in the hands.
 Generate a 4x4 grid of 16 distinct sprites, organized into four rows with four sprites each. Each sprite must be clearly separated and spaced apart on the transparent canvas for easy asset slicing.
 Row 1: Neutral, Happy, Sad, Angry.
 Row 2: Confident, Thinking, Surprised, Tired/Bored.
@@ -2553,11 +2766,18 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       showLoading(true, `Generating ${char.name || 'character'} sprite sheet...`);
       try {
         const src = await generateCharacterImageData(prompt, reference, { aspectRatio: '1:1', imageSize: '4K' });
+        if (!active.spriteSheetLibrary) active.spriteSheetLibrary = [];
+        active.spriteSheetLibrary.unshift({
+          id: 'sheet_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+          characterName: char.name || 'Character',
+          src,
+          createdAt: Date.now()
+        });
         await ingestSpriteSheetDataUrl(src, char, active.removeSpriteSheetBackground !== false);
         await saveState();
         renderAllUi();
         syncModalForm();
-        alert(`✨ Sprite sheet generated and 16 expression sprites extracted for ${char.name || 'character'}.`);
+        alert(`✨ Sprite sheet generated and 16 expression sprites extracted for ${char.name || 'character'}. The untouched 4K sheet is saved in the Gallery if you want to edit the alpha channel yourself.`);
       } catch (err) { alert('Sprite sheet generation error: ' + err.message); }
       finally { showLoading(false); }
     }
@@ -2863,7 +3083,10 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       if (!vnTypewriter.isTyping) {
         const currentTurn = validTurns[currentVnIndex];
         const textLen = (currentTurn?.text || '').length;
-        const speed = Math.max(0.5, Number(appState.vnReadingSpeed) || 1);
+        // Slider value is halved before use so that the slider's 1.0 position
+        // now reproduces the old 0.5 (slowest) pace, and 2.0 reproduces the
+        // old 1.0 default — the whole range reads slower at every position.
+        const speed = Math.max(0.5, Number(appState.vnReadingSpeed) || 1) / 2;
         const delay = Math.max(1200, Math.min(7000, (textLen * 40 + 1400) / speed));
         vnAutoTimeout = setTimeout(() => {
           if (isVnAutoPlaying && currentVnIndex < validTurns.length - 1) {
@@ -2981,7 +3204,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, turn.mood || charObj.mood) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
-          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-[60vh] max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}')" />
+          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}')" />
         `;
       } else {
         stageBox.innerHTML = '';
@@ -2993,6 +3216,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         dialogueBody.innerHTML = marked.parse(fullText);
         dialogueBody.classList.remove('typing-cursor');
         vnTypewriter.isTyping = false;
+        speakVnTextForSpeaker(speakerName, fullText);
         if (isVnAutoPlaying) runVnAutoStep();
         return;
       }
@@ -3019,6 +3243,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
       dialogueBody.classList.remove('typing-cursor');
       vnTypewriter.isTyping = false;
+      speakVnTextForSpeaker(speakerName, fullText);
 
       if (isVnAutoPlaying) {
         runVnAutoStep();
@@ -3976,36 +4201,91 @@ IMPORTANT RULES:
       modal.classList.remove('flex');
     }
 
+    function downloadDataUrlAsFile(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function downloadSpriteSheetFromLibrary(id) {
+      const active = getActiveScenario();
+      const entry = (active.spriteSheetLibrary || []).find(s => s.id === id);
+      if (!entry) return;
+      const safeName = (entry.characterName || 'character').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+      downloadDataUrlAsFile(entry.src, `zetaforge_${safeName}_spritesheet_4k.png`);
+    }
+
+    function deleteSpriteSheetFromLibrary(id) {
+      const active = getActiveScenario();
+      if (!confirm('Remove this sprite sheet from the library? This does not affect sprites already extracted into the character\'s photos.')) return;
+      active.spriteSheetLibrary = (active.spriteSheetLibrary || []).filter(s => s.id !== id);
+      saveState();
+      renderImageLibrary();
+    }
+
     function renderImageLibrary() {
       const container = document.getElementById('imageLibraryContainer');
       if (!container) return;
       const active = getActiveScenario();
       const images = (active.messages || []).filter(m => m.isImage && m.imageUrl);
+      const sheets = active.spriteSheetLibrary || [];
 
-      if (images.length === 0) {
+      if (images.length === 0 && sheets.length === 0) {
         container.innerHTML = `
           <div class="text-center py-12 text-slate-500 text-xs">
-            No scene images have been generated in this scenario yet.
+            No scene images or sprite sheets have been generated in this scenario yet.
           </div>`;
         return;
       }
 
-      container.innerHTML = images.slice().reverse().map((m, reverseIndex) => {
-        const originalIndex = active.messages.indexOf(m);
-        return `
-          <div class="bg-zetaCard border border-slate-800 rounded-2xl p-3 space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[11px] font-semibold text-indigo-300">Scene Visual ${images.length - reverseIndex}</span>
-              <span class="text-[10px] text-slate-500">${escapeHtml(m.timestamp || '')}</span>
-            </div>
-            <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
-              onclick="openLightbox('${escapeJsString(m.imageUrl)}','${escapeJsString(m.text || m.prompt || 'Scene Visual')}')">
-              <img src="${m.imageUrl}" alt="Scene visual" class="w-full aspect-video object-cover" />
-            </button>
-            ${m.text ? `<p class="text-[11px] text-slate-400 leading-relaxed">${escapeHtml(m.text)}</p>` : ''}
-            <button type="button" onclick="deleteMessage(${originalIndex})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button>
-          </div>`;
-      }).join('');
+      const sheetsHtml = sheets.length === 0 ? '' : `
+        <div class="space-y-3">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-zetaLight px-1">🎞️ Sprite Sheet Library — Full 4K Sources</h3>
+          <p class="text-[10px] text-slate-500 px-1 leading-relaxed">The untouched 4096×4096 sheet is kept here every time one is generated, so you can download the full-resolution PNG and edit the alpha channel yourself if the automatic background removal isn't perfect.</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            ${sheets.map(s => `
+              <div class="bg-zetaCard border border-slate-800 rounded-2xl p-2.5 space-y-2">
+                <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
+                  onclick="openLightbox('${escapeJsString(s.src)}','${escapeJsString(s.characterName || 'Sprite Sheet')} — 4K sheet')">
+                  <img src="${s.src}" alt="${escapeHtml(s.characterName || 'Sprite sheet')}" class="w-full aspect-square object-cover" />
+                </button>
+                <div class="text-[10px] font-semibold text-slate-200 truncate">${escapeHtml(s.characterName || 'Character')}</div>
+                <div class="text-[9px] text-slate-500">${escapeHtml(new Date(s.createdAt || Date.now()).toLocaleDateString())} · 4096×4096</div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="downloadSpriteSheetFromLibrary('${s.id}')" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">⬇️ 4K PNG</button>
+                  <button type="button" onclick="deleteSpriteSheetFromLibrary('${s.id}')" class="text-[10px] text-slate-500 hover:text-rose-400 px-1.5">🗑️</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+
+      const imagesHtml = images.length === 0 ? '' : `
+        <div class="space-y-3">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-zetaLight px-1">🖼️ Scene Visuals</h3>
+          <div class="space-y-6">
+            ${images.slice().reverse().map((m, reverseIndex) => {
+              const originalIndex = active.messages.indexOf(m);
+              return `
+                <div class="bg-zetaCard border border-slate-800 rounded-2xl p-3 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-semibold text-indigo-300">Scene Visual ${images.length - reverseIndex}</span>
+                    <span class="text-[10px] text-slate-500">${escapeHtml(m.timestamp || '')}</span>
+                  </div>
+                  <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
+                    onclick="openLightbox('${escapeJsString(m.imageUrl)}','${escapeJsString(m.text || m.prompt || 'Scene Visual')}')">
+                    <img src="${m.imageUrl}" alt="Scene visual" class="w-full aspect-video object-cover" />
+                  </button>
+                  ${m.text ? `<p class="text-[11px] text-slate-400 leading-relaxed">${escapeHtml(m.text)}</p>` : ''}
+                  <button type="button" onclick="deleteMessage(${originalIndex})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+
+      container.innerHTML = [sheetsHtml, imagesHtml].filter(Boolean).join('<hr class="border-zetaBorder" />');
     }
 
     function renderScenariosList() {
@@ -4356,9 +4636,53 @@ JSON FORMAT:
       const label=document.getElementById('themeModeLabel'); if(label) label.innerText=appState.themeMode==='light'?'☀️ Light Mode':'🌙 Dark Mode';
       const knob=document.querySelector('#themeModeKnob > span'); if(knob) knob.style.transform=appState.themeMode==='light'?'translateX(12px)':'translateX(0)';
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', appState.themeMode==='light' ? '#f5f5f8' : '#131118');
+      // Re-derive the container tint for the new mode using the current accent
+      // (dark and light modes mix the accent into different neutral bases).
+      applyContainerTint(appState.accentColor || '#7c65e8');
     }
     function hexToRgb(hex){const h=String(hex||'#7c65e8').replace('#','');return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)}}
     function shadeHex(hex, amount){const {r,g,b}=hexToRgb(hex);const f=(v)=>Math.max(0,Math.min(255,Math.round(v+(amount<0?v*amount:(255-v)*amount))));return '#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+    // Linear-interpolate between two hex colors; weight=0 -> hexA, weight=1 -> hexB.
+    function mixHex(hexA, hexB, weight){
+      const a=hexToRgb(hexA), b=hexToRgb(hexB); const w=Math.max(0,Math.min(1,weight));
+      const f=(x,y)=>Math.round(x+(y-x)*w);
+      return '#'+[f(a.r,b.r),f(a.g,b.g),f(a.b,b.b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+    }
+    // WCAG-style relative luminance, used to decide whether a bright accent
+    // needs dark button text instead of the default white.
+    function relativeLuminance(hex){
+      const {r,g,b}=hexToRgb(hex);
+      const chan=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)};
+      return 0.2126*chan(r)+0.7152*chan(g)+0.0722*chan(b);
+    }
+    // Containers (bg/sidebar/card/input/border/user-bubble) are tinted toward
+    // the chosen accent instead of staying a fixed purple-neutral regardless
+    // of accent, per-mode so dark mode stays dark and light mode stays light.
+    function applyContainerTint(color){
+      const base = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#7c65e8';
+      const isLight = appState.themeMode === 'light';
+      const root = document.documentElement.style;
+      if (isLight) {
+        root.setProperty('--zeta-bg', mixHex('#f5f5f8', base, 0.05));
+        root.setProperty('--zeta-sidebar', mixHex('#ffffff', base, 0.025));
+        root.setProperty('--zeta-card', mixHex('#eeeef4', base, 0.055));
+        root.setProperty('--zeta-input', mixHex('#ffffff', base, 0.025));
+        root.setProperty('--zeta-border', mixHex('#d5d5df', base, 0.13));
+        root.setProperty('--zeta-user', mixHex('#e6e0f5', base, 0.22));
+      } else {
+        root.setProperty('--zeta-bg', mixHex('#131118', base, 0.06));
+        root.setProperty('--zeta-sidebar', mixHex('#1a1622', base, 0.07));
+        root.setProperty('--zeta-card', mixHex('#221d2e', base, 0.08));
+        root.setProperty('--zeta-input', mixHex('#1d1827', base, 0.07));
+        root.setProperty('--zeta-border', mixHex('#322a44', base, 0.11));
+        root.setProperty('--zeta-user', mixHex('#392f4e', base, 0.16));
+      }
+      // Buttons that sit directly on the accent color (Send, New, badges...)
+      // keep white text by default, but flip to a dark foreground once the
+      // accent itself gets bright enough that white stops being readable.
+      const fg = relativeLuminance(base) > 0.6 ? '#1a1622' : '#ffffff';
+      root.setProperty('--zeta-accent-fg', fg);
+    }
     function rebuildLogoSvg(color) {
       const base = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#7c65e8';
       const top = shadeHex(base, 0.68);
@@ -4413,6 +4737,7 @@ JSON FORMAT:
     function applyAccentColor(color) {
       if(!/^#[0-9a-f]{6}$/i.test(color)) return;
       appState.accentColor=color.toLowerCase(); document.documentElement.style.setProperty('--zeta-accent',appState.accentColor); document.documentElement.style.setProperty('--zeta-accent-hover',shadeHex(appState.accentColor,-0.12)); document.documentElement.style.setProperty('--zeta-glow',shadeHex(appState.accentColor,0.18)); document.documentElement.style.setProperty('--zeta-light',shadeHex(appState.accentColor,0.55));
+      applyContainerTint(appState.accentColor);
       const val=document.getElementById('accentColorValue'); if(val)val.innerText=appState.accentColor.toUpperCase(); const picker=document.getElementById('accentColorPicker');if(picker)picker.value=appState.accentColor;
       rebuildLogoSvg(appState.accentColor); if(pwaIconTimer)clearTimeout(pwaIconTimer); pwaIconTimer=setTimeout(()=>createPwaIconPng(appState.accentColor),120); saveState();
     }
@@ -4423,6 +4748,28 @@ JSON FORMAT:
       if(!char||!char.ttsVoice) return;
       const voices=speechSynthesis.getVoices(); const voice=voices.find(v=>v.name===char.ttsVoice); if(!voice)return;
       const token=++vnSpeechToken; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text.replace(/[*_#`]/g,'')); u.voice=voice; u.rate=1; u.pitch=1; u.volume=1; u.onstart=()=>{}; u.onend=()=>{if(token!==vnSpeechToken)return}; speechSynthesis.speak(u);
+    }
+    // Single source of truth for the Voice Acting on/off state — keeps the
+    // Setup modal button and the VN stage toggle button in sync with each
+    // other regardless of which one the user tapped.
+    function toggleTtsEnabled(force) {
+      appState.ttsEnabled = force !== undefined ? !!force : !appState.ttsEnabled;
+      if (!appState.ttsEnabled && 'speechSynthesis' in window) speechSynthesis.cancel();
+      syncTtsToggleButtons();
+      saveState();
+    }
+    function syncTtsToggleButtons() {
+      const on = !!appState.ttsEnabled;
+      const setupBtn = document.getElementById('ttsEnabledToggleBtn');
+      if (setupBtn) setupBtn.innerText = on ? '🔊 Voice Acting: On' : '🔇 Voice Acting: Off';
+      const vnIcon = document.getElementById('vnTtsToggleIcon');
+      if (vnIcon) vnIcon.innerText = on ? '🔊' : '🔇';
+      const vnBtn = document.getElementById('vnTtsToggleBtn');
+      if (vnBtn) {
+        vnBtn.title = on ? 'Voice narration: On (tap to mute)' : 'Voice narration: Off (tap to enable)';
+        vnBtn.classList.toggle('ring-1', on);
+        vnBtn.classList.toggle('ring-zetaAccent/60', on);
+      }
     }
     if('speechSynthesis' in window) speechSynthesis.onvoiceschanged=()=>{document.querySelectorAll('select[id^=\"ttsVoiceChar\"]').forEach(el=>{const idx=Number(el.id.replace('ttsVoiceChar',''));const c=getActiveScenario()?.characters?.[idx];if(c)populateTtsVoiceSelect(el.id,c.ttsVoice||'')});populateTtsVoiceSelect('userTtsVoice',getActiveScenario()?.userPersona?.ttsVoice||'');populateTtsVoiceSelect('spotlightEditVoice',getCurrentSpotlightCharacter()?.obj?.ttsVoice||'');};
     function populateTtsVoiceSelect(selectId, selected='') { const el=document.getElementById(selectId); if(!el||!('speechSynthesis' in window))return; const voices=speechSynthesis.getVoices();el.innerHTML='<option value="">No voice / Off</option>'+voices.map(v=>`<option value="${escapeHtml(v.name)}" ${v.name===selected?'selected':''}>${escapeHtml(v.name)}${v.lang?' · '+escapeHtml(v.lang):''}</option>`).join(''); }
@@ -4485,6 +4832,8 @@ JSON FORMAT:
       const totalAdvancedTokens = us.advancedInputTokens + us.advancedOutputTokens;
       document.getElementById('ucTextUsage').innerText = `${(totalRoutineTokens/1000).toFixed(1)}k Flash-Lite + ${(totalAdvancedTokens/1000).toFixed(1)}k Flash`;
       document.getElementById('ucImageUsage').innerText = `${us.images1K} × 1K, ${us.images4K} × 4K`;
+      const localTurnsEl = document.getElementById('ucLocalTurns');
+      if (localTurnsEl) localTurnsEl.innerText = `${appState.localTurnsServed || 0}${appState.lastLocalProvider ? ' · last: ' + appState.lastLocalProvider : ''}`;
 
       const accumulatedCost =
         (us.routineInputTokens/1e6) * PRICING.routine.inputPerM + cachedCost + cacheCreationCost + (us.routineOutputTokens/1e6) * PRICING.routine.outputPerM +
@@ -4525,8 +4874,18 @@ JSON FORMAT:
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
+      const profileSelect = document.getElementById('llmProfileSelect');
+      if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
+      ['workstation','deviceIphone','deviceIpad'].forEach(key => {
+        const cfg = appState.llmProfiles?.[key] || LLM_PROFILE_DEFAULTS[key];
+        const urlEl = document.getElementById(`llmUrl_${key}`); if (urlEl) urlEl.value = cfg.url || '';
+        const modelEl = document.getElementById(`llmModel_${key}`); if (modelEl) modelEl.value = cfg.model || '';
+        const capEl = document.getElementById(`llmContextCap_${key}`); if (capEl) capEl.value = cfg.contextCap || LLM_PROFILE_DEFAULTS[key].contextCap;
+        const statusEl = document.getElementById(`llmTestStatus_${key}`); if (statusEl) { statusEl.innerText = 'Not tested'; statusEl.className = 'text-[9px] text-slate-500'; }
+      });
       applyThemeMode(appState.themeMode || 'dark');
       applyAccentColor(appState.accentColor || '#7c65e8');
+      syncTtsToggleButtons();
       const speedEl=document.getElementById('vnSpeedInput'); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
 
       document.getElementById('viewModeSelect').value = active.viewMode || 'chat';
@@ -4689,6 +5048,22 @@ JSON FORMAT:
       appState.themeMode = appState.themeMode || 'dark';
       appState.accentColor = document.getElementById('accentColorPicker')?.value || appState.accentColor || '#7c65e8';
       appState.vnReadingSpeed = Number(document.getElementById('vnSpeedInput')?.value || appState.vnReadingSpeed || 1);
+
+      appState.llmProfile = document.getElementById('llmProfileSelect')?.value || 'gemini';
+      if (!appState.llmProfiles) appState.llmProfiles = JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));
+      ['workstation','deviceIphone','deviceIpad'].forEach(key => {
+        const def = LLM_PROFILE_DEFAULTS[key];
+        const urlVal = (document.getElementById(`llmUrl_${key}`)?.value || '').trim();
+        const modelVal = (document.getElementById(`llmModel_${key}`)?.value || '').trim();
+        const capVal = parseInt(document.getElementById(`llmContextCap_${key}`)?.value, 10);
+        appState.llmProfiles[key] = {
+          label: def.label,
+          url: urlVal || def.url,
+          model: modelVal || def.model,
+          contextCap: Number.isFinite(capVal) && capVal > 0 ? capVal : def.contextCap
+        };
+      });
+      autoRouteCache = { result: null, expiresAt: 0 }; // config changed — re-ping next turn instead of using a stale auto-route
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
       active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
@@ -5315,7 +5690,166 @@ JSON FORMAT:
       }
     }
 
+    // Lightweight reachability check used by both the Setup "Test Connection"
+    // buttons and Smart Auto-Routing. Hits the OpenAI-compatible /models
+    // endpoint, which every local runner mentioned in Setup (LM Studio,
+    // llama.cpp server / "LM Pocket", Ollama's OpenAI-compat mode) exposes.
+    async function pingLocalEndpoint(url, timeoutMs) {
+      const base = (url || '').trim().replace(/\/+$/, '');
+      if (!base) return false;
+      try {
+        const res = await fetch(`${base}/models`, { signal: AbortSignal.timeout(timeoutMs || 1500) });
+        return !!res.ok;
+      } catch (e) { return false; }
+    }
+
+    // Decides where the NEXT routine story turn should go. Never affects
+    // updateInterCharacterRelationships, chapter analysis/archival, lorebook
+    // extraction, reply suggestions, or profile synthesis — those always call
+    // Gemini directly with MODEL_ADVANCED / MODEL_ROUTINE_DEFAULT.
+    async function resolveActiveEndpoint(options = {}) {
+      if (options.forceGemini) return { type: 'gemini', contextCap: CONTEXT_TOKEN_CAP };
+      const profile = appState.llmProfile || 'gemini';
+      if (profile === 'gemini') return { type: 'gemini', contextCap: CONTEXT_TOKEN_CAP };
+
+      if (profile === 'auto') {
+        if (autoRouteCache.result && Date.now() < autoRouteCache.expiresAt) return autoRouteCache.result;
+        let result;
+        const ws = appState.llmProfiles.workstation;
+        if (await pingLocalEndpoint(ws.url, LOCAL_PING_TIMEOUT_MS.workstation)) {
+          result = { type: 'local', profileKey: 'workstation', url: ws.url, model: ws.model, contextCap: ws.contextCap || 8192, label: ws.label, autoFallbackAllowed: true };
+        } else {
+          // navigator.maxTouchPoints + screen width distinguishes a touch
+          // tablet (iPad-class) from a touch phone (iPhone-class) so the
+          // correct conservative context cap is used automatically.
+          const isTabletClass = navigator.maxTouchPoints > 1 && screen.width >= 768;
+          const deviceKey = isTabletClass ? 'deviceIpad' : 'deviceIphone';
+          const dp = appState.llmProfiles[deviceKey];
+          if (await pingLocalEndpoint(dp.url, LOCAL_PING_TIMEOUT_MS[deviceKey])) {
+            result = { type: 'local', profileKey: deviceKey, url: dp.url, model: dp.model, contextCap: dp.contextCap || (isTabletClass ? 4096 : 8192), label: dp.label, autoFallbackAllowed: true };
+          } else {
+            result = { type: 'gemini', contextCap: CONTEXT_TOKEN_CAP };
+          }
+        }
+        autoRouteCache = { result, expiresAt: Date.now() + AUTO_ROUTE_CACHE_TTL_MS };
+        return result;
+      }
+
+      const cfg = appState.llmProfiles[profile];
+      if (!cfg || !cfg.url) return { type: 'gemini', contextCap: CONTEXT_TOKEN_CAP };
+      return { type: 'local', profileKey: profile, url: cfg.url, model: cfg.model, contextCap: cfg.contextCap || 8192, label: cfg.label, autoFallbackAllowed: false };
+    }
+
+    // Re-slices an already-built Gemini-shaped contents array (role/parts) down
+    // to a local profile's smaller context cap, keeping the most recent turns —
+    // mirrors capSliceToTokenBudget() but operates on API contents, not messages.
+    function capContentsToTokenBudget(contentsArray, budgetTokens) {
+      if (!Array.isArray(contentsArray) || !contentsArray.length) return contentsArray;
+      const kept = [];
+      let totalChars = 0;
+      const minKeep = 4;
+      for (let i = contentsArray.length - 1; i >= 0; i--) {
+        const c = contentsArray[i];
+        const chars = (c.parts || []).reduce((sum, p) => sum + (p.text ? p.text.length : 0), 0);
+        if (kept.length >= minKeep && Math.ceil((totalChars + chars) / 3.8) > budgetTokens) break;
+        kept.unshift(c);
+        totalChars += chars;
+      }
+      return kept;
+    }
+
+    // Local RP fine-tunes (Magnum, Stheno) can't reliably honor Gemini's
+    // responseSchema JSON mode, so they get the same system instruction minus
+    // the JSON rule, asking for plain "Name: text" blocks instead — which
+    // parsePlainTextIntoBlocks() already knows how to split (it's the same
+    // fallback path used if Gemini itself ever returns non-JSON).
+    async function buildSystemInstructionForLocalLLM() {
+      const base = await buildSystemInstruction(false);
+      return base.replace(
+        '5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.',
+        '5. Do NOT output JSON or markdown code fences. Write each reacting character\'s turn as plain text, each starting on its own new line with "Name: " (their exact name, then a colon and a space), e.g. "Elena: *smiles warmly* Hello there." One block per reacting character, fully in-character, no meta commentary, no headers.'
+      );
+    }
+
+    async function callLocalRoutineLLM(contentsArray, options, endpointInfo) {
+      const cappedContents = capContentsToTokenBudget(contentsArray, endpointInfo.contextCap || 8192);
+      const systemText = await buildSystemInstructionForLocalLLM();
+      const messages = [{ role: 'system', content: systemText }];
+      cappedContents.forEach(c => {
+        const text = (c.parts || []).map(p => p.text || '').join('\n').trim();
+        if (text) messages.push({ role: c.role === 'model' ? 'assistant' : 'user', content: text });
+      });
+      const base = (endpointInfo.url || '').trim().replace(/\/+$/, '');
+      if (!base) { openModal('setupModal'); throw new Error(`Enter an endpoint URL for ${endpointInfo.label || 'your local profile'} in setup.`); }
+      const target = `${base}/chat/completions`;
+      const body = { model: endpointInfo.model || 'local-model', messages, temperature: appState.temperature || 0.85, max_tokens: options.maxOutputTokens || 850, stream: false };
+      let lastError;
+      for (let attempt = 0; attempt <= API_RETRY_LIMIT; attempt++) {
+        try {
+          const response = await fetch(target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (!response.ok) {
+            const errText = await response.text().catch(() => '');
+            if (![429, 500, 502, 503, 504].includes(response.status) || attempt === API_RETRY_LIMIT) {
+              throw new Error(`${endpointInfo.label || 'Local endpoint'} error ${response.status}: ${(errText || 'request failed').slice(0, 200)}`);
+            }
+            await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
+            continue;
+          }
+          const data = await response.json();
+          const rawOutput = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+          appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
+          appState.lastLocalProvider = endpointInfo.label || '';
+          saveState();
+          return parsePlainTextIntoBlocks(rawOutput);
+        } catch (e) {
+          lastError = e;
+          if (attempt === API_RETRY_LIMIT) {
+            // In Smart Auto-Routing, a profile that answered the /models ping
+            // but then failed mid-call still degrades gracefully to Gemini
+            // rather than dropping the user's turn entirely.
+            if (endpointInfo.autoFallbackAllowed && appState.apiKey) {
+              console.warn(`${endpointInfo.label || 'Local endpoint'} unreachable mid-call; falling back to Gemini for this turn:`, e.message);
+              return callGeminiApi(contentsArray, { ...options, forceGemini: true });
+            }
+            throw e;
+          }
+          await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
+        }
+      }
+      throw lastError || new Error('Local inference request failed.');
+    }
+
+    async function testLocalEndpoint(profileKey) {
+      const cfg = appState.llmProfiles[profileKey] || {};
+      const urlInput = document.getElementById(`llmUrl_${profileKey}`);
+      const url = (urlInput?.value || cfg.url || '').trim();
+      const statusEl = document.getElementById(`llmTestStatus_${profileKey}`);
+      if (statusEl) { statusEl.innerText = 'Testing…'; statusEl.className = 'text-[9px] text-amber-400'; }
+      const ok = await pingLocalEndpoint(url, 3000);
+      if (statusEl) {
+        statusEl.innerText = ok ? '✅ Reachable' : '❌ Unreachable';
+        statusEl.className = ok ? 'text-[9px] text-emerald-400 font-semibold' : 'text-[9px] text-rose-400 font-semibold';
+      }
+    }
+
+    function onLlmProfileSelectChange(value) {
+      const hint = document.getElementById('llmProfileActiveHint');
+      if (!hint) return;
+      const map = {
+        gemini: 'Routine story turns use the Gemini API (default).',
+        workstation: 'Routine turns are sent to the Workstation (Laptop) endpoint below.',
+        deviceIphone: 'Routine turns are sent to the On-Device (iPhone Pro) endpoint below.',
+        deviceIpad: 'Routine turns are sent to the On-Device (iPad Air) endpoint below.',
+        auto: '⚡ Smart Auto-Routing: pings Workstation first, then this device, then falls back to Gemini if both are offline. Re-checked every ~20s.'
+      };
+      hint.innerText = map[value] || '';
+    }
+
     async function callGeminiApi(contentsArray, options = {}) {
+      const endpointInfo = await resolveActiveEndpoint(options);
+      if (endpointInfo.type === 'local') {
+        return callLocalRoutineLLM(contentsArray, options, endpointInfo);
+      }
       if (!appState.apiKey) { openModal('setupModal'); throw new Error('Enter your Gemini API key in setup.'); }
       const model = options.model || appState.model || MODEL_ROUTINE_DEFAULT;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
