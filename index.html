@@ -3122,35 +3122,39 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const active = getActiveScenario();
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
 
-      if (currentVnIndex >= validTurns.length - 1 && !vnTypewriter.isTyping) {
-        toggleVnAutoPlay();
+      if (vnTypewriter.isTyping) return; // re-invoked automatically once typing finishes
+
+      if (currentVnIndex >= validTurns.length - 1) {
+        // Caught up to the newest turn available right now — stay ON and
+        // idle rather than auto-disabling. This is the state a user lands in
+        // the instant they tap the toggle (they're always "caught up" to
+        // whatever's currently on screen), so disabling here made the
+        // toggle look like it never turned on. renderVnTurn's trailing
+        // runVnAutoStep() call re-checks this the moment a new turn arrives.
         return;
       }
 
-      if (!vnTypewriter.isTyping) {
-        // If this turn's speaker has a voice configured and TTS is on, don't
-        // start a fixed timer — wait for the audio to actually finish
-        // (onVnSpeechEnded, triggered from speakVnTextForSpeaker's onended)
-        // so the next line never starts while this one is still playing.
-        if (appState.ttsEnabled && vnCurrentTurnHasVoice()) {
-          vnAutoWaitingForSpeech = true;
-          return;
-        }
-        const currentTurn = validTurns[currentVnIndex];
-        const textLen = (currentTurn?.text || '').length;
-        // Slider value is halved before use so that the slider's 1.0 position
-        // now reproduces the old 0.5 (slowest) pace, and 2.0 reproduces the
-        // old 1.0 default — the whole range reads slower at every position.
-        const speed = Math.max(0.5, Number(appState.vnReadingSpeed) || 1) / 2;
-        const delay = Math.max(1200, Math.min(7000, (textLen * 40 + 1400) / speed));
-        vnAutoTimeout = setTimeout(() => {
-          if (isVnAutoPlaying && currentVnIndex < validTurns.length - 1) {
-            stepVnDialogue(1, true);
-          } else if (currentVnIndex >= validTurns.length - 1) {
-            toggleVnAutoPlay();
-          }
-        }, delay);
+      // If this turn's speaker has a voice configured and TTS is on, don't
+      // start a fixed timer — wait for the audio to actually finish
+      // (onVnSpeechEnded, triggered from speakVnTextForSpeaker's onended)
+      // so the next line never starts while this one is still playing.
+      if (appState.ttsEnabled && vnCurrentTurnHasVoice()) {
+        vnAutoWaitingForSpeech = true;
+        return;
       }
+      const currentTurn = validTurns[currentVnIndex];
+      const textLen = (currentTurn?.text || '').length;
+      // Slider value is halved before use so that the slider's 1.0 position
+      // now reproduces the old 0.5 (slowest) pace, and 2.0 reproduces the
+      // old 1.0 default — the whole range reads slower at every position.
+      const speed = Math.max(0.5, Number(appState.vnReadingSpeed) || 1) / 2;
+      const delay = Math.max(1200, Math.min(7000, (textLen * 40 + 1400) / speed));
+      vnAutoTimeout = setTimeout(() => {
+        if (isVnAutoPlaying && currentVnIndex < validTurns.length - 1) {
+          stepVnDialogue(1, true);
+        }
+        // Otherwise (caught up when the timer fires) just stay ON and idle.
+      }, delay);
     }
 
     function handleVnStageTap(direction) {
@@ -5000,9 +5004,10 @@ JSON FORMAT:
       if (currentVnIndex < validTurns.length - 1) {
         if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
         vnAutoTimeout = setTimeout(() => { if (isVnAutoPlaying) stepVnDialogue(1, true); }, 450);
-      } else {
-        toggleVnAutoPlay();
       }
+      // Otherwise (caught up right as speech finished) stay ON and idle —
+      // renderVnTurn's trailing runVnAutoStep() call picks it back up the
+      // moment a new turn arrives.
     }
     async function speakVnTextForSpeaker(speakerName, text) {
       const token = ++vnSpeechToken;
