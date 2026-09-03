@@ -105,6 +105,13 @@
     .bg-zetaAccent, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-violet-600, .bg-purple-600 { color: var(--zeta-accent-fg, #ffffff) !important; }
     body.light-mode .text-white { color: #20202a !important; }
     body.light-mode .hover\:text-white:hover { color: #20202a !important; }
+    /* Must come AFTER the light-mode .text-white rule and match its
+       specificity, otherwise buttons sitting ON the accent color inherit the
+       dark light-mode text color regardless of how dark the accent is. The
+       auto-contrast value from applyContainerTint() decides instead. */
+    body.light-mode .bg-zetaAccent, body.light-mode .bg-indigo-500,
+    body.light-mode .bg-indigo-600, body.light-mode .bg-indigo-700,
+    body.light-mode .bg-violet-600, body.light-mode .bg-purple-600 { color: var(--zeta-accent-fg, #ffffff) !important; }
     body.light-mode .text-slate-200 { color: #30303b !important; }
     body.light-mode .text-slate-300 { color: #464652 !important; }
     body.light-mode .text-slate-400 { color: #646472 !important; }
@@ -203,6 +210,34 @@
     @keyframes vnBackdropFade { from { opacity: .15; transform: scale(1.015); } to { opacity: .6; transform: scale(1); } }
     .vn-progress-track { height: 3px; border-radius: 999px; background: rgb(255 255 255 / .12); overflow: hidden; }
     .vn-progress-fill { height: 100%; border-radius: inherit; background: var(--zeta-accent); transition: width .35s ease; }
+    /* Active state for the VN Auto / TTS stage toggles. Defined here rather
+       than via JS-injected Tailwind utilities so it (a) outranks the
+       light-mode surface overrides in both themes and (b) doesn't depend on
+       the CDN JIT picking up class names that only appear inside JS strings. */
+    body .vn-toggle-active, body.light-mode .vn-toggle-active {
+      background-color: var(--zeta-accent) !important;
+      color: var(--zeta-accent-fg, #ffffff) !important;
+      border-color: var(--zeta-accent) !important;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--zeta-accent) 55%, transparent);
+    }
+    body .vn-toggle-active span { color: inherit !important; }
+    /* Narration mode uses a deliberately distinct amber tint (not the theme
+       accent) so it reads as "input mode changed" rather than "toggle on". */
+    body .narrate-toggle-active, body.light-mode .narrate-toggle-active {
+      background-color: color-mix(in srgb, #b45309 34%, var(--zeta-card)) !important;
+      color: #fbbf24 !important;
+      border-color: color-mix(in srgb, #f59e0b 60%, transparent) !important;
+      box-shadow: 0 0 0 1px color-mix(in srgb, #f59e0b 45%, transparent);
+    }
+    body.light-mode .narrate-toggle-active {
+      background-color: color-mix(in srgb, #f59e0b 22%, var(--zeta-card)) !important;
+      color: #92400e !important;
+    }
+    body .narrate-toggle-active span { color: inherit !important; }
+    /* Auto:On but caught up to the newest turn (or waiting on TTS) — without
+       this, idling looks identical to being stuck. */
+    body .vn-toggle-waiting { animation: vnWaitPulse 1.6s ease-in-out infinite; }
+    @keyframes vnWaitPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
     .virtual-chat-spacer { width: 100%; pointer-events: none; }
 
     html, body {
@@ -500,6 +535,14 @@
             <span class="text-base leading-none mb-1">💾</span>
             <span>Export</span>
           </button>
+          <button onclick="openBranchHistory(); toggleMenuDrawer(false)" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
+            <span class="text-base leading-none mb-1">🌿</span>
+            <span>Branches</span>
+          </button>
+          <button onclick="exportChapterAudio(); toggleMenuDrawer(false)" class="flex flex-col items-center justify-center p-2 rounded-xl bg-zetaCard hover:bg-zetaBorder text-slate-200 text-[11px] font-medium border border-zetaBorder transition active:scale-95">
+            <span class="text-base leading-none mb-1">🎧</span>
+            <span>Audio</span>
+          </button>
         </div>
       </div>
 
@@ -524,7 +567,7 @@
       
       <!-- MODE A: Standard Chat Messages Container -->
       <div id="messageSearchBar" class="hidden px-3 sm:px-6 pt-2 max-w-4xl mx-auto w-full shrink-0">
-        <div class="flex items-center gap-2"><input id="messageSearchInput" type="search" placeholder="🔎 Search current history by speaker or keyword..." oninput="filterMessageArchive(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent" /><button onclick="toggleMessageSearch(false)" class="text-[10px] text-slate-500 hover:text-white">Close</button></div>
+        <div class="flex items-center gap-2"><input id="messageSearchInput" type="search" placeholder="🔎 Search current history by speaker or keyword..." oninput="filterMessageArchive(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent" /><button type="button" id="globalSearchToggle" onclick="toggleGlobalSearchMode()" class="shrink-0 text-[10px] bg-zetaCard border border-zetaBorder text-slate-300 px-2 py-1.5 rounded-lg hover:border-zetaAccent transition">📄 This scenario</button><button onclick="toggleMessageSearch(false)" class="text-[10px] text-slate-500 hover:text-white">Close</button></div>
         <div id="messageSearchResults" class="text-[10px] text-slate-500 py-1"></div>
       </div>
       <button id="chatJumpToLatestBtn" onclick="scrollMessagesToBottom(true)" class="absolute bottom-24 sm:bottom-28 left-1/2 -translate-x-1/2 z-30 bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold px-3.5 py-2 rounded-full shadow-lg flex items-center gap-1.5 active:scale-95 transition" style="display:none;">
@@ -645,13 +688,18 @@
             </div>
           </div>
 
+          <div id="contextEstimateBar" class="flex items-center justify-between text-[10px] px-1 pb-1 text-slate-500">
+            <span id="contextEstimateText">—</span>
+            <button type="button" onclick="openModal('usageCostModal')" class="text-slate-500 hover:text-zetaLight underline decoration-dotted">cost details</button>
+          </div>
+
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
               rows="1"
               placeholder="Describe action, speak, or use @: to narrate..."
               class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-zetaAccent resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
-              oninput="autoExpandTextarea(this)"
+              oninput="autoExpandTextarea(this); scheduleContextEstimate()"
               onkeydown="handleInputKeydown(event)"
             ></textarea>
             <button
@@ -1177,7 +1225,12 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">Cast, Personas & Relationships</h3>
-            <button type="button" onclick="addCharacterRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
+            <div class="flex items-center gap-1.5">
+              <label class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition cursor-pointer" title="Import a Tavern/SillyTavern character card (.json or .png)">📇 Import Card<input type="file" accept=".json,.png,image/png,application/json" class="hidden" onchange="importCharacterCard(event)" /></label>
+              <button type="button" onclick="autoAssignCastVoices(false)" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Give every character without a voice a distinct one">🎙️ Auto-Assign Voices</button>
+              <button type="button" onclick="autoAssignCastVoices(true)" class="text-xs bg-zetaCard text-slate-400 border border-zetaBorder hover:bg-zetaBorder px-2 py-1 rounded-md transition" title="Reassign voices for the whole cast">↻</button>
+              <button type="button" onclick="addCharacterRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
+            </div>
           </div>
           <div id="characterCardsContainer" class="space-y-3"></div>
         </div>
@@ -1311,6 +1364,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
             <div class="flex items-center justify-between text-slate-300"><span>Text usage</span><span id="ucTextUsage" class="font-semibold text-white text-right">-</span></div>
             <div class="flex items-center justify-between text-slate-300"><span>Image usage</span><span id="ucImageUsage" class="font-semibold text-white text-right">-</span></div>
             <div class="flex items-center justify-between text-slate-300"><span>Local LLM turns served (free)</span><span id="ucLocalTurns" class="font-semibold text-emerald-300">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Context cache hit rate</span><span id="ucCacheHitRate" class="font-semibold text-white">-</span></div>
+            <div class="flex items-center justify-between text-slate-300"><span>Actual cost per story turn</span><span id="ucCostPerTurn" class="font-semibold text-white">-</span></div>
             <div class="flex items-center justify-between pt-1.5 mt-1.5 border-t border-zetaBorder text-slate-200 font-semibold"><span>Estimated accumulated cost</span><span id="ucAccumulatedCost" class="text-zetaGlow">-</span></div>
           </div>
         </div>
@@ -1325,6 +1380,46 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
   </div>
 
   <!-- Image Lightbox Modal -->
+  <!-- Sprite sheet preview / confirm -->
+  <div id="spritePreviewModal" class="fixed inset-0 bg-black/75 z-[66] items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder bg-zetaCard">
+        <h2 id="spritePreviewTitle" class="text-sm font-bold text-white">Confirm sprite sheet</h2>
+      </div>
+      <div id="spritePreviewBody" class="p-4 overflow-y-auto space-y-3 flex-1 scroll-touch"></div>
+      <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
+        <button onclick="respondSpritePreview(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel slicing</button>
+        <button onclick="respondSpritePreview(true)" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow transition active:scale-95">Looks right — slice 16</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branch history -->
+  <div id="branchHistoryModal" onclick="closeModal('branchHistoryModal')" class="fixed inset-0 bg-black/70 z-[65] items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard">
+        <h2 class="text-sm font-bold text-white">🌿 Branch History</h2>
+        <button onclick="closeModal('branchHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div id="branchHistoryBody" class="p-4 overflow-y-auto space-y-2.5 flex-1 scroll-touch"></div>
+    </div>
+  </div>
+
+  <!-- Themed dialog (replaces native alert/confirm/prompt) -->
+  <div id="zfDialog" class="fixed inset-0 bg-black/70 z-[70] items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 space-y-2">
+        <h3 id="zfDialogTitle" class="text-sm font-bold text-white"></h3>
+        <p id="zfDialogMessage" class="text-xs text-slate-300 leading-relaxed whitespace-pre-line"></p>
+        <input id="zfDialogInput" type="text" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden" />
+      </div>
+      <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
+        <button id="zfDialogCancel" onclick="zfDialogRespond(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel</button>
+        <button id="zfDialogOk" onclick="zfDialogRespond(true)" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow transition active:scale-95">OK</button>
+      </div>
+    </div>
+  </div>
+
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[60] items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
       <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
@@ -1383,14 +1478,18 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // IndexedDB Layer
     const DB_NAME = 'zetaforge_db';
     const DB_STORE = 'app_state_store';
+    const ASSET_STORE = 'asset_store';
 
     function initDb() {
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
+        const req = indexedDB.open(DB_NAME, 2);
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
           if (!db.objectStoreNames.contains(DB_STORE)) {
             db.createObjectStore(DB_STORE);
+          }
+          if (!db.objectStoreNames.contains(ASSET_STORE)) {
+            db.createObjectStore(ASSET_STORE);
           }
         };
         req.onsuccess = (e) => resolve(e.target.result);
@@ -1398,15 +1497,141 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       });
     }
 
+    // --- Binary asset store ------------------------------------------------
+    // Images are kept as Blobs here and referenced from state as "asset:<id>".
+    // In memory the app still sees a usable src (an object URL), so all the
+    // existing <img src=...> render paths are unchanged.
+    const assetUrlToId = new Map();   // objectURL -> asset id
+    const assetIdToUrl = new Map();   // asset id  -> objectURL
+    let assetStoreAvailable = true;
+
+    function dataUrlToBlob(dataUrl) {
+      const [meta, b64] = String(dataUrl).split(',');
+      const mime = (meta.match(/data:([^;]+)/) || [null, 'image/png'])[1];
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime });
+    }
+
+    async function putAssetBlob(blob) {
+      const db = await initDb();
+      const id = 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(ASSET_STORE, 'readwrite');
+        tx.objectStore(ASSET_STORE).put(blob, id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      return id;
+    }
+
+    async function getAssetUrl(id) {
+      if (assetIdToUrl.has(id)) return assetIdToUrl.get(id);
+      const db = await initDb();
+      const blob = await new Promise((resolve) => {
+        const tx = db.transaction(ASSET_STORE, 'readonly');
+        const req = tx.objectStore(ASSET_STORE).get(id);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+      if (!blob) return '';
+      const url = URL.createObjectURL(blob);
+      assetIdToUrl.set(id, url);
+      assetUrlToId.set(url, id);
+      return url;
+    }
+
+    // Convert an in-memory image value into something persistable.
+    // data: URL  -> stored as a Blob, returns "asset:<id>"
+    // blob: URL  -> already stored, returns its "asset:<id>"
+    // anything else (http URL, empty, existing ref) passes through untouched.
+    async function toPersistableImage(value) {
+      if (typeof value !== 'string' || !value) return value;
+      if (value.startsWith('asset:')) return value;
+      if (value.startsWith('blob:')) {
+        const id = assetUrlToId.get(value);
+        return id ? 'asset:' + id : '';
+      }
+      if (!value.startsWith('data:image')) return value;
+      if (!assetStoreAvailable) return value;
+      try {
+        const id = await putAssetBlob(dataUrlToBlob(value));
+        const url = URL.createObjectURL(await (async () => {
+          const db = await initDb();
+          return new Promise((resolve) => {
+            const tx = db.transaction(ASSET_STORE, 'readonly');
+            const req = tx.objectStore(ASSET_STORE).get(id);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+          });
+        })());
+        assetIdToUrl.set(id, url);
+        assetUrlToId.set(url, id);
+        return 'asset:' + id;
+      } catch (e) {
+        // Never lose an image because the asset store misbehaved — fall back
+        // to the original inline behaviour for this value.
+        console.warn('Asset store write failed, keeping image inline:', e?.message || e);
+        assetStoreAvailable = false;
+        return value;
+      }
+    }
+
+    // Every place state holds an image, in both directions.
+    async function walkStateImages(stateObj, transform) {
+      const scenarios = stateObj.scenarios || [];
+      for (const s of scenarios) {
+        s.cover = await transform(s.cover);
+        s.vnBackground = await transform(s.vnBackground);
+        s.manualVnBackground = await transform(s.manualVnBackground);
+        const people = [s.userPersona, ...(s.characters || []), ...Object.values(s.sideCharacterProfiles || {})].filter(Boolean);
+        for (const p of people) {
+          p.avatar = await transform(p.avatar);
+          if (p.chatAvatar) p.chatAvatar = await transform(p.chatAvatar);
+          if (Array.isArray(p.photos)) {
+            for (const ph of p.photos) { if (ph && ph.src) ph.src = await transform(ph.src); }
+          }
+          if (Array.isArray(p.sprites)) {
+            for (const sp of p.sprites) { if (sp && sp.src) sp.src = await transform(sp.src); }
+          }
+        }
+        for (const m of (s.messages || [])) {
+          if (m && m.imageUrl) m.imageUrl = await transform(m.imageUrl);
+        }
+        for (const sheet of (s.spriteSheetLibrary || [])) {
+          if (sheet && sheet.src) sheet.src = await transform(sheet.src);
+        }
+      }
+      return stateObj;
+    }
+
+
     async function saveStateDb(stateObj) {
       try {
+        // Build a persistable copy whose image fields are asset refs rather
+        // than inline base64. structuredClone keeps the live appState intact
+        // (it still holds object URLs the UI is rendering from).
+        let persistable = stateObj;
+        if (assetStoreAvailable) {
+          try {
+            persistable = await walkStateImages(
+              typeof structuredClone === 'function' ? structuredClone(stateObj) : JSON.parse(JSON.stringify(stateObj)),
+              toPersistableImage
+            );
+          } catch (e) {
+            console.warn('Asset externalization failed, saving inline:', e?.message || e);
+            persistable = stateObj;
+          }
+        }
         const db = await initDb();
         const tx = db.transaction(DB_STORE, 'readwrite');
-        tx.objectStore(DB_STORE).put(stateObj, 'current_state');
+        tx.objectStore(DB_STORE).put(persistable, 'current_state');
         localStorage.setItem('zetaforge_synced', Date.now().toString());
       } catch (e) {
         console.warn("IndexedDB save error, using fallback", e);
-        localStorage.setItem('zetaforge_state', JSON.stringify(stateObj));
+        try { localStorage.setItem('zetaforge_state', JSON.stringify(stateObj)); }
+        catch (e2) { console.warn('localStorage fallback also failed (quota?):', e2?.message || e2); }
       }
     }
 
@@ -1514,6 +1739,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     const SUGGESTION_CACHE_TTL_MS = 10 * 60 * 1000;
     const API_RETRY_LIMIT = 3;
     const API_RETRY_BASE_MS = 700;
+    // Full-resolution 4K sheets are large; cap how many are retained so the
+    // serialized appState stays a sane size (see generateCharacterSpriteSheet).
+    const SPRITE_SHEET_LIBRARY_LIMIT = 6;
 
     // --- Local LLM Fallback (routine turns only) --------------------------
     // Routine story-turn generation (send / retry / continue) can be routed to
@@ -1633,13 +1861,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       const btn = document.getElementById('narrateToggleBtn');
       const inputEl = document.getElementById('userInput');
       if (isNarrateModeActive) {
-        btn.classList.remove('bg-slate-800', 'text-slate-200', 'border-slate-700/80');
-        btn.classList.add('bg-amber-950', 'text-amber-300', 'border-amber-600/80', 'ring-1', 'ring-amber-500/50');
+        btn.classList.add('narrate-toggle-active');
         inputEl.placeholder = "Describe narration or scene events...";
         inputEl.focus();
       } else {
-        btn.classList.add('bg-slate-800', 'text-slate-200', 'border-slate-700/80');
-        btn.classList.remove('bg-amber-950', 'text-amber-300', 'border-amber-600/80', 'ring-1', 'ring-amber-500/50');
+        btn.classList.remove('narrate-toggle-active');
         inputEl.placeholder = "Describe action, speak, or use @: to narrate...";
       }
     }
@@ -1701,6 +1927,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       closeModal('setupModal');
       closeModal('importModal');
       renderAllUi();
+      flushUiRender(); // paint immediately on boot rather than a frame later
       syncModalForm();
       bindDefensiveClickListeners();
     });
@@ -1782,6 +2009,18 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     async function loadState() {
       const saved = await loadStateDb();
       if (saved) {
+        // Turn "asset:<id>" refs back into usable object URLs before anything
+        // renders, so every existing <img src=...> path keeps working.
+        try {
+          await walkStateImages(saved, async (value) => {
+            if (typeof value === 'string' && value.startsWith('asset:')) {
+              return await getAssetUrl(value.slice(6));
+            }
+            return value;
+          });
+        } catch (e) { console.warn('Asset rehydration issue:', e?.message || e); }
+      }
+      if (saved) {
         if (saved.model && (saved.model.includes('2.5') || saved.model.includes('1.5'))) {
           saved.model = MODEL_ROUTINE_DEFAULT;
         }
@@ -1825,7 +2064,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       }
 
       if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
       }
       if (!appState.model) appState.model = MODEL_ROUTINE_DEFAULT;
       if (!['light','dark'].includes(appState.themeMode)) appState.themeMode = 'dark';
@@ -1881,13 +2120,68 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       localStorage.setItem('zetaforge_active_scenario', appState.activeScenarioId);
     }
 
+    // Render coalescing. renderAllUi() is invoked after nearly every mutation
+    // and several times within a single operation (e.g. save → render →
+    // syncModalForm → render). Each call previously rebuilt the sidebar,
+    // message list, chapter chronicle and scenario list synchronously. Calls
+    // are now merged into one pass on the next frame, so a burst costs one
+    // rebuild rather than N.
+    let uiDirty = { sidebar: false, messages: false, chronicle: false, scenarios: false, layout: false };
+    let uiFlushScheduled = false;
+    function flushUiRender() {
+      uiFlushScheduled = false;
+      const d = uiDirty;
+      uiDirty = { sidebar: false, messages: false, chronicle: false, scenarios: false, layout: false };
+      if (d.sidebar) renderSidebar();
+      if (d.messages) renderMessages();
+      if (d.chronicle) populateChapterChronicle();
+      if (d.scenarios) renderScenariosList();
+      if (d.layout) applyViewModeLayout();
+      scheduleContextEstimate();
+    }
+    function scheduleUiRender(parts) {
+      Object.assign(uiDirty, parts);
+      if (uiFlushScheduled) return;
+      uiFlushScheduled = true;
+      requestAnimationFrame(flushUiRender);
+    }
     function renderAllUi() {
       ensureActiveScenario();
-      renderSidebar();
-      renderMessages();
-      populateChapterChronicle();
-      renderScenariosList();
-      applyViewModeLayout();
+      scheduleUiRender({ sidebar: true, messages: true, chronicle: true, scenarios: true, layout: true });
+    }
+    // Targeted variants for callers that only touch one surface.
+    function renderCastOnly() { scheduleUiRender({ sidebar: true }); }
+    function renderMessagesOnly() { scheduleUiRender({ messages: true }); }
+
+    // ADD-6: Live "what will this turn cost" readout. Previously the only way
+    // to find out was to send and check the usage panel afterwards.
+    let contextEstimateTimer = null;
+    function updateContextEstimate() {
+      const el = document.getElementById('contextEstimateText');
+      if (!el) return;
+      try {
+        const active = getActiveScenario();
+        if (!active) { el.innerText = '—'; return; }
+        const draft = document.getElementById('userInput')?.value || '';
+        const contents = buildApiContents(null);
+        let chars = 0;
+        contents.forEach(c => (c.parts || []).forEach(p => { chars += (p.text || '').length; }));
+        const contextTokens = Math.ceil(chars / 3.8) + estimateTokens(draft);
+        const profile = appState.llmProfile || 'gemini';
+        if (profile !== 'gemini') {
+          const cap = profile === 'auto' ? 8192 : (appState.llmProfiles?.[profile]?.contextCap || 8192);
+          const over = contextTokens > cap;
+          el.innerHTML = `~${(contextTokens / 1000).toFixed(1)}k tokens · <span class="${over ? 'text-amber-400' : 'text-emerald-400'}">local${over ? ` (over ${(cap / 1000).toFixed(0)}k cap — oldest turns trimmed)` : ' · free'}</span>`;
+          return;
+        }
+        const cost = (contextTokens / 1e6) * PRICING.routine.inputPerM + (900 / 1e6) * PRICING.routine.outputPerM;
+        const warn = contextTokens > CONTEXT_TOKEN_CAP;
+        el.innerHTML = `~${(contextTokens / 1000).toFixed(1)}k context · est. ${formatUsd(cost)}/turn${warn ? ' <span class="text-amber-400">(trimmed to cap)</span>' : ''}`;
+      } catch (e) { el.innerText = '—'; }
+    }
+    function scheduleContextEstimate() {
+      if (contextEstimateTimer) clearTimeout(contextEstimateTimer);
+      contextEstimateTimer = setTimeout(updateContextEstimate, 350);
     }
 
     function estimateTokens(text) {
@@ -1895,10 +2189,90 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return Math.ceil(text.length / 3.8);
     }
 
+    // Tolerant JSON extraction. Strict JSON.parse fails on the things local
+    // RP finetunes habitually do — wrapping output in ```json fences, adding a
+    // sentence before/after, or emitting trailing commas. This recovers the
+    // first balanced {...} or [...] and retries, so those models can serve
+    // structured tasks that previously had to go to Gemini.
+    function parseJsonLoose(raw, fallback = null) {
+      if (raw == null) return fallback;
+      let text = String(raw).trim();
+      if (!text) return fallback;
+      try { return JSON.parse(text); } catch (e) {}
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      try { return JSON.parse(text); } catch (e) {}
+      // Scan for the first balanced JSON value, respecting strings/escapes.
+      const startIdx = text.search(/[[{]/);
+      if (startIdx === -1) return fallback;
+      const open = text[startIdx];
+      const close = open === '{' ? '}' : ']';
+      let depth = 0, inStr = false, esc = false;
+      for (let i = startIdx; i < text.length; i++) {
+        const ch = text[i];
+        if (esc) { esc = false; continue; }
+        if (ch === '\\') { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === open) depth++;
+        else if (ch === close) {
+          depth--;
+          if (depth === 0) {
+            const candidate = text.slice(startIdx, i + 1);
+            try { return JSON.parse(candidate); } catch (e) {}
+            try { return JSON.parse(candidate.replace(/,\s*([}\]])/g, '$1')); } catch (e) {}
+            return fallback;
+          }
+        }
+      }
+      return fallback;
+    }
+
+    // --- Themed dialogs (replace native alert/confirm/prompt) --------------
+    // Native dialogs block the JS thread, ignore the app theme, and behave
+    // inconsistently in iOS standalone PWAs. These are promise-based so call
+    // sites read almost identically to the originals, just awaited.
+    let zfDialogResolver = null;
+    function zfDialogRespond(ok) {
+      const modal = document.getElementById('zfDialog');
+      const input = document.getElementById('zfDialogInput');
+      const resolver = zfDialogResolver;
+      zfDialogResolver = null;
+      modal.classList.add('hidden'); modal.classList.remove('flex');
+      if (!resolver) return;
+      if (!input.classList.contains('hidden')) resolver(ok ? input.value : null);
+      else resolver(ok);
+    }
+    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null }) {
+      const modal = document.getElementById('zfDialog');
+      const input = document.getElementById('zfDialogInput');
+      document.getElementById('zfDialogTitle').innerText = title;
+      document.getElementById('zfDialogTitle').classList.toggle('hidden', !title);
+      document.getElementById('zfDialogMessage').innerText = message;
+      document.getElementById('zfDialogMessage').classList.toggle('hidden', !message);
+      document.getElementById('zfDialogOk').innerText = okText;
+      const cancelBtn = document.getElementById('zfDialogCancel');
+      cancelBtn.innerText = cancelText;
+      cancelBtn.classList.toggle('hidden', !showCancel);
+      if (inputValue === null) { input.classList.add('hidden'); input.value = ''; }
+      else { input.classList.remove('hidden'); input.value = inputValue; }
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+      if (inputValue !== null) setTimeout(() => { input.focus(); input.select(); }, 30);
+      return new Promise(resolve => { zfDialogResolver = resolve; });
+    }
+    function zfAlert(message, title = '') { return zfOpenDialog({ title, message, showCancel: false }); }
+    function zfConfirm(message, title = '', okText = 'Confirm') { return zfOpenDialog({ title, message, okText }); }
+    function zfPrompt(message, defaultValue = '', title = '') { return zfOpenDialog({ title, message, inputValue: defaultValue ?? '' }); }
+    window.addEventListener('keydown', (e) => {
+      if (!zfDialogResolver) return;
+      if (e.key === 'Escape') { e.preventDefault(); zfDialogRespond(false); }
+      else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); zfDialogRespond(true); }
+    });
+
     function recordTextUsage(model, data, fallbackInputText = '', fallbackMaxOutput = 0) {
       if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
       }
+      appState.usageStats.apiCalls = (appState.usageStats.apiCalls || 0) + 1;
       const meta = (data && data.usageMetadata) || {};
       const totalPromptTokens = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : estimateTokens(fallbackInputText);
       const outputTokens = typeof meta.candidatesTokenCount === 'number' ? meta.candidatesTokenCount : fallbackMaxOutput;
@@ -1919,7 +2293,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
 
     function recordImageUsage(kind) {
       if (!appState.usageStats) {
-        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+        appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
       }
       if (kind === '4K') appState.usageStats.images4K += 1;
       else appState.usageStats.images1K += 1;
@@ -2075,7 +2449,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
     }
     function isModalOrDrawerOpen() {
-      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox'];
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal'];
       if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
       const chapterDrawer = document.getElementById('chapterDrawer');
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
@@ -2086,25 +2460,38 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return false;
     }
     window.addEventListener('keydown', (event) => {
-      if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
+      const navKeys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End'];
+      if (!navKeys.includes(event.key)) return;
       if (isTypingInFormField() || isModalOrDrawerOpen()) return;
       const active = getActiveScenario();
       if (!active) return;
       if (active.viewMode === 'vn') {
-        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'PageUp') {
           event.preventDefault();
           handleVnStageTap('prev');
-        } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'PageDown') {
           event.preventDefault();
           handleVnStageTap('next');
+        } else if (event.key === 'Home') {
+          event.preventDefault();
+          currentVnIndex = 0; renderVnTurn(false);
+        } else if (event.key === 'End') {
+          event.preventDefault();
+          currentVnIndex = Math.max(0, validTurns.length - 1); renderVnTurn(false);
         }
         return;
       }
-      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
       const container = document.getElementById('messagesContainer');
       if (!container) return;
       event.preventDefault();
-      container.scrollBy({ top: event.key === 'ArrowDown' ? 140 : -140, behavior: 'smooth' });
+      const page = Math.max(200, container.clientHeight - 80);
+      if (event.key === 'ArrowUp') container.scrollBy({ top: -140, behavior: 'smooth' });
+      else if (event.key === 'ArrowDown') container.scrollBy({ top: 140, behavior: 'smooth' });
+      else if (event.key === 'PageUp') container.scrollBy({ top: -page, behavior: 'smooth' });
+      else if (event.key === 'PageDown') container.scrollBy({ top: page, behavior: 'smooth' });
+      else if (event.key === 'Home') container.scrollTo({ top: 0, behavior: 'smooth' });
+      else if (event.key === 'End') scrollMessagesToBottom(true);
     });
 
     function closeAllDrawers() {
@@ -2213,7 +2600,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       active.cover = currentLightboxImgSrc;
       await saveState();
       renderScenariosList();
-      alert(`🖼️ Set this image as the scenario preview cover!`);
+      zfAlert(`🖼️ Set this image as the scenario preview cover!`);
       closeLightbox();
     }
 
@@ -2794,7 +3181,7 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
-      if (!confirm(`Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`)) return;
+      if (!await zfConfirm(`Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`, 'Generate Photo', 'Generate')) return;
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
@@ -2810,7 +3197,7 @@ Preserve the character's described physical identity consistently. Show the full
         renderAllUi();
         syncModalForm();
         if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (char.name || '').toLowerCase()) openCharacterSpotlight(char.name);
-      } catch (err) { alert('Character photo error: ' + err.message); }
+      } catch (err) { zfAlert('Character photo error: ' + err.message); }
       finally { showLoading(false); }
     }
 
@@ -2818,7 +3205,7 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
-      if (!confirm(`Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.`)) return;
+      if (!await zfConfirm(`Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.`, 'Generate Sprite Sheet', 'Generate')) return;
       const reference = getCharacterReferencePhoto(char);
       const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${getCurrentOutfitDescription(char)}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
       const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the attached character reference. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets. All character sprites must maintain absolute physical identity consistency, matching the face, hair, and base outfit of the provided reference. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
@@ -2840,13 +3227,57 @@ All 16 sprites must be generated on a single clean image with a fully transparen
           src,
           createdAt: Date.now()
         });
+        // Each entry is a multi-MB 4K data URL and flushSaveState() serializes
+        // the entire appState on every autosave, so an unbounded library makes
+        // every save progressively slower and risks the storage quota. Keep
+        // only the most recent sheets; older ones stay downloadable until
+        // trimmed, and extracted sprites are unaffected either way.
+        if (active.spriteSheetLibrary.length > SPRITE_SHEET_LIBRARY_LIMIT) {
+          active.spriteSheetLibrary.length = SPRITE_SHEET_LIBRARY_LIMIT;
+        }
+        showLoading(false);
+        const proceedWithSlicing = await confirmSpriteSheetBeforeSlicing(src, char.name);
+        if (!proceedWithSlicing) {
+          await saveState();
+          renderAllUi();
+          await zfAlert('Slicing cancelled. The full 4K sheet is saved in your Gallery, where you can download it and slice or edit it yourself.', 'Sheet Kept');
+          return;
+        }
+        showLoading(true, 'Slicing sprites...');
         await ingestSpriteSheetDataUrl(src, char, active.removeSpriteSheetBackground !== false);
         await saveState();
         renderAllUi();
         syncModalForm();
-        alert(`✨ Sprite sheet generated and 16 expression sprites extracted for ${char.name || 'character'}. The untouched 4K sheet is saved in the Gallery if you want to edit the alpha channel yourself.`);
-      } catch (err) { alert('Sprite sheet generation error: ' + err.message); }
+        zfAlert(`✨ Sprite sheet generated and 16 expression sprites extracted for ${char.name || 'character'}. The untouched 4K sheet is saved in the Gallery if you want to edit the alpha channel yourself.`);
+      } catch (err) { zfAlert('Sprite sheet generation error: ' + err.message); }
       finally { showLoading(false); }
+    }
+
+    // REFINE-2: Preview the generated sheet before committing 16 sprites.
+    // Slicing assumes a strict 4x4 grid with fixed emotion positions; if the
+    // model drifts from that, every expression silently mismaps. Confirming
+    // visually first makes a bad 4K generation recoverable.
+    async function confirmSpriteSheetBeforeSlicing(dataUrl, charName) {
+      const body = document.getElementById('spritePreviewBody');
+      if (!body) return true;
+      body.innerHTML = `
+        <p class="text-[11px] text-slate-400 leading-relaxed">Check that this is a clean <strong>4×4 grid of 16 separated sprites</strong> in the expected order before slicing. If the grid is wrong, cancel — the full 4K sheet stays in your Gallery so you can slice or edit it manually.</p>
+        <div class="relative rounded-xl overflow-hidden border border-zetaBorder bg-slate-950">
+          <img src="${dataUrl}" alt="Generated sprite sheet" class="w-full" />
+          <div class="absolute inset-0 pointer-events-none grid grid-cols-4 grid-rows-4">
+            ${Array.from({ length: 16 }).map((_, i) => `<div class="border border-zetaAccent/40 flex items-start justify-start"><span class="text-[8px] bg-zetaAccent/80 text-white px-1 rounded-br">${i + 1}</span></div>`).join('')}
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-500">Expected order: 1-4 Neutral/Happy/Sad/Angry · 5-8 Confident/Thinking/Surprised/Tired · 9-12 Embarrassed/Shy/Flirtatious/Touched · 13-16 Smug/Hurt/Determined/Disgusted</p>`;
+      document.getElementById('spritePreviewTitle').innerText = `Confirm sprite sheet — ${charName || 'character'}`;
+      openModal('spritePreviewModal');
+      return new Promise(resolve => { spritePreviewResolver = resolve; });
+    }
+    let spritePreviewResolver = null;
+    function respondSpritePreview(ok) {
+      const r = spritePreviewResolver; spritePreviewResolver = null;
+      closeModal('spritePreviewModal');
+      if (r) r(ok);
     }
 
     async function ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBackground = true) {
@@ -2893,7 +3324,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         renderCharacterCardsSetup();
         renderSidebar();
       } catch (err) {
-        alert("Image upload error: " + err.message);
+        zfAlert("Image upload error: " + err.message);
       } finally {
         event.target.value = '';
       }
@@ -2912,8 +3343,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         const dataUrl = await new Promise((resolve, reject) => { const reader=new FileReader(); reader.onload=e=>resolve(e.target.result); reader.onerror=reject; reader.readAsDataURL(file); });
         await ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBg);
         await saveState(); renderAvatarManagerGallery(); renderCharacterCardsSetup(); renderSidebar();
-        alert(`✨ Successfully extracted 16 sprites for ${targetObj.name || 'character'}${removeBg ? ' with background removal' : ' without background removal'}!`);
-      } catch (err) { alert('Sprite sheet error: ' + err.message); }
+        zfAlert(`✨ Successfully extracted 16 sprites for ${targetObj.name || 'character'}${removeBg ? ' with background removal' : ' without background removal'}!`);
+      } catch (err) { zfAlert('Sprite sheet error: ' + err.message); }
       finally { event.target.value=''; }
     }
 
@@ -3124,19 +3555,22 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const btn = document.getElementById('vnAutoPlayBtn');
       const txt = document.getElementById('vnAutoPlayText');
       if (isVnAutoPlaying) {
-        btn.classList.add('bg-indigo-950', 'text-indigo-300', 'border-indigo-600', 'ring-1', 'ring-indigo-500/50');
-        btn.classList.remove('bg-black/60', 'text-slate-300', 'border-slate-700');
+        btn.classList.add('vn-toggle-active');
         txt.innerText = 'Auto: ON';
         runVnAutoStep();
       } else {
-        btn.classList.remove('bg-indigo-950', 'text-indigo-300', 'border-indigo-600', 'ring-1', 'ring-indigo-500/50');
-        btn.classList.add('bg-black/60', 'text-slate-300', 'border-slate-700');
+        btn.classList.remove('vn-toggle-active');
         txt.innerText = 'Auto: OFF';
         vnAutoWaitingForSpeech = false;
+        setVnAutoWaitingIndicator(false);
         if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
       }
     }
 
+    function setVnAutoWaitingIndicator(waiting) {
+      const btn = document.getElementById('vnAutoPlayBtn');
+      if (btn) btn.classList.toggle('vn-toggle-waiting', !!waiting && isVnAutoPlaying);
+    }
     function runVnAutoStep() {
       if (!isVnAutoPlaying) return;
       if (vnAutoTimeout) clearTimeout(vnAutoTimeout);
@@ -3152,8 +3586,10 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         // whatever's currently on screen), so disabling here made the
         // toggle look like it never turned on. renderVnTurn's trailing
         // runVnAutoStep() call re-checks this the moment a new turn arrives.
+        setVnAutoWaitingIndicator(true);
         return;
       }
+      setVnAutoWaitingIndicator(false);
 
       // If this turn's speaker has a voice configured and TTS is on, don't
       // start a fixed timer — wait for the audio to actually finish
@@ -3161,6 +3597,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       // so the next line never starts while this one is still playing.
       if (appState.ttsEnabled && vnCurrentTurnHasVoice()) {
         vnAutoWaitingForSpeech = true;
+        setVnAutoWaitingIndicator(true);
         return;
       }
       const currentTurn = validTurns[currentVnIndex];
@@ -3193,16 +3630,16 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       }
     }
 
-    function promptVnJump() {
+    async function promptVnJump() {
       const active = getActiveScenario();
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
       if (!validTurns.length) return;
       const current = Math.max(1, Math.min(currentVnIndex + 1, validTurns.length));
-      const raw = window.prompt(`Jump to message (1-${validTurns.length}):`, String(current));
+      const raw = await zfPrompt(`Jump to message (1-${validTurns.length}):`, String(current), 'Jump to Message');
       if (raw === null) return;
       const value = String(raw).trim();
       if (!/^\d+$/.test(value)) {
-        alert(`Please enter a message number from 1 to ${validTurns.length}.`);
+        await zfAlert(`Please enter a message number from 1 to ${validTurns.length}.`, 'Invalid Number');
         return;
       }
       const requested = Number(value);
@@ -3292,7 +3729,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         dialogueBody.innerHTML = marked.parse(fullText);
         dialogueBody.classList.remove('typing-cursor');
         vnTypewriter.isTyping = false;
-        speakVnTextForSpeaker(speakerName, fullText);
+        maybeSpeakVnTurn(speakerName, fullText);
         if (isVnAutoPlaying) runVnAutoStep();
         return;
       }
@@ -3319,7 +3756,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
       dialogueBody.classList.remove('typing-cursor');
       vnTypewriter.isTyping = false;
-      speakVnTextForSpeaker(speakerName, fullText);
+      maybeSpeakVnTurn(speakerName, fullText);
 
       if (isVnAutoPlaying) {
         runVnAutoStep();
@@ -3339,7 +3776,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         openModal('setupModal');
         return;
       }
-      if (!confirm('Generate a new VN backdrop? This uses image generation tokens.')) return;
+      if (!await zfConfirm('Generate a new VN backdrop? This uses image generation tokens.', 'Generate Backdrop', 'Generate')) return;
 
       const btn = document.getElementById('vnGenBgBtn');
       btn.disabled = true;
@@ -3389,7 +3826,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         await saveState();
         renderVnTurn(false);
       } catch (err) {
-        alert("Backdrop Notice: " + err.message);
+        zfAlert("Backdrop Notice: " + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>🖼️</span> <span>Backdrop</span>`;
@@ -3525,7 +3962,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       }
       const active = getActiveScenario();
       if (active.messages.length === 0) {
-        alert("Start a story first before generating reply choices.");
+        zfAlert("Start a story first before generating reply choices.");
         return;
       }
 
@@ -3582,18 +4019,47 @@ CRITICAL RULES:
         };
 
         const suggestModel = appState.model || MODEL_ROUTINE_DEFAULT;
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${suggestModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptPayload)
-        });
+        let choices = null;
+        // Suggestions are frequent, short and low-stakes — ideal for the free
+        // local endpoint when one is active. parseJsonLoose() absorbs the
+        // fences/prose that local finetunes tend to wrap JSON in; anything
+        // unusable falls through to the Gemini path below.
+        const suggestEndpointInfo = await resolveActiveEndpoint();
+        if (suggestEndpointInfo.type === 'local') {
+          try {
+            const localRes = await fetch(`${suggestEndpointInfo.url.replace(/\/+$/,'')}/chat/completions`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: suggestEndpointInfo.model || 'local-model',
+                messages: [{ role: 'user', content: promptPayload.contents[0].parts[0].text + '\n\nRespond with ONLY a JSON array of 3 strings. No prose, no code fences.' }],
+                temperature: 0.85, max_tokens: 650, stream: false
+              })
+            });
+            if (localRes.ok) {
+              const localData = await localRes.json();
+              const parsedLocal = parseJsonLoose(localData.choices?.[0]?.message?.content || '', null);
+              if (Array.isArray(parsedLocal) && parsedLocal.length) {
+                choices = parsedLocal.filter(c => typeof c === 'string' && c.trim());
+                appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
+              }
+            }
+          } catch (e) { console.warn('Local suggestion generation failed, falling back to Gemini:', e?.message || e); }
+        }
 
-        if (!res.ok) throw new Error("Failed to generate suggestion paths.");
-        const data = await res.json();
-        recordTextUsage(suggestModel, data, recentDialogue, 650);
-        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        const choices = JSON.parse(rawJson.trim());
+        if (!choices || !choices.length) {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${suggestModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promptPayload)
+          });
+
+          if (!res.ok) throw new Error("Failed to generate suggestion paths.");
+          const data = await res.json();
+          recordTextUsage(suggestModel, data, recentDialogue, 650);
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+          choices = parseJsonLoose(rawJson, []);
+        }
 
         if (Array.isArray(choices) && choices.length > 0) {
           activeSuggestedReplies = choices.map(choice => formatDialogueSpacing(choice));
@@ -3613,7 +4079,7 @@ CRITICAL RULES:
           container.classList.remove('hidden');
         }
       } catch (err) {
-        alert("Reply Suggestion Notice: " + err.message);
+        zfAlert("Reply Suggestion Notice: " + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>💡</span> <span>Suggest</span>`;
@@ -3779,7 +4245,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         const data = await res.json();
         recordTextUsage(profileModel, data, turnsText, 600);
         const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsed = JSON.parse(rawJson.trim());
+        const parsed = parseJsonLoose(rawJson, null); if (!parsed) throw new Error('Unparseable model response');
 
         const newChar = {
           id: 'char_' + Date.now(),
@@ -3802,10 +4268,10 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         renderAllUi();
         syncModalForm();
 
-        alert(`✨ ${targetName} has been promoted to Main Cast!`);
+        zfAlert(`✨ ${targetName} has been promoted to Main Cast!`);
         openCharacterSpotlight(targetName);
       } catch (err) {
-        alert("Promotion Notice: " + err.message);
+        zfAlert("Promotion Notice: " + err.message);
       } finally {
         promoteBtn.disabled = false;
         promoteBtn.innerHTML = `✨ <span>Add to Main Cast</span>`;
@@ -3851,11 +4317,35 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
     }
 
     let backgroundMaintenanceBusy=false;
+    // Cheap, local check for whether recent turns actually introduced anything
+    // the codex doesn't already know. Lorebook extraction previously fired on a
+    // fixed turn interval regardless of content, spending an advanced-model
+    // call even when nothing new had appeared. Proper-noun-ish tokens are a
+    // rough but free proxy for "new named entity worth extracting".
+    function hasNewLoreCandidates(active, recentTurns) {
+      const known = new Set();
+      const addAll = (str) => String(str || '').toLowerCase().match(/[a-z][a-z'-]{2,}/g)?.forEach(w => known.add(w));
+      (active.lorebook || []).forEach(l => { addAll(l.title); addAll(l.keywords); });
+      addAll(active.userPersona?.name);
+      (active.characters || []).forEach(c => { addAll(c.name); });
+      (active.setting || '').split(/\s+/).forEach(w => addAll(w));
+      const stop = new Set(['the','and','but','you','your','they','them','their','this','that','with','from','have','was','were','not','for','are','she','him','her','his','its','into','then','than','when','what','who','why','how','all','any','one','two','out','off','can','will','just','like','well','yes','sir','okay']);
+      const text = recentTurns.map(m => m.text || '').join(' ');
+      const candidates = text.match(/\b[A-Z][a-zA-Z'-]{2,}\b/g) || [];
+      for (const raw of candidates) {
+        const w = raw.toLowerCase();
+        if (stop.has(w) || known.has(w)) continue;
+        return true; // at least one unseen named entity — worth an extraction pass
+      }
+      return false;
+    }
+
     async function runBatchedBackgroundMaintenance(force=false){
       if(backgroundMaintenanceBusy||!appState.apiKey)return;
       const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(turns.length<3)return;
       const event=force?{type:'forced',fingerprint:turns.slice(-6).map(m=>m.id||m.text).join('|')} : detectSignificantRelationshipEvent(active.messages);
-      const dueLore=turns.length>=6 && turns.length%LOREBOOK_ANALYSIS_INTERVAL===0;
+      const loreIntervalReached = turns.length>=6 && turns.length%LOREBOOK_ANALYSIS_INTERVAL===0;
+      const dueLore = loreIntervalReached && (force || hasNewLoreCandidates(active, turns.slice(-LOREBOOK_ANALYSIS_INTERVAL)));
       if(!event&&!dueLore)return;
       backgroundMaintenanceBusy=true;
       try{
@@ -3865,7 +4355,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         const loreExisting=(active.lorebook||[]).map(l=>`${l.title}|${l.keywords}|${l.content}`).join('\\n');
         const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?'Extract only durable new facts.':'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
         const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER};
-        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)return;const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);let parsed={};try{parsed=JSON.parse((data.candidates?.[0]?.content?.parts?.[0]?.text||'{}').trim())}catch(e){}
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)return;const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);let parsed={};try{parsed=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,{})||{}}catch(e){}
         const charMap=parsed.characters||{};for(const c of active.characters){const r=charMap[c.name];if(!r)continue;c.relationships=c.relationships||{};for(const [n,v] of Object.entries(r.relationships||{})){if(n!==c.name&&String(v||'').trim())c.relationships[n]=String(v).trim()}if(String(r.relationship||'').trim())c.relationship=String(r.relationship).trim();}
         for(const e of (Array.isArray(parsed.lorebook)?parsed.lorebook:[]).slice(0,8)){if(!e?.title||!e?.content)continue;const dup=(active.lorebook||[]).some(l=>String(l.title||'').toLowerCase()===String(e.title).toLowerCase());if(!dup)active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:String(e.keywords||e.title).slice(0,240),content:String(e.content).slice(0,900),autoGenerated:true});}
         active.relationshipState=active.relationshipState||{};if(event)active.relationshipState.lastUpdateFingerprint=event.fingerprint;if(dueLore&&active.localMemoryIndex)active.localMemoryIndex.lastLorebookAnalysisTurn=turns.length;await saveState();renderSidebar();renderLorebookSetup();
@@ -3956,7 +4446,7 @@ IMPORTANT RULES:
           const data = await res.json();
           recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
           const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          const parsedData = JSON.parse(rawJson.trim());
+          const parsedData = parseJsonLoose(rawJson, null); if (!parsedData) throw new Error('Unparseable model response');
           const charMap = parsedData.characters || parsedData;
 
           for (let c of active.characters) {
@@ -4295,9 +4785,9 @@ IMPORTANT RULES:
       downloadDataUrlAsFile(entry.src, `zetaforge_${safeName}_spritesheet_4k.png`);
     }
 
-    function deleteSpriteSheetFromLibrary(id) {
+    async function deleteSpriteSheetFromLibrary(id) {
       const active = getActiveScenario();
-      if (!confirm('Remove this sprite sheet from the library? This does not affect sprites already extracted into the character\'s photos.')) return;
+      if (!await zfConfirm('Remove this sprite sheet from the library? This does not affect sprites already extracted into the character\'s photos.', 'Remove Sprite Sheet', 'Remove')) return;
       active.spriteSheetLibrary = (active.spriteSheetLibrary || []).filter(s => s.id !== id);
       saveState();
       renderImageLibrary();
@@ -4438,7 +4928,7 @@ IMPORTANT RULES:
     }
 
     async function createNewScenarioFlow() {
-      const name = prompt("Enter a title for the new scenario:", `Scenario #${appState.scenarios.length + 1}`);
+      const name = await zfPrompt('Enter a title for the new scenario:', `Scenario #${appState.scenarios.length + 1}`, 'New Scenario');
       if (!name) return;
 
       const newScen = createScenarioTemplate(name.trim());
@@ -4456,7 +4946,7 @@ IMPORTANT RULES:
       const target = appState.scenarios.find(s => s.id === id);
       if (!target) return;
 
-      if (confirm(`Permanently delete "${target.title || 'this scenario'}" and all its logs from your device?`)) {
+      if (await zfConfirm(`Permanently delete "${target.title || 'this scenario'}" and all its logs from your device?`, 'Delete Scenario', 'Delete')) {
         appState.scenarios = appState.scenarios.filter(s => s.id !== id);
 
         if (appState.scenarios.length === 0) {
@@ -4617,7 +5107,7 @@ IMPORTANT RULES:
       const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
 
       if (activeTurns.length < 2) {
-        if (!silent) alert("Play a few turns first before generating character action summaries.");
+        if (!silent) zfAlert("Play a few turns first before generating character action summaries.");
         return;
       }
 
@@ -4676,7 +5166,7 @@ JSON FORMAT:
           const data = await res.json();
           recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
           const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          const parsedArcs = JSON.parse(rawJson.trim());
+          const parsedArcs = parseJsonLoose(rawJson, null); if (!parsedArcs) throw new Error('Unparseable model response');
 
           active.activeChapterArcs = parsedArcs;
           await saveState();
@@ -4684,7 +5174,7 @@ JSON FORMAT:
         }
       } catch (err) {
         console.warn("Arc synthesis error:", err.message);
-        if (!silent) alert("Character Arc Analysis Notice: " + err.message);
+        if (!silent) zfAlert("Character Arc Analysis Notice: " + err.message);
       } finally {
         if (btnText) btnText.innerText = "Re-Analyze";
       }
@@ -4815,12 +5305,23 @@ JSON FORMAT:
       } catch(e){ console.warn('PWA icon generation skipped:',e); }
     }
     let pwaIconTimer=null;
-    function applyAccentColor(color) {
+    let accentHeavyTimer = null;
+    function applyAccentColor(color, options = {}) {
       if(!/^#[0-9a-f]{6}$/i.test(color)) return;
       appState.accentColor=color.toLowerCase(); document.documentElement.style.setProperty('--zeta-accent',appState.accentColor); document.documentElement.style.setProperty('--zeta-accent-hover',shadeHex(appState.accentColor,-0.12)); document.documentElement.style.setProperty('--zeta-glow',shadeHex(appState.accentColor,0.18)); document.documentElement.style.setProperty('--zeta-light',shadeHex(appState.accentColor,0.55));
       applyContainerTint(appState.accentColor);
       const val=document.getElementById('accentColorValue'); if(val)val.innerText=appState.accentColor.toUpperCase(); const picker=document.getElementById('accentColorPicker');if(picker)picker.value=appState.accentColor;
-      rebuildLogoSvg(appState.accentColor); if(pwaIconTimer)clearTimeout(pwaIconTimer); pwaIconTimer=setTimeout(()=>createPwaIconPng(appState.accentColor),120); saveState();
+      // The above is cheap and runs live so dragging the picker feels instant.
+      // Logo re-render, PWA icon raster and state persistence are expensive and
+      // pointless to run per-pixel of a drag, so they settle after the drag.
+      if (accentHeavyTimer) clearTimeout(accentHeavyTimer);
+      const runHeavy = () => {
+        rebuildLogoSvg(appState.accentColor);
+        if(pwaIconTimer)clearTimeout(pwaIconTimer);
+        pwaIconTimer=setTimeout(()=>createPwaIconPng(appState.accentColor),120);
+        saveState();
+      };
+      if (options.immediate) runHeavy(); else accentHeavyTimer = setTimeout(runHeavy, 180);
     }
     function toggleThemeMode(){applyThemeMode(appState.themeMode==='light'?'dark':'light');saveState();createPwaIconPng(appState.accentColor||'#7c65e8');}
 
@@ -5030,6 +5531,17 @@ JSON FORMAT:
       // renderVnTurn's trailing runVnAutoStep() call picks it back up the
       // moment a new turn arrives.
     }
+    // renderVnTurn() is called from many incidental places (backdrop change,
+    // spotlight autosave, sprite/photo generation, mid-stream refresh). Only
+    // speak when the *displayed turn* actually changed — otherwise each of
+    // those unrelated re-renders restarted the current line's audio.
+    let lastSpokenVnKey = '';
+    function maybeSpeakVnTurn(speakerName, fullText) {
+      const key = `${currentVnIndex}::${speakerName}::${(fullText || '').length}`;
+      if (key === lastSpokenVnKey) return;
+      lastSpokenVnKey = key;
+      speakVnTextForSpeaker(speakerName, fullText);
+    }
     async function speakVnTextForSpeaker(speakerName, text) {
       const token = ++vnSpeechToken;
       const audioEl = getVnAudioElement();
@@ -5067,6 +5579,7 @@ JSON FORMAT:
     // other regardless of which one the user tapped.
     function toggleTtsEnabled(force) {
       appState.ttsEnabled = force !== undefined ? !!force : !appState.ttsEnabled;
+      lastSpokenVnKey = ''; // re-arm so the current line can speak after re-enabling
       if (appState.ttsEnabled) {
         unlockVnAudioElement();
       } else if (vnAudioElement) {
@@ -5085,8 +5598,7 @@ JSON FORMAT:
       setVnTtsStatus('idle');
       const vnBtn = document.getElementById('vnTtsToggleBtn');
       if (vnBtn) {
-        vnBtn.classList.toggle('ring-1', on);
-        vnBtn.classList.toggle('ring-zetaAccent/60', on);
+        vnBtn.classList.toggle('vn-toggle-active', on);
       }
     }
 
@@ -5124,9 +5636,13 @@ JSON FORMAT:
     }
     async function voiceLabLoadModel(onProgress) { return loadKokoroTTS(onProgress); }
     async function voiceLabGeneratePreview(text, profile) {
-      const buffer = await generateKokoroAudioBuffer(text, profile);
-      const ctx = getVnAudioContext();
-      const wavBlob = pcmToWavBlob(buffer.getChannelData(0), ctx.sampleRate);
+      let buffer = await generateKokoroAudioBuffer(text, profile);
+      // Match the VN playback path exactly — previously the preview skipped
+      // the pitch render, so auditioning a voice did not reflect the Pitch
+      // slider and what you heard here differed from what played in-scene.
+      const pitch = Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0));
+      buffer = await renderBufferWithPitch(buffer, pitch);
+      const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
       return URL.createObjectURL(wavBlob);
     }
     // --- Opens (or focuses) the shared Voice Lab window ---
@@ -5180,8 +5696,8 @@ JSON FORMAT:
         <span style="font-size:11px;color:#a79bd1;">Blend / Accent Weight</span>
         <span class="vl-value" id="vlBlendWeightVal">0%</span>
       </div>
-      <input type="range" id="vlBlendWeight" min="0" max="100" step="1" value="0" />
-      <p class="vl-hint">Mixes a second voice take in underneath the primary — also useful for nudging accent (blend an American voice with a British one, or vice versa) since Kokoro doesn't expose direct accent controls.</p>
+      <input type="range" id="vlBlendWeight" min="0" max="60" step="1" value="0" />
+      <p class="vl-hint">Nudges the primary voice toward a second one (e.g. blend a US voice toward a UK voice for an accent shift). This mixes two separate takes, so heavy weights can sound hollow or phasey — it is capped at 60% for that reason. Use low values; if you want a fully different voice, change the primary instead.</p>
     </div>
 
     <div class="vl-section">
@@ -5342,10 +5858,44 @@ JSON FORMAT:
         return;
       }
       voiceLabWindow = window.open('', 'zetaforge_voice_lab', 'width=480,height=760,resizable=yes,scrollbars=yes');
-      if (!voiceLabWindow) { alert('Please allow popups for ZetaForge to open the Voice Lab.'); return; }
+      if (!voiceLabWindow) { zfAlert('Please allow popups for ZetaForge to open the Voice Lab.'); return; }
       voiceLabWindow.document.write(VOICE_LAB_HTML);
       voiceLabWindow.document.close();
     }
+    // ADD-1: Assign a distinct Kokoro voice to every cast member at once.
+    // Gendered voice pools are matched against role/persona text where possible
+    // so the defaults are plausible rather than arbitrary; everything stays
+    // editable per-character in the Voice Lab afterwards.
+    async function autoAssignCastVoices(overwrite = false) {
+      const active = getActiveScenario();
+      const all = getKokoroVoiceList();
+      const ids = Object.keys(all);
+      const female = ids.filter(v => /^[ab]f_/.test(v));
+      const male = ids.filter(v => /^[ab]m_/.test(v));
+      const people = [active.userPersona, ...(active.characters || [])].filter(p => p && p.name);
+      const targets = people.filter(p => overwrite || !p.ttsVoice);
+      if (!targets.length) { await zfAlert('Every character already has a voice assigned. Use "Reassign all" if you want to shuffle them.', 'Nothing to Assign'); return; }
+      if (!await zfConfirm(`Assign distinct voices to ${targets.length} character${targets.length === 1 ? '' : 's'}?${overwrite ? ' This overwrites existing voice choices.' : ''}`, 'Auto-Assign Voices', 'Assign')) return;
+      const used = new Set(overwrite ? [] : people.map(p => p.ttsVoice).filter(Boolean));
+      let fi = 0, mi = 0;
+      const guessFemale = (p) => /\b(she|her|woman|girl|female|mother|sister|daughter|queen|lady|miss|mrs|ms)\b/i.test(`${p.role || ''} ${getCharacterPersona(p) || ''}`);
+      for (const p of targets) {
+        const pool = guessFemale(p) ? female : male;
+        const alt = pool === female ? male : female;
+        let pick = '';
+        for (let k = 0; k < pool.length && !pick; k++) { const c = pool[(pool === female ? fi++ : mi++) % pool.length]; if (!used.has(c)) pick = c; }
+        for (let k = 0; k < alt.length && !pick; k++) { const c = alt[k]; if (!used.has(c)) pick = c; }
+        if (!pick) pick = ids[Math.floor(Math.random() * ids.length)];
+        used.add(pick);
+        p.ttsVoice = pick;
+        p.voiceLab = Object.assign(defaultVoiceLabProfile(), p.voiceLab || {}, { voice: pick });
+      }
+      await saveState();
+      syncVoiceSelectButtons();
+      renderCharacterCardsSetup();
+      await zfAlert(`Assigned voices to ${targets.length} character${targets.length === 1 ? '' : 's'}. Fine-tune any of them in the Voice Lab.`, 'Voices Assigned');
+    }
+
     function syncVoiceSelectButtons() {
       const active = getActiveScenario();
       const personaBtn = document.getElementById('userVoiceLabBtn');
@@ -5359,8 +5909,8 @@ JSON FORMAT:
     }
     function setManualVnBackground(event){const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async e=>{const active=getActiveScenario();active.manualVnBackground=e.target.result;await saveState();if(active.viewMode==='vn')renderVnTurn(false);};reader.readAsDataURL(file);}
     function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode!=='text');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
-    function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')alert('Choose a Markdown file above.');}
-    async function processMarkdownImport(event){const file=event.target.files?.[0];if(!file)return;const raw=await file.text();const active=getActiveScenario();const lines=raw.split(/\r?\n/);const msgs=[];let current=null;for(const line of lines){const m=line.match(/^###\s+(.+?)(?:\s+\([^)]*\))?$/);if(m){if(current&&current.text.trim())msgs.push(current);current={id:'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),role:'model',speakerName:m[1].trim(),text:'',timestamp:'Imported'};}else if(current&&!/^---+$/.test(line.trim())&&!/^#/.test(line))current.text+=(current.text?'\n':'')+line;}if(current&&current.text.trim())msgs.push(current);if(!msgs.length){alert('No speaker entries were found in this Markdown file.');return;}const user=(active.userPersona.name||'User').toLowerCase();msgs.forEach(m=>{if(['me','you',user].includes(m.speakerName.toLowerCase())){m.role='user';m.speakerName=active.userPersona.name||'User';}});active.messages=document.getElementById('appendTranscriptCheck')?.checked?active.messages.concat(msgs):msgs;await saveState();renderAllUi();closeModal('importModal');event.target.value='';}
+    function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')zfAlert('Choose a Markdown file above.');}
+    async function processMarkdownImport(event){const file=event.target.files?.[0];if(!file)return;const raw=await file.text();const active=getActiveScenario();const lines=raw.split(/\r?\n/);const msgs=[];let current=null;for(const line of lines){const m=line.match(/^###\s+(.+?)(?:\s+\([^)]*\))?$/);if(m){if(current&&current.text.trim())msgs.push(current);current={id:'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),role:'model',speakerName:m[1].trim(),text:'',timestamp:'Imported'};}else if(current&&!/^---+$/.test(line.trim())&&!/^#/.test(line))current.text+=(current.text?'\n':'')+line;}if(current&&current.text.trim())msgs.push(current);if(!msgs.length){zfAlert('No speaker entries were found in this Markdown file.');return;}const user=(active.userPersona.name||'User').toLowerCase();msgs.forEach(m=>{if(['me','you',user].includes(m.speakerName.toLowerCase())){m.role='user';m.speakerName=active.userPersona.name||'User';}});active.messages=document.getElementById('appendTranscriptCheck')?.checked?active.messages.concat(msgs):msgs;await saveState();renderAllUi();closeModal('importModal');event.target.value='';}
 
     function openModal(id) {
       try {
@@ -5384,7 +5934,7 @@ JSON FORMAT:
     function renderUsageCostModal() {
       const storyTokens = getActiveRawTokens();
       const contextTokens = estimateNextTurnContextTokens();
-      const us = appState.usageStats || { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, images1K: 0, images4K: 0 };
+      const us = appState.usageStats || { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
 
       document.getElementById('ucStoredSize').innerText = `${(storyTokens/1000).toFixed(1)}k tokens`;
       document.getElementById('ucContextPerTurn').innerText = `~${(contextTokens/1000).toFixed(1)}k tokens`;
@@ -5416,31 +5966,28 @@ JSON FORMAT:
         (us.advancedInputTokens/1e6) * PRICING.advanced.inputPerM + (us.advancedOutputTokens/1e6) * PRICING.advanced.outputPerM +
         us.images1K * PRICING.image1K + us.images4K * PRICING.image4K;
       document.getElementById('ucAccumulatedCost').innerText = formatUsd(accumulatedCost);
+
+      // Cache hit rate — cached input is ~10x cheaper, but ensureContextCache()
+      // silently skips when the instruction is short, so without this there was
+      // no way to tell whether the discount was actually being earned.
+      const hitRateEl = document.getElementById('ucCacheHitRate');
+      if (hitRateEl) {
+        const calls = us.apiCalls || 0;
+        hitRateEl.innerText = calls ? `${Math.round(((us.cacheHits || 0) / calls) * 100)}% (${us.cacheHits || 0}/${calls} calls)` : 'No calls yet';
+      }
+      // Real measured cost per story turn, as opposed to the projected
+      // next-turn estimate above.
+      const perTurnEl = document.getElementById('ucCostPerTurn');
+      if (perTurnEl) {
+        const turns = us.storyTurns || 0;
+        perTurnEl.innerText = turns ? `${formatUsd(accumulatedCost / turns)} avg over ${turns} turns` : 'No turns yet';
+      }
     }
 
     function closeModal(id) {
       const modal = document.getElementById(id);
       modal.classList.add('hidden');
       modal.classList.remove('flex');
-    }
-
-    function handleImageUpload(event, target, charIndex = null) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const active = getActiveScenario();
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target.result;
-        if (target === 'user') {
-          active.userPersona.avatar = base64;
-          document.getElementById('userPersonaAvatar').value = base64.slice(0, 30) + '... (Uploaded)';
-        } else if (target === 'char' && charIndex !== null) {
-          active.characters[charIndex].avatar = base64;
-          renderCharacterCardsSetup();
-        }
-      };
-      reader.readAsDataURL(file);
     }
 
     function syncModalForm() {
@@ -5739,7 +6286,7 @@ JSON FORMAT:
       const found = getCurrentSpotlightCharacter();
       if (!found) return;
       const src = getCharacterDefaultAvatar(found.obj);
-      if (!src) { alert('This character does not have a default image to crop.'); return; }
+      if (!src) { zfAlert('This character does not have a default image to crop.'); return; }
       const modal = document.getElementById('chatAvatarCropModal');
       const img = new Image();
       img.onload = () => {
@@ -5751,7 +6298,7 @@ JSON FORMAT:
         modal.classList.add('flex');
         renderChatAvatarCropPreview();
       };
-      img.onerror = () => alert('Unable to load the current default image for cropping.');
+      img.onerror = () => zfAlert('Unable to load the current default image for cropping.');
       img.src = src;
     }
 
@@ -5808,7 +6355,7 @@ JSON FORMAT:
       renderSidebar();
       renderMessages();
       if (getActiveScenario().viewMode === 'vn') renderVnTurn(false);
-      alert('✂️ Cropped image saved for text chat only. The library default remains unchanged.');
+      zfAlert('✂️ Cropped image saved for text chat only. The library default remains unchanged.');
     }
 
     async function clearChatAvatarCrop() {
@@ -6209,6 +6756,11 @@ JSON FORMAT:
       active.activeChapterArcs = null;
       await saveState();
       renderMessages();
+      // renderMessages() rebuilds the virtualized list (real nodes swapped for
+      // estimated-height spacers), which changes total content height — so the
+      // preserved scrollTop no longer points at the same place. Re-pin if the
+      // user was following along at the bottom.
+      if (chatStickToBottom) requestAnimationFrame(() => scrollMessagesToBottom(false));
       renderSidebar();
       renderScenariosList();
       if (active.viewMode === 'vn') {
@@ -6463,12 +7015,10 @@ JSON FORMAT:
           const data=await response.json();
           recordTextUsage(model,data,JSON.stringify(contentsArray),payload.generationConfig.maxOutputTokens);
           const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          try {
-            const parsed=JSON.parse(rawOutput.trim());
-            if(Array.isArray(parsed)&&parsed.length){
-              return parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''}));
-            }
-          } catch(e) { return parsePlainTextIntoBlocks(rawOutput); }
+          const parsed=parseJsonLoose(rawOutput,null);
+          if(Array.isArray(parsed)&&parsed.length){
+            return parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''}));
+          }
           return parsePlainTextIntoBlocks(rawOutput);
         } catch(e) { lastError=e; if(attempt===API_RETRY_LIMIT) throw e; await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250)); }
       }
@@ -6531,7 +7081,7 @@ JSON FORMAT:
     }
 
     async function archiveCurrentChapterManually(){
-      const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(!turns.length){alert('There are no turns to archive yet.');return;}
+      const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(!turns.length){zfAlert('There are no turns to archive yet.');return;}
       const shouldGenerate=!!appState.apiKey;
       showLoading(true,'Archiving current chapter...');
       try{
@@ -6539,10 +7089,10 @@ JSON FORMAT:
         if(shouldGenerate){
           const dialogue=turns.map(m=>`${m.speakerName||'Speaker'}: ${m.text}`).join('\n'); const cast=[active.userPersona.name,...active.characters.map(c=>c.name)];
           const payload={contents:[{role:'user',parts:[{text:`Summarize Chapter ${active.currentChapter||1}. Return JSON with milestoneSummary (2-3 sentences) and characterArcs mapping each of ${cast.join(', ')} to 3-4 sentences. Preserve only established facts.\n\n${dialogue}`}]}],generationConfig:{temperature:.25,maxOutputTokens:1000,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER};
-          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=JSON.parse((data.candidates?.[0]?.content?.parts?.[0]?.text||'{}').trim())||recap}catch(e){}}
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,null)||recap}catch(e){}}
         }
         active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:'msg_'+Date.now(),isChapterDivider:true,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;await saveState(true);renderAllUi();populateChapterChronicle();
-      }catch(e){alert('Manual archive notice: '+e.message)}finally{showLoading(false)}
+      }catch(e){zfAlert('Manual archive notice: '+e.message)}finally{showLoading(false)}
     }
 
     async function checkAndTriggerChapterArchival() {
@@ -6595,7 +7145,7 @@ TASK: Return a JSON object with:
           recordTextUsage(MODEL_ADVANCED, summaryData, dialogueText, 1200);
           const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
           let parsed = {};
-          try { parsed = JSON.parse(rawJson.trim()); } catch(e){}
+          parsed = parseJsonLoose(rawJson, parsed);
 
           if (!active.archivedRecaps) active.archivedRecaps = [];
           const completedRecap = {
@@ -6692,10 +7242,10 @@ TASK: Return a JSON object with:
       }
       const active = getActiveScenario();
       if (active.messages.length === 0) {
-        alert("Start a story or send a message before generating a visual.");
+        zfAlert("Start a story or send a message before generating a visual.");
         return;
       }
-      if (!confirm('Generate a scene visual from the recent dialogue? This uses image generation tokens.')) return;
+      if (!await zfConfirm('Generate a scene visual from the recent dialogue? This uses image generation tokens.', 'Generate Scene Visual', 'Generate')) return;
 
       showLoading(true, "Analyzing cast appearances and scene layout...");
 
@@ -6840,7 +7390,7 @@ REQUIREMENTS:
         renderScenariosList();
         if (active.viewMode === 'vn') renderVnTurn(false);
       } catch (err) {
-        alert("Visualizer Notice: " + err.message);
+        zfAlert("Visualizer Notice: " + err.message);
       } finally {
         showLoading(false);
       }
@@ -6934,12 +7484,14 @@ REQUIREMENTS:
         await playSequentialTypewriter(replyBlocks);
       } catch (err) {
         showLoading(false);
-        alert("Error: " + err.message);
+        zfAlert("Error: " + err.message);
       }
     }
 
     async function triggerAiResponse(extraDirective = null) {
       showLoading(true);
+      if (!appState.usageStats) appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
+      appState.usageStats.storyTurns = (appState.usageStats.storyTurns || 0) + 1;
       try {
         const contents = buildApiContents(extraDirective);
         const replyBlocks = await callGeminiApi(contents);
@@ -6947,7 +7499,7 @@ REQUIREMENTS:
         await playSequentialTypewriter(replyBlocks);
       } catch (err) {
         showLoading(false);
-        alert("Gemini API Error: " + err.message);
+        zfAlert("Gemini API Error: " + err.message);
       }
     }
 
@@ -6983,12 +7535,12 @@ REQUIREMENTS:
         }
       } catch (err) {
         showLoading(false);
-        alert("Retry error: " + err.message);
+        zfAlert("Retry error: " + err.message);
       }
     }
 
     async function deleteMessage(index) {
-      if (confirm("Delete this entry?")) {
+      if (await zfConfirm('Delete this entry?', 'Delete Message', 'Delete')) {
         const active = getActiveScenario();
         active.messages.splice(index, 1);
         await saveState();
@@ -7032,7 +7584,21 @@ REQUIREMENTS:
 
     function downloadBlob(content,type,filename){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
     function exportStoryMarkdown(active){let markdown=`# ${active.title||'Interactive Story'}\n\n**Setting:** ${active.setting||'N/A'}\n\n**Presentation:** ${active.viewMode==='vn'?'Visual Novel Stage':'Messenger Feed'} (${active.artStyle||'Anime'})\n\n**User:** ${active.userPersona.name} (${active.userPersona.role})\n\n`;if((active.lorebook||[]).length){markdown+='## World Codex & Lorebook\n\n';active.lorebook.forEach(l=>{markdown+=`### ${l.title}\n*Keywords:* ${l.keywords}\n${l.content}\n\n`});markdown+='---\n\n';}if((active.archivedRecaps||[]).length){markdown+='## Archived Story Recaps\n\n';active.archivedRecaps.forEach(r=>{markdown+=typeof r==='string'?`${r}\n\n`:`### Chapter ${r.chapterNum}\n${r.milestoneSummary}\n\n`});markdown+='---\n\n';}active.messages.forEach(m=>{if(m.isChapterDivider)markdown+=`\n## --- ${m.text} ---\n\n`;else if(m.isImage)markdown+=`![Scene Snapshot](${m.imageUrl})\n*${m.text||m.prompt}*\n\n---\n\n`;else markdown+=`### ${m.speakerName||'Character'} (${m.timestamp||''})\n\n${m.text}\n\n---\n\n`;});return markdown;}
-    function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(appState,null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){downloadBlob(JSON.stringify(active,null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){alert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
+    // Exports must contain real image data, not the in-memory blob: URLs
+    // (which are meaningless outside this page session) — inline them first.
+    async function inlineImagesForExport(obj) {
+      const copy = typeof structuredClone === 'function' ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+      const wrapper = copy.scenarios ? copy : { scenarios: [copy] };
+      await walkStateImages(wrapper, async (value) => {
+        if (typeof value !== 'string' || !value.startsWith('blob:')) return value;
+        try {
+          const blob = await (await fetch(value)).blob();
+          return await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(''); r.readAsDataURL(blob); });
+        } catch (e) { return ''; }
+      });
+      return copy.scenarios ? copy : wrapper.scenarios[0];
+    }
+    async function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(appState),null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(active),null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){zfAlert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
     function exportStory(){openModal('exportModal');}
     function exportJsonBackup(){performExport('all-json');}
 
@@ -7054,13 +7620,13 @@ REQUIREMENTS:
             await saveState();
             renderAllUi();
             syncModalForm();
-            alert("All scenarios, codex, and backfiles restored successfully!");
+            zfAlert("All scenarios, codex, and backfiles restored successfully!");
             closeModal('importModal');
           } else {
-            alert("Invalid backup file structure.");
+            zfAlert("Invalid backup file structure.");
           }
         } catch (err) {
-          alert("Error parsing JSON file: " + err.message);
+          zfAlert("Error parsing JSON file: " + err.message);
         }
       };
       reader.readAsText(file);
@@ -7106,22 +7672,290 @@ REQUIREMENTS:
     let lastRenderedMessageCount = -1;
     let lastRenderedScenarioId = '';
     let lastRenderedMessageSignature = '';
+    // ADD-5: Search every scenario, not just the active one.
+    let globalSearchMode = false;
+    function toggleGlobalSearchMode() {
+      globalSearchMode = !globalSearchMode;
+      const btn = document.getElementById('globalSearchToggle');
+      if (btn) { btn.classList.toggle('vn-toggle-active', globalSearchMode); btn.innerText = globalSearchMode ? '🌐 All scenarios' : '📄 This scenario'; }
+      const input = document.getElementById('messageSearchInput');
+      if (input) input.placeholder = globalSearchMode ? '🔎 Search across ALL scenarios...' : '🔎 Search current history by speaker or keyword...';
+      filterMessageArchive(document.getElementById('messageSearchInput')?.value || '');
+    }
+    function renderGlobalSearchResults(query) {
+      const out = document.getElementById('messageSearchResults');
+      if (!out) return;
+      if (!query) { out.innerHTML = ''; return; }
+      const hits = [];
+      (appState.scenarios || []).forEach(s => {
+        (s.messages || []).forEach((m, i) => {
+          if (m.isImage || m.isChapterDivider) return;
+          if (`${m.speakerName || ''} ${m.text || ''}`.toLowerCase().includes(query)) hits.push({ s, m, i });
+        });
+      });
+      out.innerHTML = `${hits.length} match${hits.length === 1 ? '' : 'es'} across ${new Set(hits.map(h => h.s.id)).size} scenario(s)${hits.length > 20 ? ' — showing first 20' : ''}
+        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto py-1">
+          ${hits.slice(0, 20).map(h => `
+            <button type="button" onclick="jumpToScenarioMessage('${h.s.id}',${h.i})" class="text-left bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 hover:border-zetaAccent transition">
+              <div class="text-[9px] text-zetaGlow font-semibold truncate">${escapeHtml(h.s.title || 'Untitled')}${h.s.id === appState.activeScenarioId ? ' · current' : ''}</div>
+              <div class="text-[10px] text-slate-300 truncate">${escapeHtml(h.m.speakerName || 'Message')}: ${escapeHtml((h.m.text || '').slice(0, 70))}</div>
+            </button>`).join('')}
+        </div>`;
+    }
+    async function jumpToScenarioMessage(scenarioId, index) {
+      if (scenarioId !== appState.activeScenarioId) {
+        await switchScenario(scenarioId);
+      }
+      globalSearchMode = false;
+      const btn = document.getElementById('globalSearchToggle');
+      if (btn) { btn.classList.remove('vn-toggle-active'); btn.innerText = '📄 This scenario'; }
+      jumpToMessage(index);
+    }
+
+    // ADD-3: Branch history. Every edit/retry already snapshots the whole
+    // timeline into messageBranches, but only single-step undo was exposed —
+    // this surfaces all live branch points so any of them can be restored.
+    function openBranchHistory() {
+      const active = getActiveScenario();
+      const keys = Object.keys(messageBranches);
+      const container = document.getElementById('branchHistoryBody');
+      if (!container) return;
+      if (!keys.length) {
+        container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-8">No branch points yet.<br>Editing or retrying a message saves a restore point here.</div>`;
+      } else {
+        container.innerHTML = keys.map(k => {
+          const snap = messageBranches[k] || [];
+          const anchor = active.messages.find(m => m.id === k);
+          const label = anchor ? `${anchor.speakerName || 'Message'}: ${(anchor.text || '').slice(0, 60)}` : (k.startsWith('retry_') ? 'Retry point' : 'Edited message');
+          const diff = snap.length - active.messages.length;
+          return `
+            <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2">
+              <div class="text-[11px] font-semibold text-zetaLight truncate">${escapeHtml(label)}</div>
+              <div class="text-[10px] text-slate-500">Snapshot holds ${snap.length} turns (${diff === 0 ? 'same length as now' : diff > 0 ? `${diff} more than now` : `${Math.abs(diff)} fewer than now`})</div>
+              <div class="flex gap-1.5">
+                <button onclick="restoreBranchSnapshot('${escapeJsString(k)}')" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-semibold py-1.5 rounded-lg transition active:scale-95">↩️ Restore this timeline</button>
+                <button onclick="discardBranchSnapshot('${escapeJsString(k)}')" class="text-[10px] text-slate-500 hover:text-rose-400 px-2">🗑️</button>
+              </div>
+            </div>`;
+        }).join('');
+      }
+      openModal('branchHistoryModal');
+    }
+    async function restoreBranchSnapshot(key) {
+      const snap = messageBranches[key];
+      if (!snap) return;
+      if (!await zfConfirm('Restore the story to this saved timeline? Turns generated after this point will be replaced.', 'Restore Timeline', 'Restore')) return;
+      const active = getActiveScenario();
+      active.messages = JSON.parse(JSON.stringify(snap));
+      delete messageBranches[key];
+      await saveState();
+      renderAllUi();
+      closeModal('branchHistoryModal');
+    }
+    async function discardBranchSnapshot(key) {
+      if (!await zfConfirm('Discard this restore point? The current story is unaffected.', 'Discard Branch', 'Discard')) return;
+      delete messageBranches[key];
+      openBranchHistory();
+    }
+
+    // ADD-4: Render the current chapter to a single audio file, reusing the
+    // same Kokoro pipeline the VN stage already uses for per-line playback.
+    async function exportChapterAudio() {
+      const active = getActiveScenario();
+      const turns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && (m.text || '').trim());
+      if (!turns.length) { await zfAlert('There are no story turns to export yet.', 'Nothing to Export'); return; }
+      const voiced = turns.filter(m => {
+        const name = String(m.speakerName || '').toLowerCase();
+        const who = name === String(active.userPersona.name || '').toLowerCase() ? active.userPersona : (active.characters || []).find(c => String(c.name || '').toLowerCase() === name);
+        return who && who.ttsVoice;
+      });
+      if (!voiced.length) { await zfAlert('No speakers in this chapter have a voice assigned. Use "Auto-Assign Voices" in Setup first.', 'No Voices Assigned'); return; }
+      if (!await zfConfirm(`Render ${voiced.length} voiced line${voiced.length === 1 ? '' : 's'} to a single audio file? This runs entirely on-device and may take a while.`, 'Export Chapter Audio', 'Render')) return;
+
+      showLoading(true, 'Loading voice model...');
+      try {
+        await loadKokoroTTS();
+        const ctx = getVnAudioContext();
+        const buffers = [];
+        for (let i = 0; i < voiced.length; i++) {
+          const m = voiced[i];
+          showLoading(true, `Rendering line ${i + 1} of ${voiced.length}...`);
+          const name = String(m.speakerName || '').toLowerCase();
+          const who = name === String(active.userPersona.name || '').toLowerCase() ? active.userPersona : (active.characters || []).find(c => String(c.name || '').toLowerCase() === name);
+          const profile = who.voiceLab || Object.assign(defaultVoiceLabProfile(), { voice: who.ttsVoice });
+          try {
+            let buf = await generateKokoroAudioBuffer(String(m.text).replace(/[_#`]/g, ''), profile);
+            buf = await renderBufferWithPitch(buf, Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)));
+            buffers.push(buf);
+          } catch (e) { console.warn('Skipped a line during audio export:', e?.message || e); }
+        }
+        if (!buffers.length) throw new Error('No audio could be rendered.');
+        const gap = Math.round(ctx.sampleRate * 0.35);
+        const totalLen = buffers.reduce((sum, b) => sum + b.length + gap, 0);
+        const out = new Float32Array(totalLen);
+        let offset = 0;
+        buffers.forEach(b => { out.set(b.getChannelData(0), offset); offset += b.length + gap; });
+        const blob = pcmToWavBlob(out, buffers[0].sampleRate);
+        const base = (active.title || 'chapter').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        const url = URL.createObjectURL(blob);
+        downloadDataUrlAsFile(url, `${base}_chapter_${active.currentChapter || 1}.wav`);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        await zfAlert(`Rendered ${buffers.length} lines to a single audio file.`, 'Audio Exported');
+      } catch (err) {
+        await zfAlert('Audio export failed: ' + (err?.message || err), 'Export Failed');
+      } finally { showLoading(false); }
+    }
+
+    // ADD-2: Import character cards. Supports plain .json cards and the
+    // PNG-embedded variant (base64 JSON inside a tEXt chunk keyed "chara"),
+    // which is what most shared character files use.
+    function readPngTextChunks(bytes) {
+      const out = {};
+      // PNG = 8-byte signature, then [len][type][data][crc] chunks.
+      if (bytes.length < 8 || bytes[0] !== 0x89 || bytes[1] !== 0x50) return out;
+      let pos = 8;
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      while (pos + 8 <= bytes.length) {
+        const len = dv.getUint32(pos); pos += 4;
+        const type = String.fromCharCode(bytes[pos], bytes[pos + 1], bytes[pos + 2], bytes[pos + 3]); pos += 4;
+        if (pos + len > bytes.length) break;
+        if (type === 'tEXt') {
+          const chunk = bytes.subarray(pos, pos + len);
+          const nul = chunk.indexOf(0);
+          if (nul > -1) {
+            const key = new TextDecoder().decode(chunk.subarray(0, nul));
+            const val = new TextDecoder().decode(chunk.subarray(nul + 1));
+            out[key] = val;
+          }
+        }
+        pos += len + 4; // skip data + CRC
+        if (type === 'IEND') break;
+      }
+      return out;
+    }
+    function normalizeCharacterCard(card) {
+      // v2 cards nest the real payload under .data; v1 is flat.
+      const d = (card && card.data) ? card.data : card;
+      if (!d || (!d.name && !d.char_name)) return null;
+      const persona = [d.description || d.char_persona || '', d.personality || '', d.scenario ? `Scenario: ${d.scenario}` : ''].filter(Boolean).join('\n\n');
+      return {
+        name: String(d.name || d.char_name).slice(0, 80),
+        role: String(d.tags?.join(', ') || d.category || 'Imported Character').slice(0, 120),
+        persona: persona.slice(0, 4000),
+        visualProfile: String(d.appearance || '').slice(0, 2000),
+        greeting: String(d.first_mes || d.char_greeting || '').slice(0, 2000)
+      };
+    }
+    async function importCharacterCard(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        let card = null;
+        let avatarDataUrl = '';
+        if (/\.json$/i.test(file.name)) {
+          card = parseJsonLoose(await file.text(), null);
+        } else {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const chunks = readPngTextChunks(bytes);
+          const raw = chunks.chara || chunks.ccv3 || '';
+          if (raw) { try { card = parseJsonLoose(decodeURIComponent(escape(atob(raw))), null) || parseJsonLoose(atob(raw), null); } catch (e) { card = null; } }
+          avatarDataUrl = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(''); r.readAsDataURL(file); });
+        }
+        const norm = card ? normalizeCharacterCard(card) : null;
+        if (!norm) { await zfAlert('No character card data was found in that file. Supported: .json cards, or .png cards with embedded character data.', 'Import Failed'); return; }
+        if (!await zfConfirm(`Import "${norm.name}" into this scenario's cast?`, 'Import Character', 'Import')) return;
+        const active = getActiveScenario();
+        const newChar = {
+          id: 'char_' + Date.now(), name: norm.name, role: norm.role, avatar: avatarDataUrl,
+          photos: avatarDataUrl ? [{ src: avatarDataUrl, caption: 'Card art' }] : [],
+          mood: 'Neutral', persona: norm.persona, visualProfile: norm.visualProfile,
+          personality: '', relationship: '', relationships: {}, outfits: [], currentOutfitId: '', ttsVoice: ''
+        };
+        active.characters.push(newChar);
+        if (norm.greeting && !(active.messages || []).length) {
+          active.messages.push({ id: 'msg_' + Date.now(), role: 'model', speakerName: norm.name, text: norm.greeting, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        }
+        await saveState();
+        renderAllUi();
+        syncModalForm();
+        await zfAlert(`"${norm.name}" was added to the cast.`, 'Character Imported');
+      } catch (err) {
+        await zfAlert('Character card import error: ' + (err?.message || err), 'Import Failed');
+      } finally { event.target.value = ''; }
+    }
+
     let messageSearchQuery='';
     function toggleMessageSearch(show){const bar=document.getElementById('messageSearchBar');if(!bar)return;bar.classList.toggle('hidden',!show);if(show){document.getElementById('messageSearchInput')?.focus()}else{messageSearchQuery='';const i=document.getElementById('messageSearchInput');if(i)i.value='';filterMessageArchive('')}}
-    function filterMessageArchive(query){messageSearchQuery=String(query||'').trim().toLowerCase();const active=getActiveScenario();const matches=messageSearchQuery?(active.messages||[]).map((m,i)=>({m,i})).filter(x=>`${x.m.speakerName||''} ${x.m.text||''}`.toLowerCase().includes(messageSearchQuery)):[];const out=document.getElementById('messageSearchResults');if(out){if(!messageSearchQuery){out.innerHTML='';}else{out.innerHTML=`${matches.length} match${matches.length===1?'':'es'}${matches.length>12?' — showing first 12':''}<div class="flex gap-1 overflow-x-auto py-1 no-scrollbar">${matches.slice(0,12).map(x=>`<button type="button" onclick="jumpToMessage(${x.i})" class="shrink-0 max-w-[180px] truncate bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 text-[10px] text-zetaLight hover:text-white">${escapeHtml(x.m.speakerName||'Message')} · ${escapeHtml((x.m.text||'').slice(0,55))}</button>`).join('')}</div>`;}}if(messageSearchQuery){renderVirtualMessages(true,matches.map(x=>x.i));}else renderMessages();}
+    function filterMessageArchive(query){messageSearchQuery=String(query||'').trim().toLowerCase();if(globalSearchMode){renderGlobalSearchResults(messageSearchQuery);return;}const active=getActiveScenario();const matches=messageSearchQuery?(active.messages||[]).map((m,i)=>({m,i})).filter(x=>`${x.m.speakerName||''} ${x.m.text||''}`.toLowerCase().includes(messageSearchQuery)):[];const out=document.getElementById('messageSearchResults');if(out){if(!messageSearchQuery){out.innerHTML='';}else{out.innerHTML=`${matches.length} match${matches.length===1?'':'es'}${matches.length>12?' — showing first 12':''}<div class="flex gap-1 overflow-x-auto py-1 no-scrollbar">${matches.slice(0,12).map(x=>`<button type="button" onclick="jumpToMessage(${x.i})" class="shrink-0 max-w-[180px] truncate bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 text-[10px] text-zetaLight hover:text-white">${escapeHtml(x.m.speakerName||'Message')} · ${escapeHtml((x.m.text||'').slice(0,55))}</button>`).join('')}</div>`;}}if(messageSearchQuery){renderVirtualMessages(true,matches.map(x=>x.i));}else renderMessages();}
 
     function jumpToMessage(index){messageSearchQuery='';const input=document.getElementById('messageSearchInput');if(input)input.value='';renderVirtualMessages(true);requestAnimationFrame(()=>{const el=document.getElementById(`msg-${index}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});});}
+    // Measured-height virtualizer. The old fixed 110px estimate was the root
+    // cause of scroll drift: real bubbles range from ~60px (one-liner) to
+    // 400px+ (long narration), so spacer heights never matched the content
+    // they stood in for and scrollTop pointed somewhere different after every
+    // rebuild. Heights are now measured after each render and cached per
+    // message id, with the running average used for not-yet-seen messages.
     let virtualChatState={start:0,end:0,estimate:110,overscan:8,indices:[],query:''};
+    const measuredHeights = new Map(); // message id -> px
+    function heightForIndex(all, index) {
+      const m = all[index];
+      const id = m && m.id;
+      if (id && measuredHeights.has(id)) return measuredHeights.get(id);
+      return virtualChatState.estimate;
+    }
+    function offsetForIndex(all, index) {
+      let total = 0;
+      for (let i = 0; i < index; i++) total += heightForIndex(all, i);
+      return total;
+    }
+    function measureRenderedMessages(container, all) {
+      let changed = false;
+      container.querySelectorAll('[data-virtual-index]').forEach(el => {
+        const idx = Number(el.dataset.virtualIndex);
+        const m = all[idx];
+        if (!m || !m.id) return;
+        const h = el.offsetHeight;
+        if (h > 0 && measuredHeights.get(m.id) !== h) { measuredHeights.set(m.id, h); changed = true; }
+      });
+      if (changed && measuredHeights.size) {
+        let sum = 0;
+        measuredHeights.forEach(v => sum += v);
+        virtualChatState.estimate = Math.max(48, Math.round(sum / measuredHeights.size));
+      }
+      return changed;
+    }
     let virtualChatScrollBound=false;
     function renderVirtualMessages(force=false, explicitIndices=null){
       const container=document.getElementById('messagesContainer');const active=getActiveScenario();if(!container||!active)return;
       document.getElementById('chapterBadgeText').innerText=`Ch. ${active.currentChapter||1}`;
       const all=active.messages||[];if(!all.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p><button onclick="openModal('setupModal')" class="mt-2 bg-zetaAccent text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl">Configure & Start</button></div>`;return;}
       if(!virtualChatScrollBound){container.addEventListener('scroll',()=>{if(messageSearchQuery)return;chatStickToBottom=isMessagesContainerNearBottom(container);if(chatStickToBottom){const jumpBtn=document.getElementById('chatJumpToLatestBtn');if(jumpBtn)jumpBtn.style.display='none';}if(activeTypewriter.isTyping)return;requestAnimationFrame(()=>renderVirtualMessages())},{passive:true});virtualChatScrollBound=true;}
-      const count=all.length;const h=virtualChatState.estimate;let start=explicitIndices?Math.max(0,Math.min(...explicitIndices)-2):Math.max(0,Math.floor(container.scrollTop/h)-virtualChatState.overscan);let end=explicitIndices?Math.min(count,Math.max(...explicitIndices)+3):Math.min(count,Math.ceil((container.scrollTop+container.clientHeight)/h)+virtualChatState.overscan);
+      const count=all.length;
+      let start, end;
+      if (explicitIndices) {
+        start = Math.max(0, Math.min(...explicitIndices) - 2);
+        end = Math.min(count, Math.max(...explicitIndices) + 3);
+      } else {
+        // Walk cumulative measured heights to find the first/last visible item
+        // instead of dividing by a single fixed estimate.
+        const viewTop = container.scrollTop, viewBottom = viewTop + container.clientHeight;
+        let acc = 0; start = 0; end = count;
+        for (let i = 0; i < count; i++) {
+          const hh = heightForIndex(all, i);
+          if (acc + hh >= viewTop) { start = i; break; }
+          acc += hh;
+        }
+        let acc2 = acc;
+        for (let i = start; i < count; i++) {
+          acc2 += heightForIndex(all, i);
+          if (acc2 > viewBottom) { end = i + 1; break; }
+        }
+        start = Math.max(0, start - virtualChatState.overscan);
+        end = Math.min(count, end + virtualChatState.overscan);
+      }
       if(!force&&!messageSearchQuery&&start===virtualChatState.start&&end===virtualChatState.end&&container.children.length>2)return;
       virtualChatState.start=start;virtualChatState.end=end;virtualChatState.indices=explicitIndices||[];virtualChatState.query=messageSearchQuery;
-      const topH=start*h,bottomH=Math.max(0,(count-end)*h);const frag=document.createDocumentFragment();const top=document.createElement('div');top.className='virtual-chat-spacer';top.style.height=topH+'px';frag.appendChild(top);
+      const topH=offsetForIndex(all,start),bottomH=Math.max(0,offsetForIndex(all,count)-offsetForIndex(all,end));const frag=document.createDocumentFragment();const top=document.createElement('div');top.className='virtual-chat-spacer';top.style.height=topH+'px';frag.appendChild(top);
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
@@ -7129,6 +7963,10 @@ REQUIREMENTS:
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
+      // Measure what we just painted so the next pass uses real heights.
+      if (measureRenderedMessages(container, all) && chatStickToBottom && !messageSearchQuery && !activeTypewriter.isTyping) {
+        container.scrollTop = container.scrollHeight;
+      }
       if(messageSearchQuery&&explicitIndices?.length){const first=document.getElementById(`msg-${explicitIndices[0]}`);if(first)first.scrollIntoView({block:'center'});}
     }
     function renderMessages(){renderVirtualMessages(true);}
