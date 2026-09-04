@@ -387,6 +387,30 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
+
+    /* === Boot / Loading Screen ========================================== */
+    #zfBootScreen {
+      position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center;
+      justify-content: center; overflow: hidden; background: #131118;
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+    #zfBootScreen.zf-boot-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #zfBootScreen .zf-boot-backdrop { position:absolute; inset:-20%; background:
+      radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--zeta-accent, #7c65e8) 18%, transparent), transparent 34%),
+      radial-gradient(circle at 50% 50%, #221d2e 0%, #131118 52%, #0c0a10 100%); }
+    #zfBootScreen .zf-boot-content { position:relative; width:min(88vw,420px); text-align:center; padding:24px; }
+    #zfBootLogo { width:min(46vw,190px); height:min(46vw,190px); margin:0 auto 22px; filter: drop-shadow(0 0 24px color-mix(in srgb, var(--zeta-accent, #7c65e8) 34%, transparent)); animation: zfBootFloat 3.2s ease-in-out infinite; }
+    #zfBootLogo .zf-boot-bolt { transform-origin:256px 256px; animation: zfBootPulse 1.8s ease-in-out infinite; }
+    #zfBootLogo .zf-boot-glow { animation: zfBootGlow 1.8s ease-in-out infinite; }
+    #zfBootTitle { font-weight:800; letter-spacing:.08em; color:#fff; font-size:clamp(20px,5vw,28px); }
+    #zfBootSubtitle { color:#94a3b8; font-size:12px; margin-top:5px; }
+    #zfBootStatus { margin-top:22px; min-height:18px; color:#c4b5fd; font-size:11px; }
+    #zfBootBar { width:min(78vw,300px); height:3px; margin:10px auto 0; border-radius:999px; background:#282332; overflow:hidden; }
+    #zfBootBarFill { width:12%; height:100%; border-radius:inherit; background:linear-gradient(90deg, color-mix(in srgb, var(--zeta-accent, #7c65e8) 72%, #fff), var(--zeta-accent, #7c65e8)); transition:width .35s ease; box-shadow:0 0 14px color-mix(in srgb, var(--zeta-accent, #7c65e8) 50%, transparent); }
+    @keyframes zfBootFloat { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-7px) scale(1.015); } }
+    @keyframes zfBootPulse { 0%,100% { transform:scale(1); opacity:.92; } 50% { transform:scale(1.035); opacity:1; } }
+    @keyframes zfBootGlow { 0%,100% { opacity:.24; } 50% { opacity:.62; } }
+    @media (prefers-reduced-motion: reduce) { #zfBootLogo, #zfBootLogo .zf-boot-bolt, #zfBootLogo .zf-boot-glow { animation:none; } }
   </style>
 </head>
 <body id="appBody" class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
@@ -757,6 +781,10 @@
             <span id="engineIndicator" class="text-[10px] text-slate-400 truncate" style="display:none;"></span>
           </div>
 
+          <button type="button" id="llmConnectionGraphic" onclick="openLlmConnectionDrawer()" class="w-full flex items-center justify-center gap-2 py-1.5 px-2 rounded-xl border border-zetaBorder bg-zetaCard/70 hover:bg-zetaCard transition active:scale-[0.99]" aria-label="LLM connection status">
+            <span class="flex items-center gap-1.5" aria-hidden="true"><span data-llm-icon="gemini" class="text-sm">●</span><span class="text-slate-600">↔</span><span data-llm-icon="workstation" class="text-sm">💻</span><span class="text-slate-600">↔</span><span data-llm-icon="deviceIphone" class="text-sm">📱</span><span class="text-slate-600">↔</span><span data-llm-icon="deviceIpad" class="text-sm">📱</span></span><span class="flex items-center gap-1 text-[9px] text-slate-400 min-w-0"><span data-llm-status-dot class="inline-block w-2 h-2 rounded-full bg-slate-500"></span><span data-llm-status-label class="truncate">Not verified · Google Gemini</span><span>⚙</span></span>
+          </button>
+
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
@@ -777,6 +805,17 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Compact LLM Connection Drawer -->
+  <div id="llmConnectionDrawer" class="fixed inset-y-0 right-0 z-[55] w-80 sm:w-[28rem] bg-zetaSidebar border-l border-zetaBorder flex flex-col transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
+    <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><div><h2 class="text-sm font-bold text-white">🔌 LLM Connection</h2><p class="text-[10px] text-slate-500 mt-1">Edit LLM settings without opening Setup.</p></div><button onclick="toggleLlmConnectionDrawer(false)" class="text-slate-400 hover:text-white text-2xl">&times;</button></div>
+    <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
+      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><label class="block text-[10px] font-bold text-zetaLight uppercase">Active routine LLM</label><select id="llmDrawerProfileSelect" onchange="onLlmDrawerProfileChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs"><option value="gemini">☁️ Google Gemini</option><option value="workstation">💻 Laptop / Workstation</option><option value="deviceIphone">📱 iPhone / Colab — Stheno 8B Q4_K_M</option><option value="deviceIpad">📱 iPad — On-Device Stheno</option><option value="auto">⚡ Smart Auto-Routing</option></select><p id="llmDrawerProfileHint" class="text-[10px] text-slate-500"></p></div>
+      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><b class="text-[10px] text-zetaLight uppercase">☁️ Google Gemini</b><input id="llmDrawerApiKey" type="password" autocomplete="off" placeholder="Gemini API key" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><select id="llmDrawerModel" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option><option value="gemini-3.6-flash">gemini-3.6-flash</option><option value="gemini-3.7-flash">gemini-3.7-flash</option><option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option></select></div>
+      ${['workstation','deviceIphone','deviceIpad'].map(k=>`<div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><b class="text-[10px] text-zetaLight uppercase">${k==='workstation'?'💻 Laptop / Workstation':k==='deviceIphone'?'📱 iPhone / Colab':'📱 iPad'}</b><input id="llmDrawerUrl_${k}" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_${k}" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_${k}" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_${k}" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div>${k==='deviceIphone'?'<input id="llmDrawerColabUrl" placeholder="Colab notebook URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerNgrokToken" type="password" autocomplete="off" placeholder="Ngrok authtoken (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white">':''}</div>`).join('')}
+      <div class="text-[10px] text-slate-500 leading-relaxed"><b class="text-slate-300">Fallback:</b> Laptop, iPhone/Colab, and iPad profiles do not fall back to Gemini. Only Smart Auto-Routing can.</div>
+    </div><div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex gap-2"><button onclick="verifyActiveLlmFromDrawer()" class="flex-1 bg-zetaInput border border-zetaBorder text-slate-200 py-2 rounded-xl text-xs">🧪 Verify Active</button><button onclick="saveLlmDrawer()" class="flex-1 bg-zetaAccent text-white py-2 rounded-xl text-xs font-semibold">Save & Apply</button></div>
   </div>
 
   <!-- Image Library Modal -->
@@ -1135,11 +1174,16 @@
               <span id="colabStatusText" class="text-[10px] text-slate-500">Not checked</span>
             </div>
             <input type="text" id="colabNotebookUrl" placeholder="https://colab.research.google.com/github/user/repo/blob/main/notebook.ipynb" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-1.5">
+              <input type="password" id="colabNgrokToken" autocomplete="off" placeholder="Optional: Ngrok Authtoken (stored locally)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <button type="button" onclick="copyColabNgrokToken()" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">📋 Copy</button>
+            </div>
             <div class="flex items-center gap-1.5">
               <button type="button" onclick="launchColabServer()" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-semibold py-1.5 rounded-lg transition active:scale-95">🚀 Launch Colab Server</button>
+              <button type="button" onclick="verifyColabServer()" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">🧪 Verify</button>
               <button type="button" onclick="toggleColabWatch()" id="colabWatchBtn" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">👁 Watch</button>
             </div>
-            <p class="text-[10px] text-slate-500 leading-relaxed">Opens your notebook in Colab. Colab has no way to auto-run cells from a link, so press <strong>Runtime → Run all</strong> there — then ZetaForge watches the tunnel and switches over the moment it answers.</p>
+            <p class="text-[10px] text-slate-500 leading-relaxed">The notebook first checks Colab Secrets for <code>NGROK_AUTHTOKEN</code>, then prompts only if none is available. Launch opens Colab; ZetaForge watches the tunnel and can now verify both <code>/v1/models</code> and a real <code>/v1/chat/completions</code> response.</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1213,7 +1257,7 @@
                 <p>2. In Colab: <strong>Runtime → Run all</strong> (or <kbd>Ctrl</kbd>+<kbd>F9</kbd>). Confirm the GPU runtime is <strong>T4</strong> under Runtime → Change runtime type.</p>
                 <p>3. Wait for cell 5 to print "Starting OpenAI Compatible API". First run downloads ~4.9&nbsp;GB, so allow a couple of minutes. Leave that cell running — stopping it shuts the server down.</p>
                 <p>4. ZetaForge polls the tunnel automatically and the status dot above turns green when it answers. Keep the Colab tab open; free sessions are reclaimed after a period of inactivity.</p>
-                <p class="text-slate-500">Requests include the <code>ngrok-skip-browser-warning</code> header, which is required — without it ngrok's free tier returns its HTML interstitial instead of JSON and every call fails.</p>
+                <p class="text-slate-500">Requests include the <code>ngrok-skip-browser-warning</code> header. The Verify button performs a real <code>/v1/chat/completions</code> request, not just a port check.</p>
               </div>
               <div>
                 <p class="font-semibold text-slate-300">📱 On-Device (iPad Air) — fully local</p>
@@ -2111,6 +2155,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // silently fall back to Gemini mid-call, which made a multi-tier setup very
     // hard to debug — this surfaces it.
     let lastTurnEngine = null;
+    let currentLlmConnection = {state:'unknown',profileKey:'gemini',label:'Google Gemini',model:''};
+    function llmProfileLabel(k){return ({gemini:'Google Gemini',workstation:'Laptop',deviceIphone:'iPhone / Colab',deviceIpad:'iPad',auto:'Smart Auto-Routing'})[k]||'LLM';}
+    function setCurrentLlmConnection(state,profileKey,extra={}){currentLlmConnection={state,profileKey:profileKey||'gemini',label:extra.label||llmProfileLabel(profileKey),model:extra.model||'',detail:extra.detail||''};renderLlmConnectionGraphic();}
+    function renderLlmConnectionGraphic(){const r=document.getElementById('llmConnectionGraphic');if(!r)return;const a=currentLlmConnection.profileKey||appState?.llmProfile||'gemini',st=currentLlmConnection.state,ok=st==='connected',ck=st==='checking';r.querySelectorAll('[data-llm-icon]').forEach(n=>{const on=n.dataset.llmIcon===a;n.classList.toggle('opacity-100',on);n.classList.toggle('opacity-35',!on);n.classList.toggle('scale-110',on);});const l=r.querySelector('[data-llm-status-label]');if(l)l.textContent=ok?`Connected · ${currentLlmConnection.label}`:ck?`Checking · ${currentLlmConnection.label}`:`Not verified · ${currentLlmConnection.label}`;const d=r.querySelector('[data-llm-status-dot]');if(d)d.className='inline-block w-2 h-2 rounded-full '+(ok?'bg-emerald-400':ck?'bg-amber-400 animate-pulse':'bg-slate-500');}
+    function openLlmConnectionDrawer(){toggleLlmConnectionDrawer(true);}
     function renderEngineIndicator() {
       const el = document.getElementById('engineIndicator');
       if (!el) return;
@@ -2155,6 +2204,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
       localTurnsServed: 0,
+      colabNgrokToken: '',
       activeScenarioId: 'default_scen',
       scenarios: [],
       usageStats: {
@@ -2278,15 +2328,32 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return ensureActiveScenario();
     }
 
+    function setBootProgress(percent, status) {
+      const fill = document.getElementById('zfBootBarFill');
+      const text = document.getElementById('zfBootStatus');
+      if (fill) fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+      if (text && status) text.innerText = status;
+    }
+    function finishBootScreen() {
+      const screen = document.getElementById('zfBootScreen');
+      if (!screen) return;
+      setBootProgress(100, 'Ready.');
+      setTimeout(() => screen.classList.add('zf-boot-hidden'), 180);
+      setTimeout(() => screen.remove(), 700);
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
-      await loadState();
-      applyThemeMode(appState.themeMode || 'dark');
-      applyAccentColor(appState.accentColor || '#7c65e8');
-      appState.vnReadingSpeed = Number(appState.vnReadingSpeed || 1);
-      appState.ttsEnabled = !!appState.ttsEnabled;
-      syncTtsToggleButtons();
-      ensureActiveScenario();
-      closeAllDrawers();
+      try {
+        setBootProgress(8, 'Loading saved state…');
+        await loadState();
+        setBootProgress(24, 'Applying appearance…');
+        applyThemeMode(appState.themeMode || 'dark');
+        applyAccentColor(appState.accentColor || '#7c65e8');
+        appState.vnReadingSpeed = Number(appState.vnReadingSpeed || 1);
+        appState.ttsEnabled = !!appState.ttsEnabled;
+        syncTtsToggleButtons();
+        ensureActiveScenario();
+        closeAllDrawers();
       closeImageLibraryModal();
       closeAvatarManagerModal();
       closeLorebookModal();
@@ -2295,10 +2362,14 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       closeLightbox();
       closeModal('setupModal');
       closeModal('importModal');
+      setBootProgress(42, 'Rendering story interface…');
       renderAllUi();
       flushUiRender(); // paint immediately on boot rather than a frame later
       syncModalForm();
+      setCurrentLlmConnection('unknown',appState.llmProfile||'gemini',{label:llmProfileLabel(appState.llmProfile||'gemini'),model:appState.model||''});
       bindDefensiveClickListeners();
+      // Give the browser a paint opportunity before heavy model work.
+      await new Promise(requestAnimationFrame);
       // If the database couldn't be opened, say so rather than silently
       // presenting an empty app — that looks identical to losing every story.
       if (dbUnavailable) {
@@ -2311,15 +2382,41 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           );
         }, 600);
       }
-      // If voice acting was already on from a previous session, start loading
-      // the model and the cast's voices now (in the background, after first
-      // paint) so the first spoken line doesn't wait on a cold start.
+      // Boot now deliberately warms TTS before removing the loading screen.
+      // This prevents the first VN line from paying the model/voice cold-start
+      // cost. If voice acting is disabled, the boot remains fast.
       if (appState.ttsEnabled) {
-        setTimeout(() => { warmUpTtsEngine(); }, 800);
+        setBootProgress(58, 'Loading TTS voice model…');
+        try {
+          await warmUpTtsEngine();
+          setBootProgress(88, 'Warming character voices and next lines…');
+          await preloadCastVoices();
+          prefetchNextVnLine();
+        } catch (e) {
+          console.warn('Boot TTS warm-up failed:', e?.message || e);
+          setBootProgress(88, 'TTS unavailable — continuing without voice warm-up.');
+        }
+      } else {
+        setBootProgress(82, 'Voice acting is off — skipping TTS download.');
       }
+      // Colab verification is useful, but should never make an offline app wait
+      // for a remote tunnel during boot. Start it in the background when the
+      // active profile is Colab or Smart Auto-Routing.
+      const bootProfile = appState.llmProfile || 'gemini';
+      if (bootProfile === 'deviceIphone' || bootProfile === 'auto') {
+        setTimeout(() => checkColabServer(true).catch(() => {}), 50);
+      }
+      setBootProgress(96, 'Finalizing…');
+      finishBootScreen();
       // Reclaim image blobs whose last reference was deleted. Done once, well
       // after boot, so it never competes with first paint.
       setTimeout(() => { collectGarbageAssets(); }, 12000);
+      } catch (bootError) {
+        console.error('ZetaForge boot failed:', bootError);
+        setBootProgress(100, 'Loaded with a startup warning.');
+        finishBootScreen();
+        setTimeout(() => zfAlert('ZetaForge finished loading with a startup warning. Check the browser console for details.', 'Startup Warning'), 700);
+      }
     });
 
     // Belt-and-suspenders click bindings for controls that must keep working
@@ -2463,6 +2560,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
       if (typeof appState.colabNotebookUrl !== 'string') appState.colabNotebookUrl = '';
+      if (typeof appState.colabNgrokToken !== 'string') appState.colabNgrokToken = '';
       if (!['kokoro','chatterbox'].includes(appState.ttsEngine)) appState.ttsEngine = 'kokoro';
       if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
       if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
@@ -2853,6 +2951,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
       const menuDrawer = document.getElementById('menuDrawer');
       if (menuDrawer && !menuDrawer.classList.contains('translate-x-full')) return true;
+      const llmDrawer = document.getElementById('llmConnectionDrawer');
+      if (llmDrawer && !llmDrawer.classList.contains('translate-x-full')) return true;
       const sidebar = document.getElementById('sidebar');
       if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) return true;
       return false;
@@ -2896,6 +2996,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       toggleMobileSidebar(false);
       toggleChapterDrawer(false);
       toggleMenuDrawer(false);
+      toggleLlmConnectionDrawer(false);
     }
 
     function toggleMobileSidebar(force) {
@@ -2956,11 +3057,18 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       }
     }
 
+    function toggleLlmConnectionDrawer(force){const d=document.getElementById('llmConnectionDrawer');if(!d)return;const closed=d.classList.contains('translate-x-full'),open=force!==undefined?force:closed;if(open){toggleMobileSidebar(false);toggleChapterDrawer(false);toggleMenuDrawer(false);syncLlmDrawer();d.classList.remove('translate-x-full');document.getElementById('mobileBackdrop')?.classList.remove('hidden');}else{d.classList.add('translate-x-full');checkBackdrop();}}
+    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;const cu=document.getElementById('llmDrawerColabUrl');if(cu)cu.value=appState.colabNotebookUrl||DEFAULT_COLAB_NOTEBOOK;const ct=document.getElementById('llmDrawerNgrokToken');if(ct)ct.value=appState.colabNgrokToken||'';['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
+    function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop. No Gemini fallback.',deviceIphone:'Routine turns use Colab Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
+    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.colabNotebookUrl=(document.getElementById('llmDrawerColabUrl')?.value||'').trim();appState.colabNgrokToken=(document.getElementById('llmDrawerNgrokToken')?.value||'').trim();appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10);appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs};});autoRouteCache={result:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
+    async function verifyActiveLlmFromDrawer(silent=false){const p=document.getElementById('llmDrawerProfileSelect')?.value||appState.llmProfile||'gemini';if(p==='gemini'){const has=!!((document.getElementById('llmDrawerApiKey')?.value||appState.apiKey||'').trim());setCurrentLlmConnection(has?'connected':'offline','gemini',{label:'Google Gemini',model:document.getElementById('llmDrawerModel')?.value||appState.model});if(!silent&&!has)zfAlert('Google Gemini is selected, but no API key is configured.','LLM Verification');return has;}const url=(document.getElementById(`llmDrawerUrl_${p}`)?.value||appState.llmProfiles?.[p]?.url||'').trim(),model=(document.getElementById(`llmDrawerModel_${p}`)?.value||appState.llmProfiles?.[p]?.model||'').trim();setCurrentLlmConnection('checking',p,{label:llmProfileLabel(p),model});const r=await verifyLocalEndpoint(url,model,p==='deviceIphone'?20000:12000);setCurrentLlmConnection(r.ok?'connected':'offline',p,{label:llmProfileLabel(p),model:r.model||model});if(!silent)zfAlert(r.ok?`${llmProfileLabel(p)} is connected and returned a real inference response.`:`${llmProfileLabel(p)} is NOT connected.\n\n${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Connected');return r.ok;}
+
     function checkBackdrop() {
       const sidebarClosed = document.getElementById('sidebar').classList.contains('-translate-x-full');
       const chapterClosed = document.getElementById('chapterDrawer').classList.contains('translate-x-full');
       const menuClosed = document.getElementById('menuDrawer').classList.contains('translate-x-full');
-      if (sidebarClosed && chapterClosed && menuClosed) {
+      const llmClosed = document.getElementById('llmConnectionDrawer')?.classList.contains('translate-x-full') !== false;
+      if (sidebarClosed && chapterClosed && menuClosed && llmClosed) {
         document.getElementById('mobileBackdrop').classList.add('hidden');
       }
     }
@@ -7332,6 +7440,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
       const colabEl = document.getElementById('colabNotebookUrl');
       if (colabEl) colabEl.value = appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK;
+      const colabTokenEl = document.getElementById('colabNgrokToken');
+      if (colabTokenEl) colabTokenEl.value = appState.colabNgrokToken || '';
       setColabStatus('idle', 'Not checked');
       const profileSelect = document.getElementById('llmProfileSelect');
       if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
@@ -7516,6 +7626,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(document.getElementById('ttsPreloadInput')?.value) || appState.ttsPreloadWindow || 4));
 
       appState.colabNotebookUrl = (document.getElementById('colabNotebookUrl')?.value || '').trim();
+      appState.colabNgrokToken = (document.getElementById('colabNgrokToken')?.value || '').trim();
       appState.llmProfile = document.getElementById('llmProfileSelect')?.value || 'gemini';
       if (!appState.llmProfiles) appState.llmProfiles = JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -8202,6 +8313,32 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       } catch (e) { return false; }
     }
 
+    // Strong verification: /models proves the tunnel is reachable; a tiny
+    // non-streaming completion proves that the OpenAI-compatible inference
+    // route is actually usable by ZetaForge. The test uses the model ID
+    // advertised by the server when one is available.
+    async function verifyLocalEndpoint(url, configuredModel, timeoutMs = 15000) {
+      const base = (url || '').trim().replace(/\/+$/, '');
+      if (!base) return { ok: false, stage: 'config', error: 'No endpoint URL configured.' };
+      try {
+        const modelsRes = await fetch(`${base}/models`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(Math.min(timeoutMs, 8000)) });
+        if (!modelsRes.ok) return { ok: false, stage: 'models', error: `GET /models returned HTTP ${modelsRes.status}.` };
+        const modelsData = await modelsRes.json().catch(() => ({}));
+        const advertised = modelsData?.data?.[0]?.id || modelsData?.models?.[0]?.id || configuredModel || 'local-model';
+        const body = { model: advertised, messages: [{ role: 'user', content: 'Reply with exactly: ZetaForge connection OK' }], temperature: 0, max_tokens: 12, stream: false };
+        const chatRes = await fetch(`${base}/chat/completions`, { method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
+        if (!chatRes.ok) {
+          const text = await chatRes.text().catch(() => '');
+          return { ok: false, stage: 'inference', model: advertised, error: `POST /chat/completions returned HTTP ${chatRes.status}: ${(text || 'request failed').slice(0, 180)}` };
+        }
+        const data = await chatRes.json().catch(() => ({}));
+        const output = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || '';
+        return { ok: true, stage: 'inference', model: advertised, output: String(output).trim() };
+      } catch (e) {
+        return { ok: false, stage: 'network', error: e?.name === 'TimeoutError' ? 'Request timed out.' : (e?.message || 'Network/CORS error.') };
+      }
+    }
+
     // Decides where the NEXT routine story turn should go. Never affects
     // updateInterCharacterRelationships, chapter analysis/archival, lorebook
     // extraction, reply suggestions, or profile synthesis — those always call
@@ -8299,6 +8436,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
           appState.lastLocalProvider = endpointInfo.label || '';
           lastTurnEngine = { kind: 'local', label: endpointInfo.label || 'Local', profileKey: endpointInfo.profileKey || '' };
+          setCurrentLlmConnection('connected',endpointInfo.profileKey||appState.llmProfile,{label:endpointInfo.label||'Local',model:endpointInfo.model||''});
           saveState();
           return parsePlainTextIntoBlocks(rawOutput);
         } catch (e) {
@@ -8323,14 +8461,19 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     async function testLocalEndpoint(profileKey) {
       const cfg = appState.llmProfiles[profileKey] || {};
       const urlInput = document.getElementById(`llmUrl_${profileKey}`);
+      const modelInput = document.getElementById(`llmModel_${profileKey}`);
       const url = (urlInput?.value || cfg.url || '').trim();
+      const model = (modelInput?.value || cfg.model || '').trim();
       const statusEl = document.getElementById(`llmTestStatus_${profileKey}`);
-      if (statusEl) { statusEl.innerText = 'Testing…'; statusEl.className = 'text-[9px] text-amber-400'; }
-      const ok = await pingLocalEndpoint(url, 3000);
+      if (statusEl) { statusEl.innerText = 'Verifying…'; statusEl.className = 'text-[9px] text-amber-400'; }
+      const result = await verifyLocalEndpoint(url, model, profileKey === 'deviceIphone' ? 20000 : 10000);
       if (statusEl) {
-        statusEl.innerText = ok ? '✅ Reachable' : '❌ Unreachable';
-        statusEl.className = ok ? 'text-[9px] text-emerald-400 font-semibold' : 'text-[9px] text-rose-400 font-semibold';
+        statusEl.innerText = result.ok ? `✅ Verified${result.model ? ' · ' + result.model.slice(0, 24) : ''}` : `❌ ${result.stage || 'Failed'}`;
+        statusEl.className = result.ok ? 'text-[9px] text-emerald-400 font-semibold' : 'text-[9px] text-rose-400 font-semibold';
+        statusEl.title = result.ok ? (result.output || 'OpenAI-compatible inference verified.') : (result.error || 'Verification failed.');
       }
+      if ((appState.llmProfile||'')===profileKey) setCurrentLlmConnection(result.ok?'connected':'offline',profileKey,{label:llmProfileLabel(profileKey),model:result.model||model});
+      return result;
     }
 
     // --- Colab GPU server helpers ------------------------------------------
@@ -8363,12 +8506,47 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return ok;
     }
 
-    function launchColabServer() {
+    async function verifyColabServer() {
+      const status = document.getElementById('colabStatusText');
+      if (status) status.innerText = 'Verifying model…';
+      setColabStatus('checking', 'Verifying model…');
+      const result = await verifyLocalEndpoint(colabEndpointUrl(), appState.llmProfiles?.deviceIphone?.model || 'Llama-3.1-8B-Stheno-v3.4', 20000);
+      if (result.ok) {
+        setColabStatus('up', `Model verified ✅${result.model ? ' · ' + result.model.slice(0, 22) : ''}`);
+        const el = document.getElementById('llmTestStatus_deviceIphone');
+        if (el) { el.innerText = '✅ Verified'; el.className = 'text-[9px] text-emerald-400 font-semibold'; }
+      } else {
+        setColabStatus('down', `Verification failed: ${result.error || result.stage}`);
+      }
+      return result;
+    }
+
+    async function copyColabNgrokToken() {
+      const input = document.getElementById('colabNgrokToken');
+      const token = (input?.value || appState.colabNgrokToken || '').trim();
+      if (!token) { await zfAlert('Enter the Ngrok Authtoken first. It is stored only in this browser profile and is never sent to Gemini.', 'Ngrok Token'); return; }
+      try {
+        await navigator.clipboard.writeText(token);
+        await zfAlert('Ngrok Authtoken copied. Paste it into Colab Secrets as NGROK_AUTHTOKEN if it is not already saved there.', 'Copied');
+      } catch (e) {
+        if (input) { input.focus(); input.select(); }
+        await zfAlert('Clipboard access was blocked. The token field is selected so it can be copied manually.', 'Copy Token');
+      }
+    }
+
+    async function launchColabServer() {
       const input = document.getElementById('colabNotebookUrl');
+      const tokenInput = document.getElementById('colabNgrokToken');
       const url = (input?.value || appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK).trim();
-      if (!/^https?:\/\//i.test(url)) { zfAlert('Enter a valid Colab notebook URL first.', 'Invalid URL'); return; }
+      if (!/^https?:\/\//i.test(url)) { await zfAlert('Enter a valid Colab notebook URL first.', 'Invalid URL'); return; }
       appState.colabNotebookUrl = url;
+      appState.colabNgrokToken = (tokenInput?.value || appState.colabNgrokToken || '').trim();
       saveState();
+      // Clipboard is only a convenience; the notebook prefers Colab Secrets.
+      // Never place the token in the Colab URL or query string.
+      if (appState.colabNgrokToken) {
+        try { await navigator.clipboard.writeText(appState.colabNgrokToken); } catch (e) {}
+      }
       window.open(url, '_blank', 'noopener');
       if (!colabWatching) toggleColabWatch(true);
     }
@@ -8413,6 +8591,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     }
 
     function onLlmProfileSelectChange(value) {
+      setCurrentLlmConnection('unknown',value||'gemini',{label:llmProfileLabel(value||'gemini'),model:value==='gemini'?appState.model:(appState.llmProfiles?.[value]?.model||'')});
       const hint = document.getElementById('llmProfileActiveHint');
       if (!hint) return;
       const map = {
@@ -8459,6 +8638,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             continue;
           }
           const data=await response.json();
+          setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model});
           recordTextUsage(model,data,JSON.stringify(contentsArray),payload.generationConfig.maxOutputTokens);
           const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           const parsed=parseJsonLoose(rawOutput,null);
