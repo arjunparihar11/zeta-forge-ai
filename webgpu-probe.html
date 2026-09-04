@@ -59,6 +59,7 @@
         <option value="1B">1B (comparison baseline)</option>
       </select>
       <button id="startBtn" onclick="runProbe()">Start Test</button>
+      <button class="ghost" id="copyBtn" onclick="copyLog()">Copy Log</button>
       <button class="ghost" onclick="clearLog()">Clear Log</button>
     </div>
   </div>
@@ -108,6 +109,27 @@
     render();
     bannerEl.className = ''; bannerEl.style.display = 'none'; bannerEl.textContent = '';
     resumeEl.style.display = 'none';
+  };
+
+  window.copyLog = async function () {
+    const copyBtn = document.getElementById('copyBtn');
+    const header = `ZetaForge in-browser probe log\nUA: ${navigator.userAgent}\nScreen: ${screen.width}x${screen.height} @${window.devicePixelRatio}x\n---`;
+    const body = state.lines.map(l => `[${l.t}] ${l.kind.toUpperCase()}: ${l.text}`).join('\n');
+    const text = state.lines.length ? `${header}\n${body}` : 'Log is empty — run the test first.';
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.textContent = 'Copied ✓';
+    } catch (e) {
+      // Clipboard API blocked or unavailable — select the log text instead
+      // so it can still be copied manually (long-press → Copy on iOS).
+      const range = document.createRange();
+      range.selectNodeContents(logEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      copyBtn.textContent = 'Selected — tap Copy';
+    }
+    setTimeout(() => { copyBtn.textContent = 'Copy Log'; }, 2000);
   };
 
   // Show forensics from a prior run, if any — this is the only way to tell
