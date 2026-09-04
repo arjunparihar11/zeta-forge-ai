@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ZetaForge — In-Browser Model Probe</title>
+<style>
+  :root { --accent:#7c65e8; --glow:#9a89f7; --card:#221d2e; --input:#1d1827; --border:#322a44; --bg:#131118; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:#e5e0f5; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding:16px; padding-bottom:48px; -webkit-text-size-adjust:100%;
+  }
+  h1 { font-size:16px; font-weight:800; letter-spacing:.03em; margin:0 0 4px; color:#fff; }
+  .sub { font-size:12px; color:#94a3b8; margin:0 0 16px; line-height:1.5; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select, button {
+    font-size:13px; border-radius:10px; border:1px solid var(--border); padding:9px 12px;
+    background:var(--input); color:#fff; font-family:inherit;
+  }
+  button { background:var(--accent); border-color:var(--accent); font-weight:600; cursor:pointer; }
+  button:active { transform:scale(0.97); }
+  button:disabled { opacity:.45; }
+  button.ghost { background:var(--input); border-color:var(--border); font-weight:500; }
+  #resumeNotice {
+    display:none; background:#3a2a1a; border:1px solid #b5883a; color:#ffd9a0;
+    border-radius:12px; padding:10px 12px; font-size:12px; margin-bottom:12px; line-height:1.5;
+  }
+  #banner {
+    display:none; border-radius:12px; padding:12px; font-size:13px; font-weight:700; margin-bottom:12px; text-align:center;
+  }
+  #banner.ok { display:block; background:#123a26; border:1px solid #2f9e63; color:#7ee2ac; }
+  #banner.fail { display:block; background:#3a1a1a; border:1px solid #b53a3a; color:#ff9d9d; }
+  #log {
+    background:var(--input); border:1px solid var(--border); border-radius:12px; padding:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.6;
+    white-space:pre-wrap; word-break:break-word; max-height:52vh; overflow-y:auto;
+  }
+  .line-ok::before { content:"✓ "; color:#4ade80; }
+  .line-fail::before { content:"✕ "; color:#f87171; }
+  .line-info::before { content:"· "; color:#8b7ec8; }
+  .footer-note { font-size:11px; color:#6b7280; margin-top:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+  <h1>🗲 ZetaForge — In-Browser Model Probe</h1>
+  <p class="sub">Standalone test, isolated from the main app. Checks whether a model can load and generate directly in this browser tab via WebGPU — nothing here touches your ZetaForge story data or settings.</p>
+
+  <div id="resumeNotice"></div>
+  <div id="banner"></div>
+
+  <div class="card">
+    <div class="row">
+      <select id="sizePick">
+        <option value="8B" selected>8B (what you're actually using)</option>
+        <option value="3B">3B (comparison baseline)</option>
+        <option value="1B">1B (comparison baseline)</option>
+      </select>
+      <button id="startBtn" onclick="runProbe()">Start Test</button>
+      <button class="ghost" onclick="clearLog()">Clear Log</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="log"></div>
+  </div>
+
+  <p class="footer-note">
+    If the page goes blank or reloads mid-test with no error shown, that's iOS killing the tab for using too much memory — Safari gives no catchable event for that. Reopen this page afterward; the last completed step before the crash will be shown above so you know roughly where it happened.
+  </p>
+
+<script type="module">
+  const LOG_KEY = 'zfProbeLog';
+  const logEl = document.getElementById('log');
+  const bannerEl = document.getElementById('banner');
+  const resumeEl = document.getElementById('resumeNotice');
+  const startBtn = document.getElementById('startBtn');
+
+  function readState() {
+    try { return JSON.parse(localStorage.getItem(LOG_KEY) || '{"lines":[]}'); }
+    catch { return { lines: [] }; }
+  }
+  function writeState(state) {
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(state)); } catch {}
+  }
+  let state = readState();
+
+  function render() {
+    logEl.innerHTML = state.lines.map(l =>
+      `<div class="line-${l.kind}">[${l.t}] ${escapeHtml(l.text)}</div>`
+    ).join('');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function log(text, kind = 'info') {
+    const t = new Date().toLocaleTimeString();
+    state.lines.push({ t, text, kind });
+    writeState(state);
+    render();
+    console.log(`[probe] ${text}`);
+  }
+
+  window.clearLog = function () {
+    state = { lines: [] };
+    writeState(state);
+    render();
+    bannerEl.className = ''; bannerEl.style.display = 'none'; bannerEl.textContent = '';
+    resumeEl.style.display = 'none';
+  };
+
+  // Show forensics from a prior run, if any — this is the only way to tell
+  // roughly where a silent iOS memory-kill happened, since there's no crash
+  // event to catch.
+  if (state.lines.length) {
+    render();
+    const last = state.lines[state.lines.length - 1];
+    resumeEl.style.display = 'block';
+    resumeEl.textContent = `Previous run's last recorded step: "${last.text}" at ${last.t}. If that run ended without a clear pass/fail banner above it, the tab was most likely killed for memory around that point.`;
+  }
+
+  window.runProbe = async function () {
+    startBtn.disabled = true;
+    bannerEl.className = ''; bannerEl.style.display = 'none';
+    const sizeTag = document.getElementById('sizePick').value;
+    log(`Starting test — size tier: ${sizeTag}`, 'info');
+
+    try {
+      // Step 1: WebGPU present at all?
+      if (!('gpu' in navigator)) {
+        log('navigator.gpu is undefined — WebGPU is not available in this browser.', 'fail');
+        finish(false);
+        return;
+      }
+      log('navigator.gpu is present.', 'ok');
+
+      // Step 2: request an adapter and read its real limits on THIS device.
+      // This alone (no download needed) answers the "what's the actual
+      // per-buffer ceiling" question that's hard to find published anywhere.
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        log('requestAdapter() returned null — no usable GPU adapter.', 'fail');
+        finish(false);
+        return;
+      }
+      log('GPU adapter acquired.', 'ok');
+      try {
+        const lim = adapter.limits;
+        log(`maxBufferSize: ${(lim.maxBufferSize / 1e9).toFixed(2)} GB`, 'info');
+        log(`maxStorageBufferBindingSize: ${(lim.maxStorageBufferBindingSize / 1e9).toFixed(2)} GB`, 'info');
+      } catch (e) {
+        log(`Could not read adapter.limits: ${e.message}`, 'info');
+      }
+      try {
+        if (adapter.info) log(`Adapter info: ${JSON.stringify(adapter.info)}`, 'info');
+      } catch {}
+
+      // Grab + immediately release a throwaway device — just to confirm
+      // device creation works, without holding a second GPU context while
+      // WebLLM creates its own.
+      const probeDevice = await adapter.requestDevice();
+      log('GPU device created successfully.', 'ok');
+      probeDevice.destroy();
+
+      // Step 3: storage baseline (Storage API works fine in Safari even
+      // though performance.memory does not — this won't show live RAM use,
+      // but it does confirm how much of the ~5GB actually landed on disk).
+      if (navigator.storage?.estimate) {
+        const est = await navigator.storage.estimate();
+        log(`Storage before download: ${(est.usage / 1e9).toFixed(2)} GB used of ${(est.quota / 1e9).toFixed(2)} GB quota.`, 'info');
+      }
+      if (navigator.storage?.persist) {
+        const granted = await navigator.storage.persist();
+        log(`Persistent storage ${granted ? 'granted' : 'NOT granted'} (unpersisted caches can be evicted under pressure).`, granted ? 'ok' : 'info');
+      }
+
+      // Step 4: load WebLLM from CDN.
+      log('Fetching WebLLM library from CDN…', 'info');
+      const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+      log('WebLLM library loaded.', 'ok');
+
+      // Step 5: pick a real, currently-available prebuilt model matching
+      // the requested size tier, rather than hardcoding an exact model ID
+      // that might not exist in the current prebuilt list.
+      const list = webllm.prebuiltAppConfig.model_list;
+      const sizePattern = new RegExp(sizeTag.replace('B', '\\s*B'), 'i');
+      let candidates = list.filter(m => sizePattern.test(m.model_id) && /instruct/i.test(m.model_id));
+      if (!candidates.length) candidates = list.filter(m => sizePattern.test(m.model_id));
+      const picked = candidates.find(m => /q4f16/i.test(m.model_id)) || candidates[0];
+      if (!picked) {
+        log(`No prebuilt model matched size tier "${sizeTag}" in the current WebLLM model list.`, 'fail');
+        finish(false);
+        return;
+      }
+      log(`Selected model: ${picked.model_id}`, 'info');
+      log('This is a stock instruct model used as a same-size stand-in — not your Stheno finetune, which would need separate conversion if this passes.', 'info');
+
+      // Step 6: actually load it. This is the step most likely to trigger
+      // a silent memory kill on iPhone, so every progress tick gets
+      // persisted immediately.
+      const t0 = performance.now();
+      const engine = await webllm.CreateMLCEngine(picked.model_id, {
+        initProgressCallback: (p) => {
+          log(`Loading: ${p.text || JSON.stringify(p)}`, 'info');
+        },
+      });
+      const loadSeconds = ((performance.now() - t0) / 1000).toFixed(1);
+      log(`Model loaded and initialized in ${loadSeconds}s.`, 'ok');
+
+      if (navigator.storage?.estimate) {
+        const est2 = await navigator.storage.estimate();
+        log(`Storage after download: ${(est2.usage / 1e9).toFixed(2)} GB used.`, 'info');
+      }
+
+      // Step 7: prove it actually generates, not just that weights loaded.
+      log('Running a short test generation…', 'info');
+      const t1 = performance.now();
+      const reply = await engine.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are a concise assistant.' },
+          { role: 'user', content: 'Reply with exactly: ZetaForge in-browser test OK' },
+        ],
+        temperature: 0,
+        max_tokens: 16,
+      });
+      const genSeconds = ((performance.now() - t1) / 1000).toFixed(1);
+      const text = reply.choices?.[0]?.message?.content || '(empty)';
+      log(`Generation finished in ${genSeconds}s. Reply: "${text}"`, 'ok');
+      if (reply.usage) log(`Usage stats: ${JSON.stringify(reply.usage)}`, 'info');
+
+      log('All steps completed successfully.', 'ok');
+      finish(true);
+    } catch (err) {
+      log(`FAILED: ${err?.message || err}`, 'fail');
+      if (err?.stack) log(String(err.stack).slice(0, 400), 'info');
+      finish(false);
+    }
+  };
+
+  function finish(ok) {
+    bannerEl.className = ok ? 'ok' : 'fail';
+    bannerEl.style.display = 'block';
+    bannerEl.textContent = ok
+      ? '✅ PASSED — this size loaded and generated a reply on this device.'
+      : '❌ FAILED — see the log above for where it stopped.';
+    startBtn.disabled = false;
+  }
+</script>
+</body>
+</html>
