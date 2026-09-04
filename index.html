@@ -1120,11 +1120,26 @@
             <select id="llmProfileSelect" onchange="onLlmProfileSelectChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
               <option value="gemini">☁️ Cloud (Gemini) — Default</option>
               <option value="workstation">💻 Workstation (Laptop) — Magnum 12B v2</option>
-              <option value="deviceIphone">📱 On-Device (iPhone Pro) — Stheno 8B Q4_K_M</option>
+              <option value="deviceIphone">☁️ iPhone / Colab Tunnel — Stheno 8B Q4_K_M</option>
               <option value="deviceIpad">📱 On-Device (iPad Air) — Stheno 8B Q3_K_M</option>
               <option value="auto">⚡ Smart Auto-Routing (Laptop → Device → Cloud)</option>
             </select>
             <p class="text-[10px] text-slate-500 mt-1" id="llmProfileActiveHint"></p>
+          </div>
+
+          <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
+                <span id="colabStatusDot" class="inline-block w-2 h-2 rounded-full bg-slate-500"></span> Colab GPU Server
+              </span>
+              <span id="colabStatusText" class="text-[10px] text-slate-500">Not checked</span>
+            </div>
+            <input type="text" id="colabNotebookUrl" placeholder="https://colab.research.google.com/github/user/repo/blob/main/notebook.ipynb" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="launchColabServer()" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-semibold py-1.5 rounded-lg transition active:scale-95">🚀 Launch Colab Server</button>
+              <button type="button" onclick="toggleColabWatch()" id="colabWatchBtn" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">👁 Watch</button>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-relaxed">Opens your notebook in Colab. Colab has no way to auto-run cells from a link, so press <strong>Runtime → Run all</strong> there — then ZetaForge watches the tunnel and switches over the moment it answers.</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1147,11 +1162,11 @@
             </div>
             <div class="p-2.5 bg-zetaCard border border-zetaBorder rounded-lg space-y-1.5">
               <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPhone Pro</span>
+                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPhone / Colab</span>
                 <span id="llmTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span>
               </div>
-              <input type="text" id="llmUrl_deviceIphone" placeholder="http://127.0.0.1:8080/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
-              <input type="text" id="llmModel_deviceIphone" placeholder="stheno-8b-q4_k_m" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmUrl_deviceIphone" placeholder="https://your-domain.ngrok-free.dev/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmModel_deviceIphone" placeholder="Llama-3.1-8B-Stheno-v3.4" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <div class="flex items-center gap-1.5">
                 <input type="number" id="llmContextCap_deviceIphone" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
                 <span class="text-[9px] text-slate-500 shrink-0">tok cap</span>
@@ -1192,13 +1207,19 @@
                 <p>4. Tap "🔌 Test Connection" — it should say ✅ Reachable once the server is running.</p>
               </div>
               <div>
-                <p class="font-semibold text-slate-300">📱 On-Device (iPhone Pro / iPad Air) — Llama 3.1 8B Stheno</p>
-                <p>1. Install a local GGUF runner on the device (e.g. an llama.cpp-server-based app such as "LM Pocket", or any app that exposes an OpenAI-compatible local server).</p>
-                <p>2. Download a Llama-3.1-8B-Stheno-v3.4 GGUF quant — <strong>Q4_K_M</strong> for the iPhone Pro profile, or the smaller <strong>Q3_K_M</strong> for the iPad Air profile if you want a more conservative memory/context footprint. Load it and start the local server on port <strong>8080</strong> (or whatever port your runner uses).</p>
-                <p>3. Leave the URL as <code>http://127.0.0.1:8080/v1</code> (127.0.0.1 = this same device — nothing leaves the device). Adjust the port to match your runner if it differs.</p>
-                <p>4. If ZetaForge is served over HTTPS, some browsers block a page from fetching plain <code>http://</code> localhost. If the Test Connection fails only in that scenario, run ZetaForge itself locally (e.g. from Claude Code / a local dev server) on the device, or use a runner that offers a local HTTPS option.</p>
+                <p class="font-semibold text-slate-300">☁️ iPhone / Colab Tunnel — Llama 3.1 8B Stheno (free T4 GPU)</p>
+                <p>This profile points at a KoboldCpp server running on a free Google Colab T4, exposed through your reserved ngrok domain. Because the tunnel is HTTPS, it works from an iPhone or any device — nothing needs to run on the phone itself.</p>
+                <p>1. Use the <strong>Launch Colab Server</strong> button above. Colab opens in a new tab.</p>
+                <p>2. In Colab: <strong>Runtime → Run all</strong> (or <kbd>Ctrl</kbd>+<kbd>F9</kbd>). Confirm the GPU runtime is <strong>T4</strong> under Runtime → Change runtime type.</p>
+                <p>3. Wait for cell 5 to print "Starting OpenAI Compatible API". First run downloads ~4.9&nbsp;GB, so allow a couple of minutes. Leave that cell running — stopping it shuts the server down.</p>
+                <p>4. ZetaForge polls the tunnel automatically and the status dot above turns green when it answers. Keep the Colab tab open; free sessions are reclaimed after a period of inactivity.</p>
+                <p class="text-slate-500">Requests include the <code>ngrok-skip-browser-warning</code> header, which is required — without it ngrok's free tier returns its HTML interstitial instead of JSON and every call fails.</p>
               </div>
-              <p class="text-slate-500">⚡ Smart Auto-Routing pings the Workstation profile (500ms timeout), then falls back to the current device's profile — automatically picking iPad Air vs iPhone Pro's context cap based on the device — and finally falls back to Gemini if neither answers. Useful if you move between your desk and your phone/tablet without wanting to switch this dropdown by hand.</p>
+              <div>
+                <p class="font-semibold text-slate-300">📱 On-Device (iPad Air) — fully local</p>
+                <p>The iPad profile still expects a local GGUF runner on the device itself (an llama.cpp-server style app) at <code>http://127.0.0.1:8080/v1</code>. Note that when ZetaForge is served over HTTPS, browsers may block requests to plain <code>http://</code> localhost — the Colab tunnel avoids that problem entirely, which is why it is the better default for iOS.</p>
+              </div>
+              <p class="text-slate-500">⚡ Smart Auto-Routing pings the Workstation profile first, then this device's profile, then falls back to Gemini. Each profile now has its own ping budget (the "ping ms" field) — tunnelled endpoints legitimately need longer than a LAN box, and too small a value makes a working server look offline.</p>
             </div>
           </details>
         </div>
@@ -2074,7 +2095,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
     const LLM_PROFILE_DEFAULTS = {
       workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500 },
-      deviceIphone: { label: 'On-Device (iPhone Pro)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q4_K_M', contextCap: 8192, pingMs: 600 },
+      deviceIphone: { label: 'iPhone / Colab (Stheno 8B)', url: 'https://paralegal-pampers-chevron.ngrok-free.dev/v1', model: 'Llama-3.1-8B-Stheno-v3.4', contextCap: 8192, pingMs: 4000 },
       deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600 }
     };
     // Ping budget is per-profile: a LAN box answers in tens of ms, but a
@@ -2128,6 +2149,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       vnReadingSpeed: 1,
       ttsPreloadWindow: 4,   // how many lines each side of the current one to pre-render
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
+      colabNotebookUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' (default) | 'chatterbox' (opt-in, desktop)
       llmProfile: 'gemini',
@@ -2440,6 +2462,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!Number.isFinite(Number(appState.vnReadingSpeed))) appState.vnReadingSpeed = 1;
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
+      if (typeof appState.colabNotebookUrl !== 'string') appState.colabNotebookUrl = '';
       if (!['kokoro','chatterbox'].includes(appState.ttsEngine)) appState.ttsEngine = 'kokoro';
       if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
       if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
@@ -4497,7 +4520,7 @@ CRITICAL RULES:
         if (suggestEndpointInfo.type === 'local') {
           try {
             const localRes = await fetch(`${suggestEndpointInfo.url.replace(/\/+$/,'')}/chat/completions`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
               body: JSON.stringify({
                 model: suggestEndpointInfo.model || 'local-model',
                 messages: [{ role: 'user', content: promptPayload.contents[0].parts[0].text + '\n\nRespond with ONLY a JSON array of 3 strings. No prose, no code fences.' }],
@@ -7307,6 +7330,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
+      const colabEl = document.getElementById('colabNotebookUrl');
+      if (colabEl) colabEl.value = appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK;
+      setColabStatus('idle', 'Not checked');
       const profileSelect = document.getElementById('llmProfileSelect');
       if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -7489,6 +7515,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       appState.vnReadingSpeed = Number(document.getElementById('vnSpeedInput')?.value || appState.vnReadingSpeed || 1);
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(document.getElementById('ttsPreloadInput')?.value) || appState.ttsPreloadWindow || 4));
 
+      appState.colabNotebookUrl = (document.getElementById('colabNotebookUrl')?.value || '').trim();
       appState.llmProfile = document.getElementById('llmProfileSelect')?.value || 'gemini';
       if (!appState.llmProfiles) appState.llmProfiles = JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -8158,11 +8185,19 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // buttons and Smart Auto-Routing. Hits the OpenAI-compatible /models
     // endpoint, which every local runner mentioned in Setup (LM Studio,
     // llama.cpp server / "LM Pocket", Ollama's OpenAI-compat mode) exposes.
+    // ngrok's free tier serves an HTML interstitial to anything that looks like
+    // a browser, which would turn every API call into unparseable HTML. This
+    // header opts out of it. Harmless on non-ngrok endpoints (LM Studio,
+    // llama.cpp, KoboldCpp all ignore unknown headers).
+    function localRequestHeaders(extra) {
+      return Object.assign({ 'ngrok-skip-browser-warning': 'true' }, extra || {});
+    }
+
     async function pingLocalEndpoint(url, timeoutMs) {
       const base = (url || '').trim().replace(/\/+$/, '');
       if (!base) return false;
       try {
-        const res = await fetch(`${base}/models`, { signal: AbortSignal.timeout(timeoutMs || 1500) });
+        const res = await fetch(`${base}/models`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(timeoutMs || 1500) });
         return !!res.ok;
       } catch (e) { return false; }
     }
@@ -8250,7 +8285,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       let lastError;
       for (let attempt = 0; attempt <= API_RETRY_LIMIT; attempt++) {
         try {
-          const response = await fetch(target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          const response = await fetch(target, { method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
           if (!response.ok) {
             const errText = await response.text().catch(() => '');
             if (![429, 500, 502, 503, 504].includes(response.status) || attempt === API_RETRY_LIMIT) {
@@ -8298,13 +8333,92 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       }
     }
 
+    // --- Colab GPU server helpers ------------------------------------------
+    // Colab deliberately provides no way to auto-execute a notebook from a URL
+    // (that would be arbitrary remote code execution from a link), so the flow
+    // is: open the notebook, you press Run all, and ZetaForge watches the
+    // tunnel and reports the moment the server answers.
+    const DEFAULT_COLAB_NOTEBOOK = 'https://colab.research.google.com/github/arjunparihar11/zeta-forge-ai/blob/main/Llama-3_1-Stheno_ZetaForge_Colab_Notebook.ipynb';
+    let colabWatchTimer = null;
+    let colabWatching = false;
+
+    function setColabStatus(state, text) {
+      const dot = document.getElementById('colabStatusDot');
+      const label = document.getElementById('colabStatusText');
+      const colors = { idle: 'bg-slate-500', checking: 'bg-amber-400', up: 'bg-emerald-400', down: 'bg-rose-500' };
+      if (dot) dot.className = `inline-block w-2 h-2 rounded-full ${colors[state] || colors.idle}`;
+      if (label) label.innerText = text;
+    }
+
+    function colabEndpointUrl() {
+      return (appState.llmProfiles?.deviceIphone?.url || LLM_PROFILE_DEFAULTS.deviceIphone.url || '').trim();
+    }
+
+    async function checkColabServer(quiet = false) {
+      const url = colabEndpointUrl();
+      if (!url) { setColabStatus('idle', 'No endpoint set'); return false; }
+      if (!quiet) setColabStatus('checking', 'Checking…');
+      const ok = await pingLocalEndpoint(url, 8000);   // Colab + ngrok cold start is slow
+      setColabStatus(ok ? 'up' : 'down', ok ? 'Server is up ✅' : 'Not responding');
+      return ok;
+    }
+
+    function launchColabServer() {
+      const input = document.getElementById('colabNotebookUrl');
+      const url = (input?.value || appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK).trim();
+      if (!/^https?:\/\//i.test(url)) { zfAlert('Enter a valid Colab notebook URL first.', 'Invalid URL'); return; }
+      appState.colabNotebookUrl = url;
+      saveState();
+      window.open(url, '_blank', 'noopener');
+      if (!colabWatching) toggleColabWatch(true);
+    }
+
+    // Poll the tunnel until it comes alive, then stop. Deliberately bounded so
+    // an abandoned attempt doesn't poll forever in the background.
+    function toggleColabWatch(force) {
+      const want = force !== undefined ? force : !colabWatching;
+      const btn = document.getElementById('colabWatchBtn');
+      if (!want) {
+        colabWatching = false;
+        if (colabWatchTimer) clearInterval(colabWatchTimer);
+        colabWatchTimer = null;
+        if (btn) btn.classList.remove('vn-toggle-active');
+        setColabStatus('idle', 'Watch stopped');
+        return;
+      }
+      colabWatching = true;
+      if (btn) btn.classList.add('vn-toggle-active');
+      setColabStatus('checking', 'Waiting for server…');
+      let attempts = 0;
+      const MAX_ATTEMPTS = 100; // ~8 minutes at 5s
+      if (colabWatchTimer) clearInterval(colabWatchTimer);
+      colabWatchTimer = setInterval(async () => {
+        attempts++;
+        const ok = await pingLocalEndpoint(colabEndpointUrl(), 8000);
+        if (ok) {
+          setColabStatus('up', 'Server is up ✅');
+          clearInterval(colabWatchTimer); colabWatchTimer = null; colabWatching = false;
+          if (btn) btn.classList.remove('vn-toggle-active');
+          autoRouteCache = { result: null, expiresAt: 0 }; // re-evaluate routing now
+          const statusEl = document.getElementById('llmTestStatus_deviceIphone');
+          if (statusEl) { statusEl.innerText = '✅ Reachable'; statusEl.className = 'text-[9px] text-emerald-400 font-semibold'; }
+        } else if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(colabWatchTimer); colabWatchTimer = null; colabWatching = false;
+          if (btn) btn.classList.remove('vn-toggle-active');
+          setColabStatus('down', 'Gave up waiting');
+        } else {
+          setColabStatus('checking', `Waiting for server… (${attempts * 5}s)`);
+        }
+      }, 5000);
+    }
+
     function onLlmProfileSelectChange(value) {
       const hint = document.getElementById('llmProfileActiveHint');
       if (!hint) return;
       const map = {
         gemini: 'Routine story turns use the Gemini API (default).',
         workstation: 'Routine turns are sent to the Workstation (Laptop) endpoint below.',
-        deviceIphone: 'Routine turns are sent to the On-Device (iPhone Pro) endpoint below.',
+        deviceIphone: 'Routine turns are sent to the iPhone / Colab tunnel endpoint below.',
         deviceIpad: 'Routine turns are sent to the On-Device (iPad Air) endpoint below.',
         auto: '⚡ Smart Auto-Routing: pings Workstation first, then this device, then falls back to Gemini if both are offline. Re-checked every ~20s.'
       };
