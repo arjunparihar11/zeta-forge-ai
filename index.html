@@ -658,6 +658,7 @@
                 <span id="vnSpeakerMoodBadge" class="text-[10px] bg-zetaCard text-amber-300 border border-zetaBorder px-2 py-0.5 rounded-full font-medium shrink-0"></span>
               </div>
               <div class="flex items-center gap-0.5 text-xs text-[#b9a6ff]/70 font-mono shrink-0">
+                <button onclick="replayCurrentVnLine()" id="vnReplayBtn" class="p-1 rounded hover:text-white transition mr-0.5" title="Play / replay this line">🔊</button>
                 <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
                 <button type="button" id="vnTurnCounter" onclick="promptVnJump()" class="cursor-pointer hover:text-white hover:underline transition px-0.5" title="Tap to jump to a message">0/0</button>
                 <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
@@ -1558,20 +1559,49 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     const DB_STORE = 'app_state_store';
     const ASSET_STORE = 'asset_store';
 
+    let dbConnection = null;
+    let dbUnavailable = false;   // set once we've given up; skip retrying every call
+    const DB_OPEN_TIMEOUT_MS = 6000;
+
     function initDb() {
+      if (dbConnection) return Promise.resolve(dbConnection);
+      if (dbUnavailable) return Promise.reject(new Error('IndexedDB unavailable'));
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 2);
+        let settled = false;
+        const finish = (fn, arg) => { if (!settled) { settled = true; fn(arg); } };
+
+        // A version upgrade cannot complete while another tab (or an installed
+        // PWA instance) still holds the old connection open. Without this the
+        // open request just hangs and startup never finishes.
+        const timer = setTimeout(() => {
+          dbUnavailable = true;
+          finish(reject, new Error('IndexedDB open timed out (another tab may be holding an older version open)'));
+        }, DB_OPEN_TIMEOUT_MS);
+
+        let req;
+        try { req = indexedDB.open(DB_NAME, 2); }
+        catch (e) { clearTimeout(timer); dbUnavailable = true; return finish(reject, e); }
+
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
-          if (!db.objectStoreNames.contains(DB_STORE)) {
-            db.createObjectStore(DB_STORE);
-          }
-          if (!db.objectStoreNames.contains(ASSET_STORE)) {
-            db.createObjectStore(ASSET_STORE);
-          }
+          if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+          if (!db.objectStoreNames.contains(ASSET_STORE)) db.createObjectStore(ASSET_STORE);
         };
-        req.onsuccess = (e) => resolve(e.target.result);
-        req.onerror = (e) => reject(e.target.error);
+        req.onblocked = () => {
+          console.warn('IndexedDB upgrade blocked by another open tab — close other ZetaForge tabs to finish upgrading.');
+          // Don't reject immediately; the other tab may close and let it through
+          // before the timeout fires.
+        };
+        req.onsuccess = (e) => {
+          clearTimeout(timer);
+          const db = e.target.result;
+          // If another tab later requests an upgrade, release our handle so we
+          // don't become the thing blocking it.
+          db.onversionchange = () => { try { db.close(); } catch (err) {} dbConnection = null; };
+          dbConnection = db;
+          finish(resolve, db);
+        };
+        req.onerror = (e) => { clearTimeout(timer); dbUnavailable = true; finish(reject, e.target.error); };
       });
     }
 
@@ -2008,6 +2038,18 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       flushUiRender(); // paint immediately on boot rather than a frame later
       syncModalForm();
       bindDefensiveClickListeners();
+      // If the database couldn't be opened, say so rather than silently
+      // presenting an empty app — that looks identical to losing every story.
+      if (dbUnavailable) {
+        setTimeout(() => {
+          zfAlert(
+            'ZetaForge could not open its local database, so your saved stories are not loaded right now.\n\n' +
+            'This usually means the app is open in another tab or window. Close the other ZetaForge tabs and reload this page.\n\n' +
+            'Your data has not been deleted — avoid making big changes until it loads correctly.',
+            'Storage Unavailable'
+          );
+        }, 600);
+      }
       // If voice acting was already on from a previous session, start loading
       // the model and the cast's voices now (in the background, after first
       // paint) so the first spoken line doesn't wait on a cold start.
@@ -5500,9 +5542,150 @@ JSON FORMAT:
     const KOKORO_ENGLISH_PREFIXES = ['af_', 'am_', 'bf_', 'bm_'];
     function isEnglishVoice(id) { return KOKORO_ENGLISH_PREFIXES.some(p => String(id).startsWith(p)); }
     let kokoroTTS = null;
+    let kokoroEngineReady = false;   // true once either the worker or main-thread engine is usable
     let kokoroLoadingPromise = null;
     let kokoroLoadError = '';
+    // --- Kokoro worker ----------------------------------------------------
+    // Synthesis is ONNX/WASM inference. Run on the main thread it blocks
+    // everything — rendering, sprites, scrolling — for the whole generation,
+    // which is what made the VN stage freeze until a line finished loading.
+    // The worker moves that off the UI thread entirely. Built from a Blob so
+    // the app remains a single self-contained HTML file.
+    const KOKORO_WORKER_SOURCE = `
+      let tts = null;
+      let voiceVectorCache = {};
+
+      async function loadVec(id) {
+        const cands = [tts.getVoiceData, tts.get_voice_data, tts._getVoiceData, tts.getVoiceStyle, tts.loadVoice];
+        for (const fn of cands) {
+          if (typeof fn === 'function') {
+            try {
+              const d = await fn.call(tts, id);
+              const v = (d && (d.data || d.style)) || d;
+              if (v && typeof v.length === 'number' && v.length > 0) return v;
+            } catch (e) {}
+          }
+        }
+        const e2 = tts.voices && tts.voices[id];
+        const fromMap = e2 && (e2.data || e2.style || (typeof e2.length === 'number' ? e2 : null));
+        return (fromMap && fromMap.length) ? fromMap : null;
+      }
+
+      async function resolveVoice(spec) {
+        if (typeof spec === 'string') return spec;
+        const { primary, blend, weight } = spec;
+        if (!blend || !weight) return primary;
+        const key = primary + '|' + blend + '|' + weight;
+        if (voiceVectorCache[key]) return voiceVectorCache[key];
+        const a = await loadVec(primary), b = await loadVec(blend);
+        if (!a || !b || a.length !== b.length) {
+          self.postMessage({ type: 'blendUnsupported' });
+          return primary;
+        }
+        const w = weight / 100;
+        const mixed = new Float32Array(a.length);
+        for (let i = 0; i < a.length; i++) mixed[i] = a[i] * (1 - w) + b[i] * w;
+        voiceVectorCache[key] = mixed;
+        return mixed;
+      }
+
+      self.onmessage = async (e) => {
+        const msg = e.data;
+        try {
+          if (msg.type === 'load') {
+            if (!tts) {
+              const mod = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm');
+              tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
+                dtype: 'q8',
+                progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
+              });
+            }
+            self.postMessage({ type: 'loaded', voices: tts.voices ? Object.keys(tts.voices) : null });
+            return;
+          }
+          if (msg.type === 'warm') {
+            const v = await loadVec(msg.voice);
+            if (!v) { try { await tts.generate('Mm.', { voice: msg.voice, speed: 1 }); } catch (err) {} }
+            self.postMessage({ type: 'warmed', id: msg.id, voice: msg.voice });
+            return;
+          }
+          if (msg.type === 'generate') {
+            const voice = await resolveVoice(msg.voice);
+            const raw = await tts.generate(msg.text, { voice, speed: msg.speed });
+            const audio = raw.audio instanceof Float32Array ? raw.audio : new Float32Array(raw.audio);
+            self.postMessage(
+              { type: 'audio', id: msg.id, audio, sampling_rate: raw.sampling_rate },
+              [audio.buffer]
+            );
+            return;
+          }
+        } catch (err) {
+          self.postMessage({ type: 'error', id: msg.id, message: (err && err.message) || String(err) });
+        }
+      };
+    `;
+
+    let kokoroWorker = null;
+    let kokoroWorkerReady = null;
+    let workerUnavailable = false;
+    const workerJobs = new Map();
+    let workerJobSeq = 0;
+    let workerProgressCb = null;
+
+    function startKokoroWorker() {
+      if (kokoroWorkerReady) return kokoroWorkerReady;
+      if (workerUnavailable) return Promise.reject(new Error('worker unavailable'));
+      kokoroWorkerReady = new Promise((resolve, reject) => {
+        try {
+          const blob = new Blob([KOKORO_WORKER_SOURCE], { type: 'text/javascript' });
+          kokoroWorker = new Worker(URL.createObjectURL(blob), { type: 'module' });
+        } catch (e) {
+          workerUnavailable = true; kokoroWorkerReady = null;
+          return reject(e);
+        }
+        let settled = false;
+        kokoroWorker.onmessage = (e) => {
+          const m = e.data;
+          if (m.type === 'progress') { try { workerProgressCb && workerProgressCb(m.progress); } catch (err) {} return; }
+          if (m.type === 'blendUnsupported') { styleBlendSupported = false; return; }
+          if (m.type === 'loaded') { if (!settled) { settled = true; resolve(kokoroWorker); } return; }
+          const job = workerJobs.get(m.id);
+          if (!job) return;
+          workerJobs.delete(m.id);
+          if (m.type === 'error') job.reject(new Error(m.message));
+          else job.resolve(m);
+        };
+        kokoroWorker.onerror = (err) => {
+          if (!settled) { settled = true; workerUnavailable = true; kokoroWorkerReady = null; reject(err); }
+        };
+        kokoroWorker.postMessage({ type: 'load', modelId: KOKORO_MODEL_ID });
+      });
+      return kokoroWorkerReady;
+    }
+
+    function workerRequest(payload, transfer) {
+      return new Promise((resolve, reject) => {
+        const id = ++workerJobSeq;
+        workerJobs.set(id, { resolve, reject });
+        kokoroWorker.postMessage({ ...payload, id }, transfer || []);
+      });
+    }
+
     async function loadKokoroTTS(onProgress) {
+      workerProgressCb = onProgress || null;
+      // Preferred path: worker (keeps the UI thread free).
+      if (!workerUnavailable) {
+        try {
+          await startKokoroWorker();
+          kokoroEngineReady = true;
+          kokoroLoadError = '';
+          return { worker: true };
+        } catch (e) {
+          console.warn('Kokoro worker unavailable, falling back to main thread:', e?.message || e);
+          workerUnavailable = true;
+        }
+      }
+      // Fallback: original main-thread path.
       if (kokoroTTS) return kokoroTTS;
       if (kokoroLoadingPromise) return kokoroLoadingPromise;
       kokoroLoadingPromise = (async () => {
@@ -5512,7 +5695,7 @@ JSON FORMAT:
             dtype: 'q8',
             progress_callback: (p) => { try { onProgress && onProgress(p); } catch (e) {} }
           });
-          kokoroTTS = tts; kokoroLoadError = '';
+          kokoroTTS = tts; kokoroEngineReady = true; kokoroLoadError = '';
           return tts;
         } catch (e) {
           kokoroLoadError = e?.message || 'Failed to load Kokoro TTS.';
@@ -5627,17 +5810,37 @@ JSON FORMAT:
       }
     }
 
-    async function generateKokoroAudioBuffer(text, profile) {
-      const tts = await loadKokoroTTS();
+    // Turn raw PCM into an AudioBuffer without a WAV round-trip — decodeAudioData
+    // on a freshly-encoded blob was extra work for no benefit.
+    function pcmToAudioBuffer(float32, sampleRate) {
       const ctx = getVnAudioContext();
+      const buf = ctx.createBuffer(1, float32.length, sampleRate);
+      buf.getChannelData(0).set(float32);
+      return buf;
+    }
+
+    async function generateKokoroAudioBuffer(text, profile) {
+      const engine = await loadKokoroTTS();
       const prepped = applyEmphasisMarkup(applyPronunciationDictionary(text, profile.pronunciations), Number(profile.emphasis) || 0);
       const pace = Math.max(0.5, Math.min(2, Number(profile.pace) || 1));
       const blendWeight = Math.max(0, Math.min(60, Number(profile.blendWeight) || 0));
-      const voiceArg = await resolveBlendedVoice(tts, profile.voice || 'af_heart', profile.blendVoice, blendWeight);
+      const primary = profile.voice || 'af_heart';
+
+      // Worker path — inference happens off the UI thread.
+      if (engine && engine.worker) {
+        const voiceSpec = (profile.blendVoice && blendWeight > 0)
+          ? { primary, blend: profile.blendVoice, weight: blendWeight }
+          : primary;
+        const res = await workerRequest({ type: 'generate', text: prepped, voice: voiceSpec, speed: pace });
+        return pcmToAudioBuffer(res.audio, res.sampling_rate);
+      }
+
+      // Main-thread fallback.
+      const tts = engine;
+      const voiceArg = await resolveBlendedVoice(tts, primary, profile.blendVoice, blendWeight);
       const raw = await tts.generate(prepped, { voice: voiceArg, speed: pace });
-      const wavBlob = typeof raw.toBlob === 'function' ? raw.toBlob() : pcmToWavBlob(raw.audio, raw.sampling_rate);
-      const arrBuf = await wavBlob.arrayBuffer();
-      return await ctx.decodeAudioData(arrBuf);
+      const audio = raw.audio instanceof Float32Array ? raw.audio : new Float32Array(raw.audio);
+      return pcmToAudioBuffer(audio, raw.sampling_rate);
     }
     let vnAudioElement = null;
     let vnAudioUnlocked = false;
@@ -5783,20 +5986,19 @@ JSON FORMAT:
     // spoken line isn't a cold start. Runs in the background, one voice at a
     // time, yielding between each so it never blocks the UI.
     async function preloadCastVoices() {
-      if (voiceWarmInFlight || !kokoroTTS) return;
+      if (voiceWarmInFlight || !kokoroEngineReady) return;
       const pending = getCastVoiceIds().filter(v => !warmedVoices.has(v));
       if (!pending.length) return;
       voiceWarmInFlight = true;
       try {
         for (const voiceId of pending) {
           try {
-            // Cheap path: pull the style tensor into memory/cache.
-            const vec = await loadVoiceStyleVector(kokoroTTS, voiceId);
-            if (!vec) {
-              // Fallback: a single very short synthesis loads the voice and
-              // warms the graph. Result is discarded; the side effect is what
-              // we want.
-              await kokoroTTS.generate('Mm.', { voice: voiceId, speed: 1 });
+            if (!workerUnavailable && kokoroWorker) {
+              // Warm inside the worker so it never touches the UI thread.
+              await workerRequest({ type: 'warm', voice: voiceId });
+            } else {
+              const vec = await loadVoiceStyleVector(kokoroTTS, voiceId);
+              if (!vec) await kokoroTTS.generate('Mm.', { voice: voiceId, speed: 1 });
             }
             warmedVoices.add(voiceId);
           } catch (e) {
@@ -5823,20 +6025,26 @@ JSON FORMAT:
     }
     // Render the upcoming line in the background so the next step is instant.
     function prefetchNextVnLine() {
-      if (!appState.ttsEnabled || !kokoroTTS || vnPrefetchInFlight) return;
+      if (!appState.ttsEnabled || !kokoroEngineReady || vnPrefetchInFlight) return;
       const active = getActiveScenario();
       if (!active || active.viewMode !== 'vn') return;
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
-      const next = validTurns[currentVnIndex + 1];
-      if (!next || !(next.text || '').trim()) return;
-      const speakerName = next.speakerName || (next.role === 'user' ? active.userPersona.name : 'Narrator');
-      const profile = getVoiceProfileForSpeaker(speakerName);
-      if (!profile) return;
-      const key = vnAudioCacheKey(speakerName, next.text, profile);
-      if (vnAudioCache.has(key)) return;
-      vnPrefetchInFlight = renderVnAudioCached(speakerName, next.text, profile)
-        .catch(e => console.warn('VN audio prefetch skipped:', e?.message || e))
-        .finally(() => { vnPrefetchInFlight = null; });
+      // Prefetch both directions — stepping backwards through earlier lines is
+      // just as common as advancing, and a forward-only lookahead meant every
+      // backwards step was an uncached cold generation.
+      const candidates = [validTurns[currentVnIndex + 1], validTurns[currentVnIndex - 1], validTurns[currentVnIndex + 2]];
+      for (const turn of candidates) {
+        if (!turn || !(turn.text || '').trim()) continue;
+        const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
+        const profile = getVoiceProfileForSpeaker(speakerName);
+        if (!profile) continue;
+        const key = vnAudioCacheKey(speakerName, turn.text, profile);
+        if (vnAudioCache.has(key)) continue;
+        vnPrefetchInFlight = renderVnAudioCached(speakerName, turn.text, profile)
+          .catch(e => console.warn('VN audio prefetch skipped:', e?.message || e))
+          .finally(() => { vnPrefetchInFlight = null; prefetchNextVnLine(); });
+        return; // one at a time; the .finally chains to the next candidate
+      }
     }
 
     // renderVnTurn() is called from many incidental places (backdrop change,
@@ -5848,8 +6056,67 @@ JSON FORMAT:
       const key = `${currentVnIndex}::${speakerName}::${(fullText || '').length}`;
       if (key === lastSpokenVnKey) return;
       lastSpokenVnKey = key;
-      speakVnTextForSpeaker(speakerName, fullText);
+      // Let the browser paint the new text and sprite BEFORE kicking off
+      // synthesis. Called inline, any main-thread work (or even worker setup)
+      // delayed the very frame this render was supposed to produce, which is
+      // why stepping to an un-cached line appeared to hang before showing
+      // anything at all.
+      requestAnimationFrame(() => setTimeout(() => {
+        speakVnTextForSpeaker(speakerName, fullText);
+      }, 0));
     }
+    // --- On-demand playback (VN replay button + per-message play in chat) ---
+    // These bypass the global Voice Acting toggle: pressing play is an explicit
+    // request, so it should work whether or not narration is switched on.
+    async function speakArbitraryLine(speakerName, text, buttonEl) {
+      if (!text || !String(text).trim()) return;
+      const profile = getVoiceProfileForSpeaker(speakerName);
+      if (!profile) {
+        await zfAlert(`${speakerName || 'This speaker'} doesn't have a voice assigned yet. Assign one in Setup → Cast (🎙️ Auto-Assign Voices) or in the Voice Lab.`, 'No Voice Assigned');
+        return;
+      }
+      const token = ++vnSpeechToken;
+      const audioEl = getVnAudioElement();
+      try { audioEl.pause(); } catch (e) {}
+      const original = buttonEl ? buttonEl.innerHTML : null;
+      if (buttonEl) { buttonEl.disabled = true; buttonEl.innerHTML = '⏳'; }
+      try {
+        unlockVnAudioElement();
+        const buffer = await renderVnAudioCached(speakerName, text, profile);
+        if (token !== vnSpeechToken) return;
+        const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
+        const url = URL.createObjectURL(wavBlob);
+        if (vnActiveAudioUrl) URL.revokeObjectURL(vnActiveAudioUrl);
+        vnActiveAudioUrl = url;
+        audioEl.src = url;
+        audioEl.onended = () => { if (token === vnSpeechToken) setVnTtsStatus('idle'); };
+        await audioEl.play();
+      } catch (e) {
+        console.warn('On-demand playback failed:', e?.message || e);
+        await zfAlert('Could not generate audio for that line: ' + (e?.message || e), 'Playback Failed');
+      } finally {
+        if (buttonEl) { buttonEl.disabled = false; buttonEl.innerHTML = original; }
+      }
+    }
+
+    function replayCurrentVnLine() {
+      const active = getActiveScenario();
+      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+      const turn = validTurns[currentVnIndex];
+      if (!turn) return;
+      const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
+      lastSpokenVnKey = ''; // allow the same line to be spoken again
+      speakArbitraryLine(speakerName, formatDialogueSpacing(turn.text || ''), document.getElementById('vnReplayBtn'));
+    }
+
+    function playMessageAudio(index, buttonEl) {
+      const active = getActiveScenario();
+      const m = (active.messages || [])[index];
+      if (!m) return;
+      const speakerName = m.speakerName || (m.role === 'user' ? active.userPersona.name : 'Narrator');
+      speakArbitraryLine(speakerName, m.text || '', buttonEl);
+    }
+
     async function speakVnTextForSpeaker(speakerName, text) {
       const token = ++vnSpeechToken;
       const audioEl = getVnAudioElement();
@@ -5960,7 +6227,7 @@ JSON FORMAT:
       const modal = document.getElementById('voiceLabModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
       // Warm the model now so the first preview isn't a cold start.
-      if (!kokoroTTS) loadKokoroTTS(p => updateVoiceLabModelStatus(p)).then(() => updateVoiceLabModelStatus()).catch(() => updateVoiceLabModelStatus());
+      if (!kokoroEngineReady) loadKokoroTTS(p => updateVoiceLabModelStatus(p)).then(() => updateVoiceLabModelStatus()).catch(() => updateVoiceLabModelStatus());
     }
 
     function closeVoiceLab(event) {
@@ -5972,7 +6239,7 @@ JSON FORMAT:
     function updateVoiceLabModelStatus(progress) {
       const el = document.getElementById('vlModelStatus');
       if (!el) return;
-      if (kokoroTTS) {
+      if (kokoroEngineReady) {
         el.innerText = styleBlendSupported === false
           ? '✅ Voice model ready · blending unavailable in this build (primary voice is used)'
           : '✅ Voice model ready';
@@ -6016,7 +6283,7 @@ JSON FORMAT:
       const status = document.getElementById('vlStatus');
       const profile = collectVoiceLabDraft();
       btn.disabled = true;
-      status.innerText = kokoroTTS ? 'Generating preview…' : 'Loading voice model…';
+      status.innerText = kokoroEngineReady ? 'Generating preview…' : 'Loading voice model…';
       try {
         await loadKokoroTTS(p => updateVoiceLabModelStatus(p));
         updateVoiceLabModelStatus();
@@ -6858,6 +7125,7 @@ JSON FORMAT:
                   ${isMostRecentMessage ? `
                     <button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400 transition active:scale-95" title="Regenerate turn with variation">🔄 Retry</button>
                   ` : ''}
+                  <button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button>
                   <button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button>
                 </div>
               ` : ''}
@@ -8199,7 +8467,7 @@ REQUIREMENTS:
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
-        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
