@@ -207,6 +207,23 @@
     .border-zetaAccent { border-color: var(--zeta-accent) !important; }
     .hover\:bg-zetaAccent:hover { background-color: var(--zeta-accent-hover) !important; }
     .hover\:text-zetaLight:hover { color: var(--zeta-light) !important; }
+    /* Follow-up pass: the LLM checker's container used the one opacity
+       fraction (/70) that hadn't been mapped onto --zeta-card, so it stayed
+       frozen at Tailwind's static compiled hex instead of the tinted live
+       value — this is why it kept looking purple regardless of the chosen
+       accent. Also: every primary action button in the app pairs
+       bg-zetaAccent (already accent-reactive) with hover:bg-zetaAccentHover,
+       but that hover shade was never mapped to --zeta-accent-hover, so the
+       darker hover/tap state on Send, Save, Create, etc. stayed fixed too. */
+    .bg-zetaCard\/70 { background-color: color-mix(in srgb, var(--zeta-card) 70%, transparent) !important; }
+    .hover\:bg-zetaAccentHover:hover { background-color: var(--zeta-accent-hover) !important; }
+    .bg-zetaAccent\/80 { background-color: color-mix(in srgb, var(--zeta-accent) 80%, transparent) !important; }
+    .focus\:ring-zetaAccent\/50:focus { --tw-ring-color: color-mix(in srgb, var(--zeta-accent) 50%, transparent) !important; }
+    .border-indigo-500\/60 { border-color: color-mix(in srgb, var(--zeta-accent) 60%, transparent) !important; }
+    .focus\:border-indigo-500:focus { border-color: var(--zeta-accent) !important; }
+    .text-indigo-50 { color: var(--zeta-light) !important; }
+    .hover\:bg-zetaCard:hover { background-color: var(--zeta-card) !important; }
+    .hover\:border-zetaAccent:hover { border-color: var(--zeta-accent) !important; }
     .theme-color-input { width: 54px; height: 34px; padding: 2px; border-radius: 10px; cursor: pointer; background: var(--zeta-card); border: 1px solid var(--zeta-border); }
     .vn-bg-fade { animation: vnBackdropFade .55s ease both; }
     @keyframes vnBackdropFade { from { opacity: .15; transform: scale(1.015); } to { opacity: .6; transform: scale(1); } }
@@ -404,7 +421,7 @@
     #zfBootLogo .zf-boot-glow { animation: zfBootGlow 1.8s ease-in-out infinite; }
     #zfBootTitle { font-weight:800; letter-spacing:.08em; color:#fff; font-size:clamp(20px,5vw,28px); }
     #zfBootSubtitle { color:#94a3b8; font-size:12px; margin-top:5px; }
-    #zfBootStatus { margin-top:22px; min-height:18px; color:#c4b5fd; font-size:11px; }
+    #zfBootStatus { margin-top:22px; min-height:18px; color:var(--zeta-accent, #7c65e8); font-size:11px; }
     #zfBootBar { width:min(78vw,300px); height:3px; margin:10px auto 0; border-radius:999px; background:#282332; overflow:hidden; }
     #zfBootBarFill { width:12%; height:100%; border-radius:inherit; background:linear-gradient(90deg, color-mix(in srgb, var(--zeta-accent, #7c65e8) 72%, #fff), var(--zeta-accent, #7c65e8)); transition:width .35s ease; box-shadow:0 0 14px color-mix(in srgb, var(--zeta-accent, #7c65e8) 50%, transparent); }
     @keyframes zfBootFloat { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-7px) scale(1.015); } }
@@ -1318,7 +1335,6 @@
               <label class="block text-slate-300 font-semibold mb-1 mt-3 text-xs">Voice Engine</label>
               <select id="ttsEngineSelect" onchange="changeTtsEngine(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent">
                 <option value="kokoro">⚡ Kokoro (Default — ~85MB, works on phones)</option>
-                <option value="chatterbox">💎 Chatterbox (High Quality — desktop + WebGPU)</option>
               </select>
               <p id="ttsEngineHint" class="text-[10px] text-slate-500 mt-1 leading-snug"></p>
             </div>
@@ -2225,7 +2241,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
       colabNotebookUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
-      ttsEngine: 'kokoro',   // 'kokoro' (default) | 'chatterbox' (opt-in, desktop)
+      ttsEngine: 'kokoro',   // only engine now — Chatterbox option removed
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
       localTurnsServed: 0,
@@ -2592,7 +2608,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
       if (typeof appState.colabNotebookUrl !== 'string') appState.colabNotebookUrl = '';
       if (typeof appState.colabNgrokToken !== 'string') appState.colabNgrokToken = '';
-      if (!['kokoro','chatterbox'].includes(appState.ttsEngine)) appState.ttsEngine = 'kokoro';
+      if (appState.ttsEngine !== 'kokoro') appState.ttsEngine = 'kokoro';
       if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
       if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
