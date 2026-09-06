@@ -2179,9 +2179,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // MODEL_ROUTINE_DEFAULT regardless of this setting — see callGeminiApi().
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
     const LLM_PROFILE_DEFAULTS = {
-      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500 },
+      workstation: { label: 'Workstation (Laptop)', url: 'https://paralegal-pampers-chevron.ngrok-free.dev/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500 },
       deviceIphone: { label: 'iPhone / Colab (Stheno 8B)', url: 'https://paralegal-pampers-chevron.ngrok-free.dev/v1', model: 'Llama-3.1-8B-Stheno-v3.4', contextCap: 8192, pingMs: 4000 },
-      deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600 }
+      deviceIpad: { label: 'On-Device (iPad Air)', url: 'https://paralegal-pampers-chevron.ngrok-free.dev/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600 }
     };
     // Ping budget is per-profile: a LAN box answers in tens of ms, but a
     // Cloudflare-tunnelled or VPS endpoint routinely needs a second or more and
