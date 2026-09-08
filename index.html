@@ -2606,7 +2606,6 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       setBootProgress(42, 'Rendering story interface…');
       renderAllUi();
       flushUiRender(); // paint immediately on boot rather than a frame later
-      syncModalForm();
       setCurrentLlmConnection('unknown',appState.llmProfile||'gemini',{label:llmProfileLabel(appState.llmProfile||'gemini'),model:appState.model||''});
       bindDefensiveClickListeners();
       // Give the browser a paint opportunity before heavy model work.
@@ -7944,17 +7943,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     function openModal(id) {
       try {
         if (id === 'setupModal') {
-          // renderCharacterCardsSetup()/renderLorebookSetup() are deferred a
-          // frame so the modal itself paints first — without any indicator,
-          // that gap (worse the more characters/lorebook entries there are,
-          // since it's rebuilding real DOM with real images) could read as
-          // the page doing something unexpected rather than just loading.
+          // syncModalForm() (below) already renders character cards and the
+          // lorebook internally — it's the one doing the real work here, not
+          // this indicator. Deferred a frame purely so the modal itself
+          // paints before that work runs, rather than looking frozen while
+          // it happens.
           const indicator = document.getElementById('setupLoadingIndicator');
           if (indicator) { indicator.classList.remove('hidden'); indicator.classList.add('flex'); }
-          syncModalForm();
           requestAnimationFrame(() => {
-            renderCharacterCardsSetup();
-            renderLorebookSetup();
+            syncModalForm();
             if (indicator) { indicator.classList.add('hidden'); indicator.classList.remove('flex'); }
           });
         }
