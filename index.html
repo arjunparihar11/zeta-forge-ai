@@ -7339,9 +7339,15 @@ JSON FORMAT:
         const speakerName = turn.speakerName || (turn.role === 'user' ? active.userPersona.name : 'Narrator');
         const profile = getVoiceProfileForSpeaker(speakerName);
         if (!profile) continue;
-        const key = vnAudioCacheKey(speakerName, turn.text, profile);
+        // Must match exactly what speakVnTextForSpeaker() looks up during
+        // actual playback (formatDialogueSpacing(turn.text) there, not raw
+        // turn.text) — otherwise every prefetch caches under a key playback
+        // never queries, so it always "misses" and re-synthesizes from
+        // scratch regardless of how much was pre-rendered.
+        const text = formatDialogueSpacing(turn.text);
+        const key = vnAudioCacheKey(speakerName, text, profile);
         if (vnAudioCache.has(key) || failedPrefetchKeys.has(key)) continue;
-        vnPrefetchInFlight = renderVnAudioCached(speakerName, turn.text, profile)
+        vnPrefetchInFlight = renderVnAudioCached(speakerName, text, profile)
           .catch(e => {
             // Remember the failure. Without this, nothing gets cached, the
             // .finally re-invokes, the same candidate is picked again, and the
