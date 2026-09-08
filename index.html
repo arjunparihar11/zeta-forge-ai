@@ -10182,7 +10182,7 @@ REQUIREMENTS:
     let mlBgWorkerReadyPromise = null;
     let mlBgJobId = 0;
     let mlBgIdleTimer = null;
-    const ML_BG_IDLE_RELEASE_MS = 45000;
+    const ML_BG_IDLE_RELEASE_MS = 20000;
 
     function scheduleMlBgWorkerIdleRelease() {
       if (mlBgIdleTimer) clearTimeout(mlBgIdleTimer);
@@ -10209,6 +10209,7 @@ REQUIREMENTS:
                   const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/+esm');
                   mod.env.allowLocalModels = false;
                   segmenter = await mod.pipeline('image-segmentation', 'briaai/RMBG-1.4', {
+                    dtype: 'q8', // full fp32 weights are 176MB; quantized cuts that by ~4x
                     progress_callback: (p) => self.postMessage({ id, type: 'progress', progress: p })
                   });
                 }
@@ -10258,9 +10259,27 @@ REQUIREMENTS:
         const worker = await startMlBgWorker();
         if (!worker) { removeBackgroundFromPixelDataWorker(pixelData, width, height); return; }
         const id = ++mlBgJobId;
-        // Build a data URL from the current pixel buffer for the worker to load.
-        const tmp = document.createElement('canvas'); tmp.width = width; tmp.height = height;
-        tmp.getContext('2d').putImageData(new ImageData(pixelData, width, height), 0, 0);
+        // Downscale before inference — a segmentation mask is a coarse
+        // foreground/background boundary, not fine detail, so feeding the
+        // model a full 1024px cell buys little accuracy while directly
+        // driving up peak activation memory during the forward pass
+        // (independent of the model weights' own size, which dtype:'q8'
+        // above already addresses). The mask gets upsampled back onto the
+        // real pixel grid by resampleMaskChannel() below regardless of what
+        // resolution it came back at.
+        const ML_BG_MAX_DIMENSION = 512;
+        const scale = Math.min(1, ML_BG_MAX_DIMENSION / Math.max(width, height));
+        const workW = Math.max(1, Math.round(width * scale)), workH = Math.max(1, Math.round(height * scale));
+        const tmp = document.createElement('canvas'); tmp.width = workW; tmp.height = workH;
+        const tmpCtx = tmp.getContext('2d');
+        if (scale < 1) {
+          const full = document.createElement('canvas'); full.width = width; full.height = height;
+          full.getContext('2d').putImageData(new ImageData(pixelData, width, height), 0, 0);
+          tmpCtx.imageSmoothingEnabled = true; tmpCtx.imageSmoothingQuality = 'medium';
+          tmpCtx.drawImage(full, 0, 0, workW, workH);
+        } else {
+          tmpCtx.putImageData(new ImageData(pixelData, width, height), 0, 0);
+        }
         const imageDataUrl = tmp.toDataURL('image/png');
         const result = await new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error('AI background removal timed out')), 45000);
