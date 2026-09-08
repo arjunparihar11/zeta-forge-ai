@@ -6786,7 +6786,14 @@ JSON FORMAT:
         };
         (async () => {
           const engine = getActiveTtsEngine();
-          const useGpu = await webGpuAvailable();
+          // WebGPU generation (not just loading) is a confirmed crash trigger
+          // on this device — the model reports finishing its load, then hangs
+          // or kills the worker the first time it's actually asked to
+          // generate audio. WASM was the proven-stable path before WebGPU was
+          // ever added here; forcing it off trades some speed for actually
+          // working. Revisit only with real evidence this has stopped happening.
+          const KOKORO_ALLOW_WEBGPU = false;
+          const useGpu = KOKORO_ALLOW_WEBGPU && await webGpuAvailable();
           workerRequestedGpu = useGpu;
           kokoroWorker.postMessage({
             type: 'load',
@@ -6799,10 +6806,25 @@ JSON FORMAT:
       return kokoroWorkerReady;
     }
 
-    function workerRequest(payload, transfer) {
+    function workerRequest(payload, transfer, timeoutMs = 20000) {
       return new Promise((resolve, reject) => {
         const id = ++workerJobSeq;
-        workerJobs.set(id, { resolve, reject });
+        const timer = setTimeout(() => {
+          workerJobs.delete(id);
+          // The worker didn't respond at all — most likely it crashed
+          // silently (WebGPU context loss / OOM kill), which doesn't throw a
+          // catchable error the try/catch in the worker script could report.
+          // Without this timeout, callers would hang on "Voicing line…"
+          // forever. Tear down the dead worker so the next attempt gets a
+          // fresh one instead of queuing against something that will never
+          // answer.
+          try { kokoroWorker?.terminate(); } catch (e) {}
+          kokoroWorker = null;
+          kokoroWorkerReady = null;
+          kokoroEngineReady = false;
+          reject(new Error('TTS worker did not respond — it may have crashed. It will reload on the next attempt.'));
+        }, timeoutMs);
+        workerJobs.set(id, { resolve: (v) => { clearTimeout(timer); resolve(v); }, reject: (e) => { clearTimeout(timer); reject(e); } });
         kokoroWorker.postMessage({ ...payload, id }, transfer || []);
       });
     }
