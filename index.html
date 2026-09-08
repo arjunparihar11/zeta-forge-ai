@@ -1190,7 +1190,12 @@
   <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
-        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">⚙️ Scenario, Presentation & Codex Settings</h2>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+          ⚙️ Scenario, Presentation & Codex Settings
+          <span id="setupLoadingIndicator" class="hidden items-center gap-1 text-zetaGlow text-xs font-normal">
+            <span class="animate-pulse">●</span><span class="animate-pulse delay-100">●</span><span class="animate-pulse delay-200">●</span>
+          </span>
+        </h2>
         <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
@@ -7938,10 +7943,26 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     function openModal(id) {
       try {
-        if (id === 'setupModal') { syncModalForm(); requestAnimationFrame(()=>{ renderCharacterCardsSetup(); renderLorebookSetup(); }); }
+        if (id === 'setupModal') {
+          // renderCharacterCardsSetup()/renderLorebookSetup() are deferred a
+          // frame so the modal itself paints first — without any indicator,
+          // that gap (worse the more characters/lorebook entries there are,
+          // since it's rebuilding real DOM with real images) could read as
+          // the page doing something unexpected rather than just loading.
+          const indicator = document.getElementById('setupLoadingIndicator');
+          if (indicator) { indicator.classList.remove('hidden'); indicator.classList.add('flex'); }
+          syncModalForm();
+          requestAnimationFrame(() => {
+            renderCharacterCardsSetup();
+            renderLorebookSetup();
+            if (indicator) { indicator.classList.add('hidden'); indicator.classList.remove('flex'); }
+          });
+        }
         if (id === 'usageCostModal') renderUsageCostModal();
       } catch (e) {
         console.error('openModal sync error (modal will still open):', e);
+        const indicator = document.getElementById('setupLoadingIndicator');
+        if (indicator) { indicator.classList.add('hidden'); indicator.classList.remove('flex'); }
       }
       closeAllDrawers();
       const modal = document.getElementById(id);
