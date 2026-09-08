@@ -767,11 +767,11 @@
                 </span>
                 <span id="vnSpeakerMoodBadge" class="text-[10px] bg-zetaCard text-amber-300 border border-zetaBorder px-2 py-0.5 rounded-full font-medium shrink-0"></span>
               </div>
-              <div class="flex items-center gap-0.5 text-xs text-[#b9a6ff]/70 font-mono shrink-0">
-                <button onclick="replayCurrentVnLine()" id="vnReplayBtn" class="p-1 rounded hover:text-white transition mr-0.5" title="Play / replay this line">🔊</button>
-                <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1 rounded hover:text-white transition" title="Previous turn">◀</button>
-                <button type="button" id="vnTurnCounter" onclick="promptVnJump()" class="cursor-pointer hover:text-white hover:underline transition px-0.5" title="Tap to jump to a message">0/0</button>
-                <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1 rounded hover:text-white transition" title="Next turn">▶</button>
+              <div class="flex items-center gap-1.5 text-xs text-[#b9a6ff]/70 font-mono shrink-0">
+                <button onclick="replayCurrentVnLine()" id="vnReplayBtn" class="p-1.5 rounded hover:text-white transition" title="Play / replay this line">🔊</button>
+                <button onclick="stepVnDialogue(-1, false)" id="vnPrevBtn" class="p-1.5 rounded hover:text-white transition" title="Previous turn">◀</button>
+                <button type="button" id="vnTurnCounter" onclick="event.stopPropagation(); promptVnJump()" class="cursor-pointer hover:text-white hover:underline transition px-1.5 py-1 min-w-[2.75rem] text-center" title="Tap to jump to a message">0/0</button>
+                <button onclick="stepVnDialogue(1, true)" id="vnNextBtn" class="p-1.5 rounded hover:text-white transition" title="Next turn">▶</button>
               </div>
             </div>
 
@@ -1412,16 +1412,18 @@
 
         <!-- Cast & Characters -->
         <div class="space-y-3">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
             <h3 class="font-bold text-zetaGlow uppercase tracking-wider text-[11px]">Cast, Personas & Relationships</h3>
             <div class="flex items-center gap-1.5">
               <label class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition cursor-pointer" title="Import a Tavern/SillyTavern character card (.json or .png)">📇 Import Card<input type="file" accept=".json,.png,image/png,application/json" class="hidden" onchange="importCharacterCard(event)" /></label>
-              <button type="button" onclick="aiAssignCastVoices(false)" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition" title="Let the AI read each persona and pick a fitting voice">✨ AI Match Voices</button>
-              <button type="button" onclick="autoAssignCastVoices(false)" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Quick assignment without an API call">🎙️ Auto-Assign</button>
-              <button type="button" onclick="openVoiceLab('narrator')" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Give narration/scene text its own distinct voice">📖 Narrator Voice</button>
-              <button type="button" onclick="aiAssignCastVoices(true)" class="text-xs bg-zetaCard text-slate-400 border border-zetaBorder hover:bg-zetaBorder px-2 py-1 rounded-md transition" title="Rematch the entire cast with AI">↻</button>
               <button type="button" onclick="addCharacterRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
             </div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="aiAssignCastVoices(false)" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition" title="Let the AI read each persona and pick a fitting voice">✨ AI Match Voices</button>
+            <button type="button" onclick="autoAssignCastVoices(false)" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Quick assignment without an API call">🎙️ Auto-Assign</button>
+            <button type="button" onclick="openVoiceLab('narrator')" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Give narration/scene text its own distinct voice">📖 Narrator Voice</button>
+            <button type="button" onclick="aiAssignCastVoices(true)" class="text-xs bg-zetaCard text-slate-400 border border-zetaBorder hover:bg-zetaBorder px-2 py-1 rounded-md transition" title="Rematch the entire cast with AI">↻</button>
           </div>
           <div id="characterCardsContainer" class="space-y-3"></div>
         </div>
@@ -2468,6 +2470,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         setBootProgress(88, 'Warming character voices and next lines…', 1500 + pendingVoices * 320);
         try {
           await warmUpTtsEngine();
+          const deviceLabel = kokoroActiveDevice === 'webgpu' ? 'GPU-accelerated' : kokoroActiveDevice === 'wasm' ? 'CPU (WebGPU unavailable/failed)' : 'device unknown';
+          console.log(`Kokoro TTS loaded — ${deviceLabel}`);
           await preloadCastVoices();
           prefetchNextVnLine();
         } catch (e) {
@@ -4440,7 +4444,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, turn.mood || charObj.mood) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
-          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-auto cursor-pointer active:scale-95 transition" onclick="openCharacterSpotlight('${escapeJsString(speakerName)}')" />
+          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-none transition" />
         `;
       } else {
         stageBox.innerHTML = '';
@@ -6220,6 +6224,8 @@ JSON FORMAT:
     }
     let kokoroTTS = null;
     let kokoroEngineReady = false;   // true once either the worker or main-thread engine is usable
+    let kokoroActiveDevice = 'unknown'; // 'webgpu' | 'wasm' | 'unknown' — what the worker actually loaded on
+    let workerRequestedGpu = false;
     let kokoroLoadingPromise = null;
     let kokoroLoadError = '';
     // --- Kokoro worker ----------------------------------------------------
@@ -6286,25 +6292,33 @@ JSON FORMAT:
               self.postMessage({ type: 'loaded', engine: 'chatterbox' });
               return;
             }
+            let loadedDevice = 'wasm';
             if (!tts) {
               const mod = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm');
-              try {
-                tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
-                  dtype: msg.webgpu ? 'fp16' : 'q8',
-                  device: msg.webgpu ? 'webgpu' : 'wasm',
-                  progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
-                });
-              } catch (e) {
-                // WebGPU can fail to load a given model even when an adapter
-                // exists (unsupported op, driver quirk) — fall back to the
-                // known-good WASM path rather than leaving TTS broken.
+              if (msg.webgpu) {
+                try {
+                  tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
+                    dtype: 'fp16',
+                    device: 'webgpu',
+                    progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
+                  });
+                  loadedDevice = 'webgpu';
+                } catch (e) {
+                  // WebGPU can fail to load a given model even when an adapter
+                  // exists (unsupported op, driver quirk) — fall back to the
+                  // known-good WASM path rather than leaving TTS broken.
+                  tts = null;
+                }
+              }
+              if (!tts) {
                 tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
                   dtype: 'q8',
                   progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
                 });
+                loadedDevice = 'wasm';
               }
             }
-            self.postMessage({ type: 'loaded', engine: 'kokoro', voices: tts.voices ? Object.keys(tts.voices) : null });
+            self.postMessage({ type: 'loaded', engine: 'kokoro', device: loadedDevice, voices: tts.voices ? Object.keys(tts.voices) : null });
             return;
           }
           if (msg.type === 'warm') {
@@ -6378,7 +6392,7 @@ JSON FORMAT:
           const m = e.data;
           if (m.type === 'progress') { try { workerProgressCb && workerProgressCb(m.progress); } catch (err) {} return; }
           if (m.type === 'blendUnsupported') { styleBlendSupported = false; return; }
-          if (m.type === 'loaded') { if (!settled) { settled = true; resolve(kokoroWorker); } return; }
+          if (m.type === 'loaded') { kokoroActiveDevice = m.device || (m.engine === 'chatterbox' ? (workerRequestedGpu ? 'webgpu' : 'wasm') : 'wasm'); if (!settled) { settled = true; resolve(kokoroWorker); } return; }
           const job = workerJobs.get(m.id);
           if (!job) return;
           workerJobs.delete(m.id);
@@ -6391,6 +6405,7 @@ JSON FORMAT:
         (async () => {
           const engine = getActiveTtsEngine();
           const useGpu = await webGpuAvailable();
+          workerRequestedGpu = useGpu;
           kokoroWorker.postMessage({
             type: 'load',
             engine,
@@ -7206,9 +7221,10 @@ JSON FORMAT:
       const el = document.getElementById('vlModelStatus');
       if (!el) return;
       if (kokoroEngineReady) {
+        const deviceNote = kokoroActiveDevice === 'webgpu' ? ' · GPU-accelerated' : kokoroActiveDevice === 'wasm' ? ' · CPU (WebGPU unavailable or failed to load)' : '';
         el.innerText = styleBlendSupported === false
-          ? '✅ Voice model ready · blending unavailable in this build (primary voice is used)'
-          : '✅ Voice model ready';
+          ? `✅ Voice model ready${deviceNote} · blending unavailable in this build (primary voice is used)`
+          : `✅ Voice model ready${deviceNote}`;
       } else if (progress && progress.status === 'progress' && typeof progress.progress === 'number') {
         el.innerText = `Downloading voice model… ${Math.round(progress.progress)}%`;
       } else if (kokoroLoadError) {
