@@ -2622,31 +2622,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           );
         }, 600);
       }
-      // Boot now deliberately warms TTS before removing the loading screen.
-      // This prevents the first VN line from paying the model/voice cold-start
-      // cost. If voice acting is disabled, the boot remains fast.
-      if (appState.ttsEnabled) {
-        setBootProgress(58, 'Loading TTS voice model…');
-        // A simple O(n) prediction: fixed model-load cost plus a per-voice
-        // warm-up cost, sized to the cast actually pending. Set before the
-        // await below starts, so the bar crawls across the real wait instead
-        // of sitting frozen at 58% and then jumping straight to 88% once
-        // everything is already finished.
-        const pendingVoices = getCastVoiceIds().filter(v => !warmedVoices.has(v)).length;
-        setBootProgress(88, 'Warming character voices and next lines…', 1500 + pendingVoices * 320);
-        try {
-          await warmUpTtsEngine();
-          const deviceLabel = kokoroActiveDevice === 'webgpu' ? 'GPU-accelerated' : kokoroActiveDevice === 'wasm' ? 'CPU (WebGPU unavailable/failed)' : 'device unknown';
-          console.log(`Kokoro TTS loaded — ${deviceLabel}`);
-          await preloadCastVoices();
-          prefetchNextVnLine();
-        } catch (e) {
-          console.warn('Boot TTS warm-up failed:', e?.message || e);
-          setBootProgress(88, 'TTS unavailable — continuing without voice warm-up.');
-        }
-      } else {
-        setBootProgress(82, 'Voice acting is off — skipping TTS download.');
-      }
+      // TTS warm-up deliberately does NOT block boot completion (see below) —
+      // it used to run synchronously here, meaning Kokoro's model load,
+      // WebGPU/WASM setup, and voice preloading all happened concurrently
+      // with everything else during the highest-risk startup window, which
+      // is exactly when memory-pressure crashes were observed to happen.
+      if (!appState.ttsEnabled) setBootProgress(82, 'Voice acting is off — skipping TTS download.');
       // Verify whichever LLM profile is actually active — for Gemini this is
       // just an API-key presence check (no network call); for Workstation/
       // Lightning AI/iPad/Auto it pings the endpoint and runs a real
@@ -2663,6 +2644,28 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       setTimeout(() => { syncLlmDrawer(); verifyActiveLlmFromDrawer(true).catch(() => {}); }, 50);
       setBootProgress(96, 'Finalizing…');
       finishBootScreen();
+
+      // Give the app a couple of seconds to actually settle into a stable,
+      // interactive, already-rendered state before taking on TTS's memory
+      // cost — rather than adding it directly on top of everything else
+      // boot is already doing. The model is cached exactly as before once
+      // loaded, so repeat use isn't affected; only the very first voiced
+      // line after opening the app waits on this instead of it being
+      // guaranteed-ready immediately, which the existing "Loading voice
+      // model…" VN indicator already covers gracefully if it's hit early.
+      if (appState.ttsEnabled) {
+        setTimeout(async () => {
+          try {
+            await warmUpTtsEngine();
+            const deviceLabel = kokoroActiveDevice === 'webgpu' ? 'GPU-accelerated' : kokoroActiveDevice === 'wasm' ? 'CPU (WebGPU unavailable/failed)' : 'device unknown';
+            console.log(`Kokoro TTS loaded — ${deviceLabel}`);
+            await preloadCastVoices();
+            prefetchNextVnLine();
+          } catch (e) {
+            console.warn('Deferred TTS warm-up failed:', e?.message || e);
+          }
+        }, 2000);
+      }
       // Reclaim image blobs whose last reference was deleted. Done once, well
       // after boot, so it never competes with first paint.
       setTimeout(() => { collectGarbageAssets(); }, 12000);
@@ -6664,7 +6667,7 @@ JSON FORMAT:
                 const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4/+esm');
                 cbPipe = await pipeline('text-to-speech', msg.modelId, {
                   device: msg.webgpu ? 'webgpu' : 'wasm',
-                  dtype: msg.webgpu ? 'fp16' : 'q8',
+                  dtype: 'q8',
                   progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
                 });
               }
@@ -6677,7 +6680,7 @@ JSON FORMAT:
               if (msg.webgpu) {
                 try {
                   tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
-                    dtype: 'fp16',
+                    dtype: 'q8', // always quantized, not fp16 — real memory difference, confirmed crash-causing at fp16
                     device: 'webgpu',
                     progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
                   });
