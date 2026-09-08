@@ -10174,12 +10174,28 @@ REQUIREMENTS:
     // iOS Safari, so it's used here as the actual "any background" option.
     // Kept as a single persistent worker (like the Kokoro TTS worker) since
     // loading the model is expensive and every sprite in a 16-cell sheet
-    // reuses the same one, rather than reloading it 16 times.
-    let mlBgWorker = null;
+    // reuses the same one, rather than reloading it 16 times. Unlike Kokoro
+    // TTS (used continuously through a VN session, worth keeping resident),
+    // sprite generation is occasional — releaseMlBgWorkerIfIdle() terminates
+    // this worker (and frees the model's memory) a while after last use,
+    // rather than holding it for the rest of the session regardless.
     let mlBgWorkerReadyPromise = null;
     let mlBgJobId = 0;
+    let mlBgIdleTimer = null;
+    const ML_BG_IDLE_RELEASE_MS = 45000;
+
+    function scheduleMlBgWorkerIdleRelease() {
+      if (mlBgIdleTimer) clearTimeout(mlBgIdleTimer);
+      mlBgIdleTimer = setTimeout(async () => {
+        const promise = mlBgWorkerReadyPromise;
+        mlBgWorkerReadyPromise = null;
+        mlBgIdleTimer = null;
+        try { const worker = await promise; if (worker) worker.terminate(); } catch (e) {}
+      }, ML_BG_IDLE_RELEASE_MS);
+    }
 
     function startMlBgWorker() {
+      if (mlBgIdleTimer) { clearTimeout(mlBgIdleTimer); mlBgIdleTimer = null; }
       if (mlBgWorkerReadyPromise) return mlBgWorkerReadyPromise;
       mlBgWorkerReadyPromise = new Promise((resolve) => {
         if (!window.Worker) { resolve(null); return; }
@@ -10262,9 +10278,11 @@ REQUIREMENTS:
         const mask = resampleMaskChannel(new Uint8ClampedArray(result.maskBuffer), result.maskWidth, result.maskHeight, width, height);
         const total = width * height;
         for (let i = 0; i < total; i++) pixelData[i * 4 + 3] = mask[i];
+        scheduleMlBgWorkerIdleRelease();
       } catch (e) {
         console.warn('AI background removal failed, falling back to heuristic:', e?.message || e);
         removeBackgroundFromPixelDataWorker(pixelData, width, height);
+        scheduleMlBgWorkerIdleRelease();
       }
     }
 
