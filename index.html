@@ -8257,6 +8257,29 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       container.scrollTop = container.scrollHeight;
     }
 
+    // A model can re-prefix "Name:" before every paragraph of what is really
+    // one continuous turn (magnum-12b and similar local fine-tunes do this
+    // more often than Gemini), which — now that speaker names are correctly
+    // recognized — produces several technically-valid blocks for a single
+    // reply. That's fine for VN mode, which pages through beats one at a
+    // time anyway, but in Chat Feed it reads as the same person sending
+    // multiple separate messages back to back. Merge blocks only when the
+    // speaker is unchanged from the one immediately before it — an actual
+    // new character speaking still starts a new bubble.
+    function mergeConsecutiveSameSpeakerBlocks(blocks) {
+      const merged = [];
+      for (const b of blocks) {
+        const prev = merged[merged.length - 1];
+        if (prev && prev.speaker === b.speaker) {
+          prev.text = `${prev.text}\n\n${b.text}`;
+          if (b.mood && !prev.mood) prev.mood = b.mood;
+        } else {
+          merged.push({ ...b });
+        }
+      }
+      return merged;
+    }
+
     async function playSequentialTypewriter(replyBlocks) {
       activeTypewriter.isTyping = true;
       activeTypewriter.skipFlag = false;
@@ -8266,8 +8289,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (emptyState) emptyState.remove();
 
       const active = getActiveScenario();
+      const blocksToPlay = active.viewMode === 'vn' ? replyBlocks : mergeConsecutiveSameSpeakerBlocks(replyBlocks);
 
-      for (let block of replyBlocks) {
+      for (let block of blocksToPlay) {
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
