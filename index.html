@@ -8800,7 +8800,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           const parsed=parseJsonLoose(rawOutput,null);
           if(Array.isArray(parsed)&&parsed.length){
-            return parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''}));
+            return resplitBlocksForEmbeddedSpeakers(parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''})));
           }
           return parsePlainTextIntoBlocks(rawOutput);
         } catch(e) { lastError=e; if(attempt===API_RETRY_LIMIT) throw e; await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250)); }
@@ -8808,35 +8808,56 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       throw lastError || new Error('Gemini request failed.');
     }
 
-    function parsePlainTextIntoBlocks(text) {
-      if (!text) return [{ speaker: 'Narrator', text: '' }];
-      const active = getActiveScenario();
-
-      const knownNames = ['Narrator', 'Scene', active.userPersona?.name, ...(active.characters || []).map(c => c.name)].filter(Boolean);
+    function getKnownSpeakerNames(active) {
+      return ['Narrator', 'Scene', active.userPersona?.name, ...(active.characters || []).map(c => c.name)].filter(Boolean);
+    }
+    // Splits raw text into {speaker, text} pieces wherever a known name
+    // appears at a line/clause boundary followed by a colon. Most text has
+    // no such embedded name at all, so the common case is a single piece
+    // attributed to initialSpeaker.
+    function splitTextBySpeakers(text, knownNames, initialSpeaker) {
+      if (!text) return [{ speaker: initialSpeaker, text: '' }];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-      
+      if (!namesPattern) return [{ speaker: initialSpeaker, text }];
       const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))(${namesPattern}):`, 'g');
-
-      const blocks = [];
+      const pieces = [];
       let lastIndex = 0;
-      let currentSpeaker = 'Narrator';
+      let currentSpeaker = initialSpeaker;
       let match;
-
       while ((match = splitterRegex.exec(text)) !== null) {
         const precedingText = text.slice(lastIndex, match.index).trim();
-        if (precedingText) {
-          blocks.push({ speaker: currentSpeaker, text: precedingText });
-        }
+        if (precedingText) pieces.push({ speaker: currentSpeaker, text: precedingText });
         currentSpeaker = match[1];
         lastIndex = splitterRegex.lastIndex;
       }
-
       const remainingText = text.slice(lastIndex).trim();
-      if (remainingText) {
-        blocks.push({ speaker: currentSpeaker, text: remainingText });
-      }
+      if (remainingText) pieces.push({ speaker: currentSpeaker, text: remainingText });
+      return pieces.length > 0 ? pieces : [{ speaker: initialSpeaker, text }];
+    }
 
-      return blocks.length > 0 ? blocks : [{ speaker: 'Narrator', text: text }];
+    function parsePlainTextIntoBlocks(text) {
+      if (!text) return [{ speaker: 'Narrator', text: '' }];
+      const active = getActiveScenario();
+      return splitTextBySpeakers(text, getKnownSpeakerNames(active), 'Narrator');
+    }
+
+    // Safety net for the Gemini JSON path specifically: the schema asks for
+    // one array element per reacting character, but nothing enforces that —
+    // the model can (and sometimes does) write a second speaker's line
+    // straight into one block's text instead of emitting a separate element,
+    // most often when it voices the user's own character. Re-scan each
+    // block's text for an embedded "Name:" boundary and split it out so it
+    // still renders as its own bubble under the right name, rather than
+    // bleeding into whichever character's block it landed in.
+    function resplitBlocksForEmbeddedSpeakers(blocks) {
+      const active = getActiveScenario();
+      const knownNames = getKnownSpeakerNames(active);
+      const out = [];
+      for (const b of blocks) {
+        const pieces = splitTextBySpeakers(b.text || '', knownNames, b.speaker || 'Narrator');
+        pieces.forEach((p, i) => out.push({ speaker: p.speaker, mood: i === 0 ? (b.mood || '') : '', text: p.text }));
+      }
+      return out;
     }
 
     async function compactOldRecapsIfNeeded() {
