@@ -433,7 +433,7 @@
 <body id="appBody" class="bg-zetaBg text-slate-200 h-full flex flex-col font-sans overflow-hidden select-none sm:select-auto">
 
   <!-- Boot / Loading Screen: covers first paint while state loads, TTS warms
-       up, and (when relevant) the Colab tunnel gets a background health
+       up, and (when relevant) the Lightning AI tunnel gets a background health
        check. See setBootProgress()/finishBootScreen() and the
        DOMContentLoaded handler for the sequence that drives this. -->
   <div id="zfBootScreen">
@@ -853,10 +853,10 @@
   <div id="llmConnectionDrawer" class="fixed inset-y-0 right-0 z-[55] w-80 sm:w-[28rem] bg-zetaSidebar border-l border-zetaBorder flex flex-col transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
     <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><div><h2 class="text-sm font-bold text-white">🔌 LLM Connection</h2><p class="text-[10px] text-slate-500 mt-1">Edit LLM settings without opening Setup.</p></div><button onclick="toggleLlmConnectionDrawer(false)" class="text-slate-400 hover:text-white text-2xl">&times;</button></div>
     <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
-      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><label class="block text-[10px] font-bold text-zetaLight uppercase">Active routine LLM</label><select id="llmDrawerProfileSelect" onchange="onLlmDrawerProfileChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs"><option value="gemini">☁️ Google Gemini</option><option value="workstation">💻 Laptop / Workstation</option><option value="deviceIphone">☁️ iPhone / Colab — Stheno 8B Q4_K_M</option><option value="deviceIpad">📱 iPad — On-Device Stheno</option><option value="auto">⚡ Smart Auto-Routing</option></select><p id="llmDrawerProfileHint" class="text-[10px] text-slate-500"></p></div>
+      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><label class="block text-[10px] font-bold text-zetaLight uppercase">Active routine LLM</label><select id="llmDrawerProfileSelect" onchange="onLlmDrawerProfileChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs"><option value="gemini">☁️ Google Gemini</option><option value="workstation">💻 Laptop / Workstation</option><option value="deviceIphone">⚡ iPhone / Lightning AI — Stheno 8B Q4_K_M</option><option value="deviceIpad">📱 iPad — On-Device Stheno</option><option value="auto">⚡ Smart Auto-Routing</option></select><p id="llmDrawerProfileHint" class="text-[10px] text-slate-500"></p></div>
       <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><b class="text-[10px] text-zetaLight uppercase">☁️ Google Gemini</b><input id="llmDrawerApiKey" type="password" autocomplete="off" placeholder="Gemini API key" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><select id="llmDrawerModel" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option><option value="gemini-3.6-flash">gemini-3.6-flash</option><option value="gemini-3.7-flash">gemini-3.7-flash</option><option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option></select></div>
-      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="12" y1="16" x2="12" y2="19"/><line x1="8" y1="20.5" x2="16" y2="20.5"/></svg>Laptop / Workstation</b><span id="llmDrawerTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_workstation" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_workstation" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_workstation" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_workstation" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('workstation')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><rect x="10.2" y="4" width="3.6" height="1.3" rx="0.65" fill="currentColor" stroke="none"/><line x1="10.5" y1="19.4" x2="13.5" y2="19.4"/></svg>iPhone / Colab</b><span id="llmDrawerTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIphone" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIphone" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIphone" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIphone" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><input id="llmDrawerColabUrl" placeholder="Colab notebook URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerNgrokToken" type="password" autocomplete="off" placeholder="Ngrok authtoken (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><button type="button" onclick="testLlmDrawerEndpoint('deviceIphone')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="5.3" r="0.55" fill="currentColor" stroke="none"/></svg>iPad</b><span id="llmDrawerTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIpad" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIpad" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIpad" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIpad" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIpad')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div>
-      <div class="text-[10px] text-slate-500 leading-relaxed"><b class="text-slate-300">Fallback:</b> Laptop, iPhone/Colab, and iPad profiles do not fall back to Gemini. Only Smart Auto-Routing can.</div>
+      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="12" y1="16" x2="12" y2="19"/><line x1="8" y1="20.5" x2="16" y2="20.5"/></svg>Laptop / Workstation</b><span id="llmDrawerTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_workstation" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_workstation" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_workstation" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_workstation" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('workstation')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><rect x="10.2" y="4" width="3.6" height="1.3" rx="0.65" fill="currentColor" stroke="none"/><line x1="10.5" y1="19.4" x2="13.5" y2="19.4"/></svg>iPhone / Lightning AI</b><span id="llmDrawerTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIphone" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIphone" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIphone" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIphone" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><input id="llmDrawerLightningUrl" placeholder="Lightning AI Studio URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><button type="button" onclick="testLlmDrawerEndpoint('deviceIphone')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="5.3" r="0.55" fill="currentColor" stroke="none"/></svg>iPad</b><span id="llmDrawerTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIpad" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIpad" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIpad" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIpad" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIpad')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div>
+      <div class="text-[10px] text-slate-500 leading-relaxed"><b class="text-slate-300">Fallback:</b> Laptop, iPhone/Lightning AI, and iPad profiles do not fall back to Gemini. Only Smart Auto-Routing can.</div>
     </div><div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex gap-2"><button onclick="verifyActiveLlmFromDrawer()" class="flex-1 bg-zetaInput border border-zetaBorder text-slate-200 py-2 rounded-xl text-xs">🧪 Verify Active</button><button onclick="saveLlmDrawer()" class="flex-1 bg-zetaAccent text-white py-2 rounded-xl text-xs font-semibold">Save & Apply</button></div>
   </div>
 
@@ -1201,7 +1201,7 @@
             <select id="llmProfileSelect" onchange="onLlmProfileSelectChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
               <option value="gemini">☁️ Cloud (Gemini) — Default</option>
               <option value="workstation">💻 Workstation (Laptop) — Magnum 12B v2</option>
-              <option value="deviceIphone">☁️ iPhone / Colab Tunnel — Stheno 8B Q4_K_M</option>
+              <option value="deviceIphone">☁️ iPhone / Lightning AI — Stheno 8B Q4_K_M</option>
               <option value="deviceIpad">📱 On-Device (iPad Air) — Stheno 8B Q3_K_M</option>
               <option value="auto">⚡ Smart Auto-Routing (Laptop → Device → Cloud)</option>
             </select>
@@ -1211,21 +1211,17 @@
           <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2">
             <div class="flex items-center justify-between gap-2">
               <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
-                <span id="colabStatusDot" class="inline-block w-2 h-2 rounded-full bg-slate-500"></span> Colab GPU Server
+                <span id="lightningStatusDot" class="inline-block w-2 h-2 rounded-full bg-slate-500"></span> Lightning AI GPU Server
               </span>
-              <span id="colabStatusText" class="text-[10px] text-slate-500">Not checked</span>
+              <span id="lightningStatusText" class="text-[10px] text-slate-500">Not checked</span>
             </div>
-            <input type="text" id="colabNotebookUrl" placeholder="https://colab.research.google.com/github/user/repo/blob/main/notebook.ipynb" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
-            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-1.5">
-              <input type="password" id="colabNgrokToken" autocomplete="off" placeholder="Optional: Ngrok Authtoken (stored locally)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
-              <button type="button" onclick="copyColabNgrokToken()" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">📋 Copy</button>
-            </div>
+            <input type="text" id="lightningStudioUrl" placeholder="https://lightning.ai/your-username/studios/your-studio-name" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
             <div class="flex items-center gap-1.5">
-              <button type="button" onclick="launchColabServer()" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-semibold py-1.5 rounded-lg transition active:scale-95">🚀 Launch Colab Server</button>
-              <button type="button" onclick="verifyColabServer()" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">🧪 Verify</button>
-              <button type="button" onclick="toggleColabWatch()" id="colabWatchBtn" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">👁 Watch</button>
+              <button type="button" onclick="launchLightningServer()" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-semibold py-1.5 rounded-lg transition active:scale-95">🚀 Launch Lightning Studio</button>
+              <button type="button" onclick="verifyLightningServer()" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">🧪 Verify</button>
+              <button type="button" onclick="toggleLightningWatch()" id="lightningWatchBtn" class="bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition active:scale-95">👁 Watch</button>
             </div>
-            <p class="text-[10px] text-slate-500 leading-relaxed">The notebook first checks Colab Secrets for <code>NGROK_AUTHTOKEN</code>, then prompts only if none is available. Launch opens Colab; ZetaForge watches the tunnel and can now verify both <code>/v1/models</code> and a real <code>/v1/chat/completions</code> response.</p>
+            <p class="text-[10px] text-slate-500 leading-relaxed">No token to paste here — Lightning AI exposes a public HTTPS URL for the server directly, so there's no ngrok step. Launch opens the Studio; ZetaForge watches the endpoint below and can verify both <code>/v1/models</code> and a real <code>/v1/chat/completions</code> response.</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1248,10 +1244,10 @@
             </div>
             <div class="p-2.5 bg-zetaCard border border-zetaBorder rounded-lg space-y-1.5">
               <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPhone / Colab</span>
+                <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPhone / Lightning AI</span>
                 <span id="llmTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span>
               </div>
-              <input type="text" id="llmUrl_deviceIphone" placeholder="https://your-domain.ngrok-free.dev/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmUrl_deviceIphone" placeholder="https://your-studio-id.litng-ai-03.litng.ai/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <input type="text" id="llmModel_deviceIphone" placeholder="Llama-3.1-8B-Stheno-v3.4" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <div class="flex items-center gap-1.5">
                 <input type="number" id="llmContextCap_deviceIphone" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
@@ -1268,7 +1264,7 @@
                 <span class="text-[10px] font-bold text-zetaGlow uppercase tracking-wider">iPad Air</span>
                 <span id="llmTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span>
               </div>
-              <input type="text" id="llmUrl_deviceIpad" placeholder="https://paralegal-pampers-chevron.ngrok-free.dev/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmUrl_deviceIpad" placeholder="http://127.0.0.1:8080/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <input type="text" id="llmModel_deviceIpad" placeholder="stheno-8b-q3_k_m" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <div class="flex items-center gap-1.5">
                 <input type="number" id="llmContextCap_deviceIpad" min="512" max="32000" step="256" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
@@ -1293,17 +1289,17 @@
                 <p>4. Tap "🔌 Test Connection" — it should say ✅ Reachable once the server is running.</p>
               </div>
               <div>
-                <p class="font-semibold text-slate-300">☁️ iPhone / Colab Tunnel — Llama 3.1 8B Stheno (free T4 GPU)</p>
-                <p>This profile points at a KoboldCpp server running on a free Google Colab T4, exposed through your reserved ngrok domain. Because the tunnel is HTTPS, it works from an iPhone or any device — nothing needs to run on the phone itself.</p>
-                <p>1. Use the <strong>Launch Colab Server</strong> button above. Colab opens in a new tab.</p>
-                <p>2. In Colab: <strong>Runtime → Run all</strong> (or <kbd>Ctrl</kbd>+<kbd>F9</kbd>). Confirm the GPU runtime is <strong>T4</strong> under Runtime → Change runtime type.</p>
-                <p>3. Wait for cell 5 to print "Starting OpenAI Compatible API". First run downloads ~4.9&nbsp;GB, so allow a couple of minutes. Leave that cell running — stopping it shuts the server down.</p>
-                <p>4. ZetaForge polls the tunnel automatically and the status dot above turns green when it answers. Keep the Colab tab open; free sessions are reclaimed after a period of inactivity.</p>
-                <p class="text-slate-500">Requests include the <code>ngrok-skip-browser-warning</code> header. The Verify button performs a real <code>/v1/chat/completions</code> request, not just a port check.</p>
+                <p class="font-semibold text-slate-300">⚡ iPhone / Lightning AI — Llama 3.1 8B Stheno (free T4 GPU)</p>
+                <p>This profile points at a KoboldCpp server running on a Lightning AI Studio — a persistent cloud dev environment. Unlike Colab or Kaggle, a Studio's files and installed packages survive between sessions, so the model download and setup only happen once, not every time you want to chat. Its public HTTPS endpoint works from an iPhone or any device — nothing needs to run on the phone itself.</p>
+                <p>1. One-time: create a Studio at lightning.ai, install koboldcpp, and download the model to its persistent storage (100GB free). Expose the server's port using the Studio's API builder plugin to get a public URL, and paste that URL into the "iPhone / Lightning AI" endpoint field above.</p>
+                <p>2. Use the <strong>Launch Lightning Studio</strong> button above. The Studio opens in a new tab.</p>
+                <p>3. If the Studio isn't already running, resume it and start the server — since packages and the model are already there from setup, this is fast, not a multi-minute reinstall like Colab.</p>
+                <p>4. ZetaForge polls the same endpoint URL automatically and the status dot above turns green when it answers. The free plan gives roughly 22 T4-GPU-hours a month, and a Studio restarts every 4 hours even while active — that resets the running server but not your files, so you'll need to restart the server (not redo setup) after a restart.</p>
+                <p class="text-slate-500">The Verify button performs a real <code>/v1/chat/completions</code> request, not just a port check.</p>
               </div>
               <div>
                 <p class="font-semibold text-slate-300">📱 On-Device (iPad Air) — fully local</p>
-                <p>The iPad profile still expects a local GGUF runner on the device itself (an llama.cpp-server style app) at <code>http://127.0.0.1:8080/v1</code>. Note that when ZetaForge is served over HTTPS, browsers may block requests to plain <code>http://</code> localhost — the Colab tunnel avoids that problem entirely, which is why it is the better default for iOS.</p>
+                <p>The iPad profile still expects a local GGUF runner on the device itself (an llama.cpp-server style app) at <code>http://127.0.0.1:8080/v1</code>. Note that when ZetaForge is served over HTTPS, browsers may block requests to plain <code>http://</code> localhost — a Lightning AI public endpoint avoids that problem entirely, which is why it is the better default for iOS.</p>
               </div>
               <p class="text-slate-500">⚡ Smart Auto-Routing pings the Workstation profile first, then this device's profile, then falls back to Gemini. Each profile now has its own ping budget (the "ping ms" field) — tunnelled endpoints legitimately need longer than a LAN box, and too small a value makes a working server look offline.</p>
             </div>
@@ -1422,6 +1418,7 @@
               <label class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition cursor-pointer" title="Import a Tavern/SillyTavern character card (.json or .png)">📇 Import Card<input type="file" accept=".json,.png,image/png,application/json" class="hidden" onchange="importCharacterCard(event)" /></label>
               <button type="button" onclick="aiAssignCastVoices(false)" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition" title="Let the AI read each persona and pick a fitting voice">✨ AI Match Voices</button>
               <button type="button" onclick="autoAssignCastVoices(false)" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Quick assignment without an API call">🎙️ Auto-Assign</button>
+              <button type="button" onclick="openVoiceLab('narrator')" class="text-xs bg-zetaCard text-zetaLight border border-zetaBorder hover:bg-zetaBorder px-2.5 py-1 rounded-md transition" title="Give narration/scene text its own distinct voice">📖 Narrator Voice</button>
               <button type="button" onclick="aiAssignCastVoices(true)" class="text-xs bg-zetaCard text-slate-400 border border-zetaBorder hover:bg-zetaBorder px-2 py-1 rounded-md transition" title="Rematch the entire cast with AI">↻</button>
               <button type="button" onclick="addCharacterRow()" class="text-xs bg-zetaAccent/30 text-zetaLight border border-zetaAccent/50 hover:bg-zetaAccent/50 px-2.5 py-1 rounded-md transition">+ Add Character</button>
             </div>
@@ -2093,6 +2090,10 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           currentOutfitId: ''
         },
         characters: [],
+        // Narrator lines had no voice profile to resolve to at all before
+        // this — Voice Lab treats it like any other speaker via
+        // resolveVoiceLabTarget's 'narrator' case.
+        narratorProfile: { name: 'Narrator', ttsVoice: '', voiceLab: null },
         lorebook: [],
         messages: [],
         // Full-resolution (4096x4096) sprite sheets are kept here after
@@ -2180,7 +2181,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
     const LLM_PROFILE_DEFAULTS = {
       workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500 },
-      deviceIphone: { label: 'iPhone / Colab (Stheno 8B)', url: 'https://paralegal-pampers-chevron.ngrok-free.dev/v1', model: 'Llama-3.1-8B-Stheno-v3.4', contextCap: 8192, pingMs: 4000 },
+      deviceIphone: { label: 'iPhone / Lightning AI (Stheno 8B)', url: 'https://your-studio-id.litng-ai-03.litng.ai/v1', model: 'Llama-3.1-8B-Stheno-v3.4', contextCap: 8192, pingMs: 4000 },
       deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600 }
     };
     // Ping budget is per-profile: a LAN box answers in tens of ms, but a
@@ -2197,9 +2198,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // hard to debug — this surfaces it.
     let lastTurnEngine = null;
     let currentLlmConnection = {state:'unknown',profileKey:'gemini',label:'Google Gemini',model:''};
-    function llmProfileLabel(k){return ({gemini:'Google Gemini',workstation:'Laptop',deviceIphone:'iPhone / Colab',deviceIpad:'iPad',auto:'Smart Auto-Routing'})[k]||'LLM';}
+    function llmProfileLabel(k){return ({gemini:'Google Gemini',workstation:'Laptop',deviceIphone:'iPhone / Lightning AI',deviceIpad:'iPad',auto:'Smart Auto-Routing'})[k]||'LLM';}
     function setCurrentLlmConnection(state,profileKey,extra={}){currentLlmConnection={state,profileKey:profileKey||'gemini',label:extra.label||llmProfileLabel(profileKey),model:extra.model||'',detail:extra.detail||''};renderLlmConnectionGraphic();}
-    function renderLlmConnectionGraphic(){const r=document.getElementById('llmConnectionGraphic');if(!r)return;const a=currentLlmConnection.profileKey||appState?.llmProfile||'gemini',st=currentLlmConnection.state,ok=st==='connected',ck=st==='checking';r.querySelectorAll('[data-llm-icon]').forEach(n=>{const on=n.dataset.llmIcon===a;n.classList.toggle('opacity-100',on);n.classList.toggle('opacity-35',!on);n.classList.toggle('scale-110',on);});const l=r.querySelector('[data-llm-status-label]');if(l)l.textContent=ok?`Connected · ${currentLlmConnection.label}`:ck?`Checking · ${currentLlmConnection.label}`:`Not verified · ${currentLlmConnection.label}`;const d=r.querySelector('[data-llm-status-dot]');if(d)d.className='inline-block w-2 h-2 rounded-full '+(ok?'bg-emerald-400':ck?'bg-amber-400 animate-pulse':'bg-slate-500');}
+    function renderLlmConnectionGraphic(){const r=document.getElementById('llmConnectionGraphic');if(!r)return;const a=currentLlmConnection.profileKey||appState?.llmProfile||'gemini',st=currentLlmConnection.state,ok=st==='connected',ck=st==='checking';r.querySelectorAll('[data-llm-icon]').forEach(n=>{const on=n.dataset.llmIcon===a;n.classList.toggle('opacity-100',on);n.classList.toggle('opacity-35',!on);n.classList.toggle('scale-110',on);});const l=r.querySelector('[data-llm-status-label]');if(l)l.textContent=ok?(currentLlmConnection.model||currentLlmConnection.label):ck?`Checking · ${currentLlmConnection.label}`:`Not verified · ${currentLlmConnection.label}`;const d=r.querySelector('[data-llm-status-dot]');if(d)d.className='inline-block w-2 h-2 rounded-full '+(ok?'bg-emerald-400':ck?'bg-amber-400 animate-pulse':'bg-slate-500');}
     function openLlmConnectionDrawer(){toggleLlmConnectionDrawer(true);}
     function renderEngineIndicator() {
       const el = document.getElementById('engineIndicator');
@@ -2239,13 +2240,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       vnReadingSpeed: 1,
       ttsPreloadWindow: 4,   // how many lines each side of the current one to pre-render
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
-      colabNotebookUrl: '',
+      lightningStudioUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // only engine now — Chatterbox option removed
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
       localTurnsServed: 0,
-      colabNgrokToken: '',
       activeScenarioId: 'default_scen',
       scenarios: [],
       usageStats: {
@@ -2362,6 +2362,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       appState.activeScenarioId = found.id;
       if (!found.artStyle) found.artStyle = 'Anime';
       if (!found.viewMode) found.viewMode = 'chat';
+      if (!found.narratorProfile) found.narratorProfile = { name: 'Narrator', ttsVoice: '', voiceLab: null };
       return found;
     }
 
@@ -2369,11 +2370,41 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return ensureActiveScenario();
     }
 
-    function setBootProgress(percent, status) {
-      const fill = document.getElementById('zfBootBarFill');
+    let bootBarRAF = null;
+    let bootBarDisplayed = 0;
+    // Animates toward each checkpoint instead of snapping to it. Without an
+    // explicit estimate, steps get a short default ease (fast enough not to
+    // feel sluggish, smooth enough not to feel like a hard jump); slow,
+    // size-dependent steps (voice preloading) pass a real estimate scaled to
+    // how much work is actually pending, so the bar keeps crawling forward
+    // during the wait instead of sitting frozen until it completes.
+    function setBootProgress(percent, status, estimatedMs) {
+      const target = Math.max(0, Math.min(100, percent));
       const text = document.getElementById('zfBootStatus');
-      if (fill) fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
       if (text && status) text.innerText = status;
+      const fill = document.getElementById('zfBootBarFill');
+      if (!fill) { bootBarDisplayed = target; return; }
+      if (bootBarRAF) cancelAnimationFrame(bootBarRAF);
+      const startPercent = bootBarDisplayed;
+      const startTime = performance.now();
+      const duration = estimatedMs != null ? Math.max(0, estimatedMs) : 220;
+      if (duration <= 0 || target <= startPercent) {
+        bootBarDisplayed = target;
+        fill.style.width = `${target}%`;
+        return;
+      }
+      function tick(now) {
+        const elapsed = now - startTime;
+        const frac = Math.min(1, elapsed / duration);
+        // Ease-out — approaches quickly at first, then crawls the final
+        // stretch. If the real step finishes before this completes, the next
+        // setBootProgress call cancels it and jumps from wherever it got to.
+        const eased = 1 - Math.pow(1 - frac, 2);
+        bootBarDisplayed = startPercent + (target - startPercent) * eased;
+        fill.style.width = `${bootBarDisplayed}%`;
+        if (frac < 1) bootBarRAF = requestAnimationFrame(tick);
+      }
+      bootBarRAF = requestAnimationFrame(tick);
     }
     function finishBootScreen() {
       const screen = document.getElementById('zfBootScreen');
@@ -2428,9 +2459,15 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       // cost. If voice acting is disabled, the boot remains fast.
       if (appState.ttsEnabled) {
         setBootProgress(58, 'Loading TTS voice model…');
+        // A simple O(n) prediction: fixed model-load cost plus a per-voice
+        // warm-up cost, sized to the cast actually pending. Set before the
+        // await below starts, so the bar crawls across the real wait instead
+        // of sitting frozen at 58% and then jumping straight to 88% once
+        // everything is already finished.
+        const pendingVoices = getCastVoiceIds().filter(v => !warmedVoices.has(v)).length;
+        setBootProgress(88, 'Warming character voices and next lines…', 1500 + pendingVoices * 320);
         try {
           await warmUpTtsEngine();
-          setBootProgress(88, 'Warming character voices and next lines…');
           await preloadCastVoices();
           prefetchNextVnLine();
         } catch (e) {
@@ -2440,18 +2477,19 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       } else {
         setBootProgress(82, 'Voice acting is off — skipping TTS download.');
       }
-      // Colab verification is useful, but should never make an offline app wait
-      // for a remote tunnel during boot. Start it in the background when the
-      // active profile is Colab or Smart Auto-Routing.
+      // Lightning AI verification is useful, but should never make an offline
+      // app wait for a remote server during boot. Start it in the background
+      // when the active profile is Lightning AI or Smart Auto-Routing.
       const bootProfile = appState.llmProfile || 'gemini';
       if (bootProfile === 'deviceIphone' || bootProfile === 'auto') {
-        // Deliberately not awaited — a cold ngrok/Colab tunnel can take
-        // seconds, and boot should never block on a remote GPU server that
-        // may not even be running yet. This only reports what's already
-        // there; it can't start the Colab notebook itself (see Setup →
-        // LLM Connection for why: Google requires a human "Run all" click).
-        setBootProgress(94, 'Checking Colab GPU tunnel…');
-        setTimeout(() => checkColabServer(true).catch(() => {}), 50);
+        // Deliberately not awaited — a cold Lightning Studio can take
+        // seconds to resume, and boot should never block on a remote GPU
+        // server that may not even be running yet. This only reports what's
+        // already there; it can't wake the Studio itself (see Setup → LLM
+        // Connection — Lightning still needs the page opened at least once
+        // to resume from its 4-hour restart cycle).
+        setBootProgress(94, 'Checking Lightning AI tunnel…');
+        setTimeout(() => checkLightningServer(true).catch(() => {}), 50);
       }
       setBootProgress(96, 'Finalizing…');
       finishBootScreen();
@@ -2606,8 +2644,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!Number.isFinite(Number(appState.vnReadingSpeed))) appState.vnReadingSpeed = 1;
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
-      if (typeof appState.colabNotebookUrl !== 'string') appState.colabNotebookUrl = '';
-      if (typeof appState.colabNgrokToken !== 'string') appState.colabNgrokToken = '';
+      if (typeof appState.lightningStudioUrl !== 'string') appState.lightningStudioUrl = '';
       if (appState.ttsEngine !== 'kokoro') appState.ttsEngine = 'kokoro';
       if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
       if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
@@ -3105,9 +3142,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     }
 
     function toggleLlmConnectionDrawer(force){const d=document.getElementById('llmConnectionDrawer');if(!d)return;const closed=d.classList.contains('translate-x-full'),open=force!==undefined?force:closed;if(open){toggleMobileSidebar(false);toggleChapterDrawer(false);toggleMenuDrawer(false);syncLlmDrawer();d.classList.remove('translate-x-full');document.getElementById('mobileBackdrop')?.classList.remove('hidden');}else{d.classList.add('translate-x-full');checkBackdrop();}}
-    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;const cu=document.getElementById('llmDrawerColabUrl');if(cu)cu.value=appState.colabNotebookUrl||DEFAULT_COLAB_NOTEBOOK;const ct=document.getElementById('llmDrawerNgrokToken');if(ct)ct.value=appState.colabNgrokToken||'';['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
-    function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop. No Gemini fallback.',deviceIphone:'Routine turns use Colab Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
-    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.colabNotebookUrl=(document.getElementById('llmDrawerColabUrl')?.value||'').trim();appState.colabNgrokToken=(document.getElementById('llmDrawerNgrokToken')?.value||'').trim();appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10);appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs};});autoRouteCache={result:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
+    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;const cu=document.getElementById('llmDrawerLightningUrl');if(cu)cu.value=appState.lightningStudioUrl||DEFAULT_LIGHTNING_STUDIO_URL;['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
+    function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop. No Gemini fallback.',deviceIphone:'Routine turns use Lightning AI Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
+    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.lightningStudioUrl=(document.getElementById('llmDrawerLightningUrl')?.value||'').trim();appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10);appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs};});autoRouteCache={result:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
     async function verifyActiveLlmFromDrawer(silent=false){const p=document.getElementById('llmDrawerProfileSelect')?.value||appState.llmProfile||'gemini';if(p==='gemini'){const has=!!((document.getElementById('llmDrawerApiKey')?.value||appState.apiKey||'').trim());setCurrentLlmConnection(has?'connected':'offline','gemini',{label:'Google Gemini',model:document.getElementById('llmDrawerModel')?.value||appState.model});if(!silent&&!has)zfAlert('Google Gemini is selected, but no API key is configured.','LLM Verification');return has;}let targetProfile=p,url,model;
     if(p==='auto'){
       // 'auto' isn't a real endpoint — it's a meta-selector, so there's no
@@ -6251,10 +6288,21 @@ JSON FORMAT:
             }
             if (!tts) {
               const mod = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm');
-              tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
-                dtype: 'q8',
-                progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
-              });
+              try {
+                tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
+                  dtype: msg.webgpu ? 'fp16' : 'q8',
+                  device: msg.webgpu ? 'webgpu' : 'wasm',
+                  progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
+                });
+              } catch (e) {
+                // WebGPU can fail to load a given model even when an adapter
+                // exists (unsupported op, driver quirk) — fall back to the
+                // known-good WASM path rather than leaving TTS broken.
+                tts = await mod.KokoroTTS.from_pretrained(msg.modelId, {
+                  dtype: 'q8',
+                  progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
+                });
+              }
             }
             self.postMessage({ type: 'loaded', engine: 'kokoro', voices: tts.voices ? Object.keys(tts.voices) : null });
             return;
@@ -6342,7 +6390,7 @@ JSON FORMAT:
         };
         (async () => {
           const engine = getActiveTtsEngine();
-          const useGpu = engine === 'chatterbox' ? await webGpuAvailable() : false;
+          const useGpu = await webGpuAvailable();
           kokoroWorker.postMessage({
             type: 'load',
             engine,
@@ -6685,6 +6733,11 @@ JSON FORMAT:
     function getVoiceProfileForSpeaker(speakerName) {
       const active = getActiveScenario();
       const target = String(speakerName || '').toLowerCase();
+      if (target === 'narrator' || target === 'scene') {
+        const np = active.narratorProfile;
+        if (!np || !np.ttsVoice) return null;
+        return np.voiceLab || Object.assign(defaultVoiceLabProfile(), { voice: np.ttsVoice });
+      }
       const char = target === String(active.userPersona?.name || '').toLowerCase()
         ? active.userPersona
         : (active.characters || []).find(c => String(c.name || '').toLowerCase() === target);
@@ -6702,13 +6755,35 @@ JSON FORMAT:
       'sighs': 'haaah', 'sigh': 'haaah', 'groans': 'ughhh', 'grunts': 'hmph',
       'gasps': 'hah!', 'yawns': 'haaaam', 'sniffles': 'sniff',
       'clears throat': 'ahem', 'coughs': 'ahem', 'scoffs': 'tch',
-      'hums': 'hmmm', 'whistles': 'wheet', 'sobs': 'hu hu', 'cries': 'hu hu',
+      'hums': 'hmmm', 'whistles': 'wheet', 'whistle': 'wheet', 'sobs': 'hu hu', 'cries': 'hu hu',
       'screams': 'aaaah', 'shouts': 'hey!', 'gulps': 'gulp', 'growls': 'grrr',
       'purrs': 'mmmm', 'moans': 'mmmh', 'whimpers': 'mmm', 'shivers': 'brrr'
     };
     function getActionSoundMap() {
       const active = getActiveScenario();
       return Object.assign({}, DEFAULT_ACTION_SOUNDS, (active && active.actionSounds) || {});
+    }
+    // Matches simple inflections (whistle/whistles/whistling, sigh/sighs/
+    // sighing) against the map without needing every verb form spelled out
+    // individually — a missing plural/gerund shouldn't mean the action gets
+    // read aloud as a literal word instead of voiced as a sound.
+    function lookupActionSound(word, map) {
+      if (!word) return null;
+      if (map[word]) return map[word];
+      if (map[word + 's']) return map[word + 's'];
+      if (word.endsWith('s') && map[word.slice(0, -1)]) return map[word.slice(0, -1)];
+      if (word.endsWith('ing')) {
+        const stem = word.slice(0, -3);
+        if (map[stem]) return map[stem];
+        if (map[stem + 'e']) return map[stem + 'e'];
+        if (map[stem + 'es']) return map[stem + 'es'];
+      }
+      if (word.endsWith('ed')) {
+        const stem = word.slice(0, -2);
+        if (map[stem]) return map[stem];
+        if (map[stem + 'e']) return map[stem + 'e'];
+      }
+      return null;
     }
     // Rewrites *action* spans for speech. Mapped actions become a pronounceable
     // approximation; unmapped ones are kept but surrounded by commas so they're
@@ -6751,10 +6826,12 @@ JSON FORMAT:
       const map = getActionSoundMap();
       return String(text).replace(/\*([^*]+)\*/g, (full, inner) => {
         const key = inner.trim().toLowerCase().replace(/[.!?,]+$/, '');
-        if (map[key]) return `, ${map[key]}, `;
+        const direct = lookupActionSound(key, map);
+        if (direct) return `, ${direct}, `;
         // Try the leading verb, so "*laughs softly*" still matches "laughs".
         const lead = key.split(/\s+/)[0];
-        if (map[lead]) return `, ${map[lead]}, `;
+        const leadMatch = lookupActionSound(lead, map);
+        if (leadMatch) return `, ${leadMatch}, `;
         return `, ${inner}, `;
       }).replace(/\s*,\s*,\s*/g, ', ').replace(/\s{2,}/g, ' ').trim();
     }
@@ -6780,7 +6857,7 @@ JSON FORMAT:
     function getCastVoiceIds() {
       const active = getActiveScenario();
       if (!active) return [];
-      const ids = [active.userPersona, ...(active.characters || [])]
+      const ids = [active.userPersona, ...(active.characters || []), active.narratorProfile]
         .filter(Boolean)
         .flatMap(p => {
           const out = [];
@@ -7078,6 +7155,7 @@ JSON FORMAT:
       if (voiceLabTargetRef.type === 'persona') return { name: active.userPersona.name || 'You', obj: active.userPersona };
       if (voiceLabTargetRef.type === 'character') return { name: active.characters?.[voiceLabTargetRef.index]?.name || 'Character', obj: active.characters?.[voiceLabTargetRef.index] };
       if (voiceLabTargetRef.type === 'spotlight') { const c = getCurrentSpotlightCharacter(); return c && c.obj ? { name: c.obj.name, obj: c.obj } : null; }
+      if (voiceLabTargetRef.type === 'narrator') { if (!active.narratorProfile) active.narratorProfile = { name: 'Narrator', ttsVoice: '', voiceLab: null }; return { name: 'Narrator', obj: active.narratorProfile }; }
       return null;
     }
 
@@ -7524,11 +7602,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
-      const colabEl = document.getElementById('colabNotebookUrl');
-      if (colabEl) colabEl.value = appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK;
-      const colabTokenEl = document.getElementById('colabNgrokToken');
-      if (colabTokenEl) colabTokenEl.value = appState.colabNgrokToken || '';
-      setColabStatus('idle', 'Not checked');
+      const lightningUrlEl = document.getElementById('lightningStudioUrl');
+      if (lightningUrlEl) lightningUrlEl.value = appState.lightningStudioUrl || DEFAULT_LIGHTNING_STUDIO_URL;
+      setLightningStatus('idle', 'Not checked');
       const profileSelect = document.getElementById('llmProfileSelect');
       if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -7711,8 +7787,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       appState.vnReadingSpeed = Number(document.getElementById('vnSpeedInput')?.value || appState.vnReadingSpeed || 1);
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(document.getElementById('ttsPreloadInput')?.value) || appState.ttsPreloadWindow || 4));
 
-      appState.colabNotebookUrl = (document.getElementById('colabNotebookUrl')?.value || '').trim();
-      appState.colabNgrokToken = (document.getElementById('colabNgrokToken')?.value || '').trim();
+      appState.lightningStudioUrl = (document.getElementById('lightningStudioUrl')?.value || '').trim();
       appState.llmProfile = document.getElementById('llmProfileSelect')?.value || 'gemini';
       if (!appState.llmProfiles) appState.llmProfiles = JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -8199,6 +8274,17 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         const fullText = formatDialogueSpacing((block.text || '').trim());
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
+        // Kick off this block's audio now, in the background, rather than
+        // waiting until the user is actually looking at it. The typewriter
+        // reveal below takes real time regardless, so this render runs
+        // concurrently with it (and with later blocks in this same batch) —
+        // by the time the user is ready to move forward, playback should
+        // already be cached instead of starting cold.
+        if (appState.ttsEnabled && kokoroEngineReady && fullText) {
+          const ttsProfile = getVoiceProfileForSpeaker(speaker);
+          if (ttsProfile) renderVnAudioCached(speaker, fullText, ttsProfile).catch(() => {});
+        }
+
         // Apply the mood before rendering this individual turn so VN expression
         // selection happens per reply rather than once after the whole batch.
         if (block.mood && !isNarrator) {
@@ -8562,116 +8648,101 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return result;
     }
 
-    // --- Colab GPU server helpers ------------------------------------------
-    // Colab deliberately provides no way to auto-execute a notebook from a URL
-    // (that would be arbitrary remote code execution from a link), so the flow
-    // is: open the notebook, you press Run all, and ZetaForge watches the
-    // tunnel and reports the moment the server answers.
-    const DEFAULT_COLAB_NOTEBOOK = 'https://colab.research.google.com/github/arjunparihar11/zeta-forge-ai/blob/main/Llama-3_1-Stheno_ZetaForge_Colab_Notebook.ipynb';
-    let colabWatchTimer = null;
-    let colabWatching = false;
+    // --- Lightning AI GPU server helpers ------------------------------------
+    // Lightning AI Studios are persistent — unlike Colab/Kaggle, installed
+    // packages and downloaded model weights survive between sessions, so
+    // setup only happens once. A Studio still needs its page opened to
+    // resume from its ~4-hour restart cycle (Lightning has no way to wake a
+    // Studio from an arbitrary link either), so the flow stays similar to
+    // Colab's: open the Studio, make sure the server's running, ZetaForge
+    // watches the public endpoint and reports the moment it answers. Unlike
+    // Colab, there's no ngrok token to manage — Lightning exposes a stable
+    // public HTTPS URL for the server directly via its port/API builder.
+    const DEFAULT_LIGHTNING_STUDIO_URL = 'https://lightning.ai/arjunparihar11/studios/zetaforge-stheno';
+    let lightningWatchTimer = null;
+    let lightningWatching = false;
 
-    function setColabStatus(state, text) {
-      const dot = document.getElementById('colabStatusDot');
-      const label = document.getElementById('colabStatusText');
+    function setLightningStatus(state, text) {
+      const dot = document.getElementById('lightningStatusDot');
+      const label = document.getElementById('lightningStatusText');
       const colors = { idle: 'bg-slate-500', checking: 'bg-amber-400', up: 'bg-emerald-400', down: 'bg-rose-500' };
       if (dot) dot.className = `inline-block w-2 h-2 rounded-full ${colors[state] || colors.idle}`;
       if (label) label.innerText = text;
     }
 
-    function colabEndpointUrl() {
+    function lightningEndpointUrl() {
       return (appState.llmProfiles?.deviceIphone?.url || LLM_PROFILE_DEFAULTS.deviceIphone.url || '').trim();
     }
 
-    async function checkColabServer(quiet = false) {
-      const url = colabEndpointUrl();
-      if (!url) { setColabStatus('idle', 'No endpoint set'); return false; }
-      if (!quiet) setColabStatus('checking', 'Checking…');
-      const ok = await pingLocalEndpoint(url, 8000);   // Colab + ngrok cold start is slow
-      setColabStatus(ok ? 'up' : 'down', ok ? 'Server is up ✅' : 'Not responding');
+    async function checkLightningServer(quiet = false) {
+      const url = lightningEndpointUrl();
+      if (!url) { setLightningStatus('idle', 'No endpoint set'); return false; }
+      if (!quiet) setLightningStatus('checking', 'Checking…');
+      const ok = await pingLocalEndpoint(url, 8000);   // a resuming Studio can be slow to answer
+      setLightningStatus(ok ? 'up' : 'down', ok ? 'Server is up ✅' : 'Not responding');
       return ok;
     }
 
-    async function verifyColabServer() {
-      const status = document.getElementById('colabStatusText');
+    async function verifyLightningServer() {
+      const status = document.getElementById('lightningStatusText');
       if (status) status.innerText = 'Verifying model…';
-      setColabStatus('checking', 'Verifying model…');
-      const result = await verifyLocalEndpoint(colabEndpointUrl(), appState.llmProfiles?.deviceIphone?.model || 'Llama-3.1-8B-Stheno-v3.4', 20000);
+      setLightningStatus('checking', 'Verifying model…');
+      const result = await verifyLocalEndpoint(lightningEndpointUrl(), appState.llmProfiles?.deviceIphone?.model || 'Llama-3.1-8B-Stheno-v3.4', 20000);
       if (result.ok) {
-        setColabStatus('up', `Model verified ✅${result.model ? ' · ' + result.model.slice(0, 22) : ''}`);
+        setLightningStatus('up', `Model verified ✅${result.model ? ' · ' + result.model.slice(0, 22) : ''}`);
         const el = document.getElementById('llmTestStatus_deviceIphone');
         if (el) { el.innerText = '✅ Verified'; el.className = 'text-[9px] text-emerald-400 font-semibold'; }
       } else {
-        setColabStatus('down', `Verification failed: ${result.error || result.stage}`);
+        setLightningStatus('down', `Verification failed: ${result.error || result.stage}`);
       }
       return result;
     }
 
-    async function copyColabNgrokToken() {
-      const input = document.getElementById('colabNgrokToken');
-      const token = (input?.value || appState.colabNgrokToken || '').trim();
-      if (!token) { await zfAlert('Enter the Ngrok Authtoken first. It is stored only in this browser profile and is never sent to Gemini.', 'Ngrok Token'); return; }
-      try {
-        await navigator.clipboard.writeText(token);
-        await zfAlert('Ngrok Authtoken copied. Paste it into Colab Secrets as NGROK_AUTHTOKEN if it is not already saved there.', 'Copied');
-      } catch (e) {
-        if (input) { input.focus(); input.select(); }
-        await zfAlert('Clipboard access was blocked. The token field is selected so it can be copied manually.', 'Copy Token');
-      }
-    }
-
-    async function launchColabServer() {
-      const input = document.getElementById('colabNotebookUrl');
-      const tokenInput = document.getElementById('colabNgrokToken');
-      const url = (input?.value || appState.colabNotebookUrl || DEFAULT_COLAB_NOTEBOOK).trim();
-      if (!/^https?:\/\//i.test(url)) { await zfAlert('Enter a valid Colab notebook URL first.', 'Invalid URL'); return; }
-      appState.colabNotebookUrl = url;
-      appState.colabNgrokToken = (tokenInput?.value || appState.colabNgrokToken || '').trim();
+    async function launchLightningServer() {
+      const input = document.getElementById('lightningStudioUrl');
+      const url = (input?.value || appState.lightningStudioUrl || DEFAULT_LIGHTNING_STUDIO_URL).trim();
+      if (!/^https?:\/\//i.test(url)) { await zfAlert('Enter a valid Lightning AI Studio URL first.', 'Invalid URL'); return; }
+      appState.lightningStudioUrl = url;
       saveState();
-      // Clipboard is only a convenience; the notebook prefers Colab Secrets.
-      // Never place the token in the Colab URL or query string.
-      if (appState.colabNgrokToken) {
-        try { await navigator.clipboard.writeText(appState.colabNgrokToken); } catch (e) {}
-      }
       window.open(url, '_blank', 'noopener');
-      if (!colabWatching) toggleColabWatch(true);
+      if (!lightningWatching) toggleLightningWatch(true);
     }
 
-    // Poll the tunnel until it comes alive, then stop. Deliberately bounded so
-    // an abandoned attempt doesn't poll forever in the background.
-    function toggleColabWatch(force) {
-      const want = force !== undefined ? force : !colabWatching;
-      const btn = document.getElementById('colabWatchBtn');
+    // Poll the endpoint until it comes alive, then stop. Deliberately bounded
+    // so an abandoned attempt doesn't poll forever in the background.
+    function toggleLightningWatch(force) {
+      const want = force !== undefined ? force : !lightningWatching;
+      const btn = document.getElementById('lightningWatchBtn');
       if (!want) {
-        colabWatching = false;
-        if (colabWatchTimer) clearInterval(colabWatchTimer);
-        colabWatchTimer = null;
+        lightningWatching = false;
+        if (lightningWatchTimer) clearInterval(lightningWatchTimer);
+        lightningWatchTimer = null;
         if (btn) btn.classList.remove('vn-toggle-active');
-        setColabStatus('idle', 'Watch stopped');
+        setLightningStatus('idle', 'Watch stopped');
         return;
       }
-      colabWatching = true;
+      lightningWatching = true;
       if (btn) btn.classList.add('vn-toggle-active');
-      setColabStatus('checking', 'Waiting for server…');
+      setLightningStatus('checking', 'Waiting for server…');
       let attempts = 0;
       const MAX_ATTEMPTS = 100; // ~8 minutes at 5s
-      if (colabWatchTimer) clearInterval(colabWatchTimer);
-      colabWatchTimer = setInterval(async () => {
+      if (lightningWatchTimer) clearInterval(lightningWatchTimer);
+      lightningWatchTimer = setInterval(async () => {
         attempts++;
-        const ok = await pingLocalEndpoint(colabEndpointUrl(), 8000);
+        const ok = await pingLocalEndpoint(lightningEndpointUrl(), 8000);
         if (ok) {
-          setColabStatus('up', 'Server is up ✅');
-          clearInterval(colabWatchTimer); colabWatchTimer = null; colabWatching = false;
+          setLightningStatus('up', 'Server is up ✅');
+          clearInterval(lightningWatchTimer); lightningWatchTimer = null; lightningWatching = false;
           if (btn) btn.classList.remove('vn-toggle-active');
           autoRouteCache = { result: null, expiresAt: 0 }; // re-evaluate routing now
           const statusEl = document.getElementById('llmTestStatus_deviceIphone');
           if (statusEl) { statusEl.innerText = '✅ Reachable'; statusEl.className = 'text-[9px] text-emerald-400 font-semibold'; }
         } else if (attempts >= MAX_ATTEMPTS) {
-          clearInterval(colabWatchTimer); colabWatchTimer = null; colabWatching = false;
+          clearInterval(lightningWatchTimer); lightningWatchTimer = null; lightningWatching = false;
           if (btn) btn.classList.remove('vn-toggle-active');
-          setColabStatus('down', 'Gave up waiting');
+          setLightningStatus('down', 'Gave up waiting');
         } else {
-          setColabStatus('checking', `Waiting for server… (${attempts * 5}s)`);
+          setLightningStatus('checking', `Waiting for server… (${attempts * 5}s)`);
         }
       }, 5000);
     }
@@ -8683,7 +8754,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const map = {
         gemini: 'Routine story turns use the Gemini API (default).',
         workstation: 'Routine turns are sent to the Workstation (Laptop) endpoint below.',
-        deviceIphone: 'Routine turns are sent to the iPhone / Colab tunnel endpoint below.',
+        deviceIphone: 'Routine turns are sent to the iPhone / Lightning AI endpoint below.',
         deviceIpad: 'Routine turns are sent to the On-Device (iPad Air) endpoint below.',
         auto: '⚡ Smart Auto-Routing: pings Workstation first, then this device, then falls back to Gemini if both are offline. Re-checked every ~20s.'
       };
@@ -8741,7 +8812,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!text) return [{ speaker: 'Narrator', text: '' }];
       const active = getActiveScenario();
 
-      const knownNames = ['Narrator', 'Scene', ...(active.characters || []).map(c => c.name).filter(Boolean)];
+      const knownNames = ['Narrator', 'Scene', active.userPersona?.name, ...(active.characters || []).map(c => c.name)].filter(Boolean);
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
       
       const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))(${namesPattern}):`, 'g');
@@ -9687,7 +9758,7 @@ REQUIREMENTS:
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div class="px-3 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
-        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div><div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div><div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div></div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-indigo-50 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
