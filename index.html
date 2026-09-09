@@ -7302,7 +7302,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         r.readAsDataURL(wavBlob);
       });
       const res = await fetch(`${base}/clone-voice`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
         signal: AbortSignal.timeout(20000),
         body: JSON.stringify({ voice_id: voiceId, audio_base64: base64, label: label || voiceId })
       });
@@ -7691,7 +7691,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (!base) throw new Error('No laptop server URL configured for Chatterbox (Laptop).');
       const res = await fetch(`${base}/tts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
         signal: AbortSignal.timeout(30000),
         body: JSON.stringify({ text, voice: voice || 'cb_default' })
       });
@@ -7708,7 +7708,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (!base) { if (statusEl) statusEl.innerText = '⚠️ Enter a URL first.'; return; }
       if (statusEl) statusEl.innerText = 'Checking…';
       try {
-        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(8000) });
         chatterboxLaptopReady = res.ok;
         if (statusEl) statusEl.innerText = res.ok ? '✅ Reachable and ready.' : `⚠️ Server responded with ${res.status}.`;
       } catch (e) {
@@ -7793,7 +7793,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         if (getActiveTtsEngine() === 'chatterbox-laptop') {
           const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
           if (!base) throw new Error('No laptop server URL configured.');
-          const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(8000) });
+          const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(8000) });
           chatterboxLaptopReady = res.ok;
           if (!res.ok) throw new Error(`Laptop server responded with ${res.status}`);
         } else {
