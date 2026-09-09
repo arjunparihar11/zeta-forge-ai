@@ -740,10 +740,10 @@
           <div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div>
           <h3 class="text-lg font-semibold text-white">Your story is ready</h3>
           <p class="text-xs sm:text-sm max-w-md text-[#b9a6ff]/70">
-            Configure your Gemini API key, cast, and World Codex in Setup, or import past Zeta logs to begin.
+            Start a new scenario — write your own, describe one for Gemini to build, or let it invent something entirely.
           </p>
-          <button onclick="openModal('setupModal')" class="mt-2 bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-zetaAccent/30">
-            Configure & Start
+          <button onclick="createNewScenarioFlow()" class="mt-2 bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl transition shadow-lg shadow-zetaAccent/30">
+            ✨ New Scenario
           </button>
         </div>
       </div>
@@ -1733,6 +1733,14 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           <button type="button" onclick="undoSpriteMaskStroke()" class="text-xs px-3 py-1.5 rounded-lg border border-zetaBorder bg-zetaCard text-slate-300 transition active:scale-95">↩️ Undo</button>
         </div>
         <label class="text-[10px] text-slate-400 block">Brush Size <input id="spriteMaskBrushSize" type="range" min="5" max="80" value="24" class="w-full accent-zetaAccent"></label>
+
+        <div class="border-t border-zetaBorder pt-2 space-y-1.5">
+          <p class="text-[10px] text-slate-500">Didn't get removed well the first time? Re-run background removal on just this sprite:</p>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="applyLegacyRemovalToCurrentSprite()" class="flex-1 text-xs py-1.5 rounded-lg border border-zetaBorder bg-zetaCard text-slate-200 transition active:scale-95">🔲 Legacy Removal</button>
+            <button type="button" onclick="toggleSpriteMaskChromaKeyPicking()" id="spriteMaskChromaKeyBtn" class="flex-1 text-xs py-1.5 rounded-lg border border-zetaBorder bg-zetaCard text-slate-200 transition active:scale-95">🎨 Chroma Key</button>
+          </div>
+        </div>
       </div>
       <div class="p-3 border-t border-zetaBorder bg-zetaCard flex items-center justify-between gap-2">
         <button type="button" onclick="stepSpriteMaskEditor(-1)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs transition active:scale-95">◀ Prev</button>
@@ -1741,6 +1749,66 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       </div>
     </div>
   </div>
+
+  <!-- New Scenario setup drawer: quick fields (name/LLM/TTS) before handing
+       off to the full Setup modal, plus an AI-generation shortcut that can
+       populate the whole scenario from a description or from nothing at all. -->
+  <div id="newScenarioDrawer" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[63] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-zetaBorder bg-zetaCard flex items-center justify-between shrink-0">
+        <h2 class="text-sm font-bold text-white">✨ New Scenario</h2>
+        <button onclick="closeNewScenarioDrawer()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Scenario Name</label>
+          <input type="text" id="newScenarioName" placeholder="e.g. Wings of Ancient Fire" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent" />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">LLM</label>
+          <select id="newScenarioLlm" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent">
+            <option value="gemini">☁️ Cloud (Gemini) — Default</option>
+            <option value="workstation">💻 Workstation (Laptop) — Magnum 12B v2</option>
+            <option value="deviceIphone">☁️ iPhone / Lightning AI — Stheno 8B Q4_K_M</option>
+            <option value="deviceIpad">📱 On-Device (iPad Air) — Stheno 8B Q3_K_M</option>
+            <option value="auto">⚡ Smart Auto-Routing (Laptop → Device → Cloud)</option>
+          </select>
+        </div>
+
+        <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2">
+          <label class="flex items-center justify-between cursor-pointer">
+            <span class="text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Voice Acting (TTS)</span>
+            <input type="checkbox" id="newScenarioTtsToggle" onchange="toggleNewScenarioTtsFields()" class="w-4 h-4 accent-zetaAccent" />
+          </label>
+          <div id="newScenarioTtsEngineField" class="hidden">
+            <select id="newScenarioTtsEngine" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent">
+              <option value="chatterbox-laptop">💻 Chatterbox (Laptop) — best quality</option>
+              <option value="kokoro">⚡ Kokoro — in-browser</option>
+              <option value="kitten">🐱 Kitten TTS — lightest weight</option>
+            </select>
+          </div>
+        </div>
+
+        <button onclick="proceedToSetupFromDrawer()" class="w-full bg-zetaAccent hover:bg-zetaAccentHover text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-95 shadow">Next →</button>
+
+        <div class="border-t border-zetaBorder pt-4 space-y-2">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">✨ AI Generate Scenario</label>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Describe what you're picturing and Gemini will write the characters, persona, and lorebook for you — or skip the description and let it invent something completely from scratch.</p>
+          <textarea id="newScenarioAiDescription" rows="3" placeholder="e.g. A noir detective story in a rain-soaked 1940s city, where my character is a disillusioned PI investigating a missing heiress..." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-xs text-white focus:border-zetaAccent"></textarea>
+          <div class="flex gap-1.5">
+            <button onclick="generateScenarioWithAI('described')" id="newScenarioGenerateBtn" class="flex-1 text-xs bg-zetaAccent/30 hover:bg-zetaAccent/50 border border-zetaAccent/50 text-zetaLight font-semibold py-2 rounded-lg transition active:scale-95">✨ Generate From Description</button>
+            <button onclick="generateScenarioWithAI('random')" id="newScenarioRandomBtn" class="flex-1 text-xs bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 font-semibold py-2 rounded-lg transition active:scale-95">🎲 Fully Randomize</button>
+          </div>
+          <p id="newScenarioAiStatus" class="text-[10px] text-slate-500"></p>
+        </div>
+
+        <button onclick="closeNewScenarioDrawer(); openModal('importModal');" class="w-full text-xs text-slate-400 hover:text-slate-200 border border-zetaBorder hover:bg-zetaCard py-2 rounded-lg transition active:scale-95">📥 Import a Scenario Instead</button>
+      </div>
+    </div>
+  </div>
+
   <div id="branchHistoryModal" onclick="closeModal('branchHistoryModal')" class="fixed inset-0 bg-black/70 z-[65] items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard">
@@ -3221,7 +3289,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
     }
     function isModalOrDrawerOpen() {
-      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal'];
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal','newScenarioDrawer'];
       if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
       const chapterDrawer = document.getElementById('chapterDrawer');
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
@@ -4060,9 +4128,20 @@ Preserve the character's described physical identity consistently. Show the full
       if (!char) return;
       if (!await zfConfirm(`Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.`, 'Generate Sprite Sheet', 'Generate')) return;
       const reference = getCharacterReferencePhotos(char);
-      const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${getCurrentOutfitDescription(char)}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
-      const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the attached character reference. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets. All character sprites must maintain absolute physical identity consistency, matching the face, hair, and base outfit of the provided reference. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
-Hands must default to natural, empty poses (relaxed at the side, gesturing, resting, crossed, etc.). Do NOT depict the character holding, removing, dangling, or offering any clothing item, accessory, or footwear (including their own shoes/sandals/boots) unless an item being held is explicitly and specifically described in their outfit or visual profile text below — clothing and footwear described as worn should stay worn, on the body, in every sprite, never carried in the hands.
+      const persona = getCharacterPersona(char);
+      const visualProfile = getCharacterVisualProfile(char);
+      const outfitDesc = getCurrentOutfitDescription(char);
+      const variantLines = (getCharacterOutfits(char).length ? `Current outfit should be ${outfitDesc}.` : 'Use the character visual profile and current story attire.') + ` Character-specific variants should remain appropriate to ${char.name || 'the character'} and their story.`;
+      const prompt = `I want to generate a professional, multi-panel visual novel character sprite sheet for the following character. The final output must be a single, large image with a perfectly transparent background, suitable for easy cutting into individual assets.
+
+Character: ${char.name || 'Character'}
+Persona: ${persona || 'Not specified'}
+Visual Profile (authoritative for appearance — face, hair, build, coloring, distinguishing features): ${visualProfile || 'Not specified'}
+Current Outfit: ${outfitDesc}
+${reference.length ? 'Reference image(s) are attached for face/hair/outfit consistency — treat the Visual Profile text above as the authoritative description if it and the reference ever conflict, since the reference may be an older or different pose than described.' : 'No reference image is available yet — the Visual Profile and Persona text above are the ONLY source of truth for this character\'s appearance. Do not invent details that contradict or ignore what is written there.'}
+
+All character sprites must maintain absolute physical identity consistency with the description above, matching the face, hair, and base outfit throughout. The rendering style must be ${active.artStyle || 'high-resolution digital anime illustration'}. All sprites must be waist-up, half-body compositions.
+Hands must default to natural, empty poses (relaxed at the side, gesturing, resting, crossed, etc.). Do NOT depict the character holding, removing, dangling, or offering any clothing item, accessory, or footwear (including their own shoes/sandals/boots) unless an item being held is explicitly and specifically described in their outfit or visual profile text above — clothing and footwear described as worn should stay worn, on the body, in every sprite, never carried in the hands.
 Generate a 4x4 grid of 16 distinct sprites, organized into four rows with four sprites each. Each sprite must be clearly separated and spaced apart on the transparent canvas for easy asset slicing.
 Row 1: Neutral, Happy, Sad, Angry.
 Row 2: Confident, Thinking, Surprised, Tired/Bored.
@@ -4201,6 +4280,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       if (!state) return;
       state.index = Math.max(0, Math.min(index, state.sprites.length - 1));
       state.undoStack = [];
+      if (state.pickingChromaKey) toggleSpriteMaskChromaKeyPicking();
       const sprite = state.sprites[state.index];
       document.getElementById('spriteMaskCounter').innerText = `${state.index + 1} / ${state.sprites.length}`;
       document.getElementById('spriteMaskCaption').innerText = sprite.caption || `Sprite ${state.index + 1}`;
@@ -4254,11 +4334,15 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     function beginSpriteMaskStroke(e) {
       const state = spriteMaskEditState;
       if (!state || !state.ctx) return;
+      const point = e.touches ? e.touches[0] : e;
+      if (state.pickingChromaKey) {
+        sampleChromaKeyAndApply(point.clientX, point.clientY);
+        return;
+      }
       // Snapshot before the stroke for undo — capped so a long editing
       // session can't quietly balloon memory with full-canvas copies.
       state.undoStack.push(state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height));
       if (state.undoStack.length > 15) state.undoStack.shift();
-      const point = e.touches ? e.touches[0] : e;
       paintSpriteMaskAt(point.clientX, point.clientY);
       state.painting = true;
     }
@@ -4288,6 +4372,52 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const state = spriteMaskEditState;
       if (!state || !state.undoStack.length) return;
       state.ctx.putImageData(state.undoStack.pop(), 0, 0);
+    }
+
+    function pushSpriteMaskUndoSnapshot() {
+      const state = spriteMaskEditState;
+      if (!state || !state.ctx) return;
+      state.undoStack.push(state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height));
+      if (state.undoStack.length > 15) state.undoStack.shift();
+    }
+
+    // Re-runs the original heuristic (brightness/desaturation-based) removal
+    // on just this one sprite — useful when whichever method was used
+    // originally (AI or chroma-key) missed this specific sprite even though
+    // it worked for the others.
+    async function applyLegacyRemovalToCurrentSprite() {
+      const state = spriteMaskEditState;
+      if (!state || !state.ctx) return;
+      pushSpriteMaskUndoSnapshot();
+      const imgData = state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height);
+      await removeBackgroundFromPixelDataWorker(imgData.data, state.canvas.width, state.canvas.height);
+      state.ctx.putImageData(imgData, 0, 0);
+    }
+
+    // Arms "pick a color" mode — the next tap on the canvas samples that
+    // pixel and chroma-keys the whole sprite against it, instead of painting
+    // a brush stroke. Toggling again (or a successful pick) disarms it.
+    function toggleSpriteMaskChromaKeyPicking() {
+      const state = spriteMaskEditState;
+      if (!state) return;
+      state.pickingChromaKey = !state.pickingChromaKey;
+      const btn = document.getElementById('spriteMaskChromaKeyBtn');
+      if (btn) btn.className = `flex-1 text-xs py-1.5 rounded-lg border transition active:scale-95 ${state.pickingChromaKey ? 'border-zetaAccent bg-zetaAccent/30 text-white' : 'border-zetaBorder bg-zetaCard text-slate-200'}`;
+      if (state.canvas) state.canvas.style.cursor = state.pickingChromaKey ? 'copy' : 'crosshair';
+    }
+
+    function sampleChromaKeyAndApply(clientX, clientY) {
+      const state = spriteMaskEditState;
+      if (!state || !state.ctx) return;
+      const rect = state.canvas.getBoundingClientRect();
+      const scaleX = state.canvas.width / rect.width, scaleY = state.canvas.height / rect.height;
+      const x = Math.round((clientX - rect.left) * scaleX), y = Math.round((clientY - rect.top) * scaleY);
+      const sample = state.ctx.getImageData(x, y, 1, 1).data;
+      pushSpriteMaskUndoSnapshot();
+      const imgData = state.ctx.getImageData(0, 0, state.canvas.width, state.canvas.height);
+      removeBackgroundByKeyColor(imgData.data, state.canvas.width, state.canvas.height, [sample[0], sample[1], sample[2]], appState.spriteKeyColorTolerance || 40);
+      state.ctx.putImageData(imgData, 0, 0);
+      toggleSpriteMaskChromaKeyPicking(); // disarm after one pick
     }
 
     // Commits the currently-displayed canvas back into sprites[] before
@@ -6105,19 +6235,138 @@ IMPORTANT RULES:
       await saveState();
     }
 
-    async function createNewScenarioFlow() {
-      const name = await zfPrompt('Enter a title for the new scenario:', `Scenario #${appState.scenarios.length + 1}`, 'New Scenario');
-      if (!name) return;
+    function createNewScenarioFlow() {
+      toggleMenuDrawer(false);
+      document.getElementById('newScenarioName').value = `Scenario #${appState.scenarios.length + 1}`;
+      document.getElementById('newScenarioLlm').value = appState.llmProfile || 'gemini';
+      document.getElementById('newScenarioTtsToggle').checked = !!appState.ttsEnabled;
+      document.getElementById('newScenarioTtsEngine').value = getActiveTtsEngine();
+      document.getElementById('newScenarioAiDescription').value = '';
+      document.getElementById('newScenarioAiStatus').innerText = '';
+      toggleNewScenarioTtsFields();
+      openModal('newScenarioDrawer');
+    }
 
-      const newScen = createScenarioTemplate(name.trim());
+    function closeNewScenarioDrawer() {
+      closeModal('newScenarioDrawer');
+    }
+
+    function toggleNewScenarioTtsFields() {
+      const on = document.getElementById('newScenarioTtsToggle').checked;
+      document.getElementById('newScenarioTtsEngineField').classList.toggle('hidden', !on);
+    }
+
+    // Applies the drawer's LLM/TTS choices (these are global app settings,
+    // not per-scenario) and creates the new scenario with the given title —
+    // shared by both the plain "Next" path and the AI-generated paths below.
+    function applyNewScenarioDrawerSettings(title) {
+      appState.llmProfile = document.getElementById('newScenarioLlm').value;
+      appState.ttsEnabled = document.getElementById('newScenarioTtsToggle').checked;
+      if (appState.ttsEnabled) appState.ttsEngine = document.getElementById('newScenarioTtsEngine').value;
+      const newScen = createScenarioTemplate((title || '').trim() || `Scenario #${appState.scenarios.length + 1}`);
       appState.scenarios.unshift(newScen);
       appState.activeScenarioId = newScen.id;
+      return newScen;
+    }
 
+    async function proceedToSetupFromDrawer() {
+      const newScen = applyNewScenarioDrawerSettings(document.getElementById('newScenarioName').value);
       await saveState();
       renderAllUi();
-      syncModalForm();
-      toggleMenuDrawer(false);
+      closeNewScenarioDrawer();
       openModal('setupModal');
+      if (appState.ttsEnabled) warmUpTtsEngine();
+    }
+
+    // Has Gemini write an entire scenario — persona, cast, and lorebook —
+    // either from the user's own description or fully invented from
+    // scratch, then hands off to Setup exactly like the plain path does so
+    // the user can review/edit before actually starting.
+    async function generateScenarioWithAI(mode) {
+      if (!appState.apiKey) { await zfAlert('Add a Gemini API key in Setup first.', 'API Key Required'); return; }
+      const description = document.getElementById('newScenarioAiDescription').value.trim();
+      if (mode === 'described' && !description) { await zfAlert('Describe the scenario first, or use Fully Randomize instead.', 'Description Needed'); return; }
+
+      const genBtn = document.getElementById('newScenarioGenerateBtn');
+      const randBtn = document.getElementById('newScenarioRandomBtn');
+      const status = document.getElementById('newScenarioAiStatus');
+      genBtn.disabled = true; randBtn.disabled = true;
+      status.innerText = mode === 'random' ? 'Inventing a scenario…' : 'Writing your scenario…';
+
+      try {
+        const prompt = `Design a complete interactive-fiction roleplay scenario${mode === 'random' ? ', fully original — surprise the user with an interesting premise, setting, and cast they haven\'t specified' : ` based on this description: "${description}"`}.
+
+Return ONLY a JSON object with this exact shape, no prose, no code fences:
+{
+  "title": "short scenario title",
+  "setting": "1-2 sentence description of the world/setting",
+  "userPersona": { "name": "...", "role": "short role/archetype", "persona": "2-4 sentences: personality, motivations, background", "visualProfile": "1-2 sentences: physical appearance, clothing" },
+  "characters": [
+    { "name": "...", "role": "short role/archetype", "persona": "2-4 sentences: personality, motivations, background", "visualProfile": "1-2 sentences: physical appearance, clothing", "mood": "one word, current emotional state", "relationship": "1 sentence: their relationship to the user's character" }
+  ],
+  "lorebook": [
+    { "title": "short entry name", "keywords": "comma,separated,trigger,words", "content": "2-3 sentences of world/backstory detail relevant to those keywords" }
+  ]
+}
+
+Write 2-4 characters and 3-6 lorebook entries. Make the persona and visual profile fields concrete and specific, not generic — these directly drive how each character looks and acts.`;
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: mode === 'random' ? 1.1 : 0.9, maxOutputTokens: 2000, responseMimeType: 'application/json' }, safetySettings: buildSafetySettings() })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error?.message || `Generation failed (${res.status}).`);
+        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parsed = parseJsonLoose(raw, null);
+        if (!parsed || typeof parsed !== 'object') throw new Error('The model did not return a usable scenario.');
+
+        const newScen = applyNewScenarioDrawerSettings(parsed.title);
+        newScen.setting = String(parsed.setting || '').slice(0, 400);
+        if (parsed.userPersona && typeof parsed.userPersona === 'object') {
+          Object.assign(newScen.userPersona, {
+            name: String(parsed.userPersona.name || newScen.userPersona.name).slice(0, 60),
+            role: String(parsed.userPersona.role || '').slice(0, 100),
+            persona: String(parsed.userPersona.persona || '').slice(0, 600),
+            desc: String(parsed.userPersona.persona || '').slice(0, 600),
+            visualProfile: String(parsed.userPersona.visualProfile || '').slice(0, 300)
+          });
+        }
+        (Array.isArray(parsed.characters) ? parsed.characters : []).slice(0, 6).forEach(c => {
+          if (!c || !c.name) return;
+          newScen.characters.push({
+            id: 'char_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            name: String(c.name).slice(0, 60), role: String(c.role || '').slice(0, 100),
+            avatar: '', photos: [], mood: String(c.mood || 'Neutral').slice(0, 40),
+            persona: String(c.persona || '').slice(0, 600), visualProfile: String(c.visualProfile || '').slice(0, 300),
+            personality: '', relationship: String(c.relationship || '').slice(0, 300), relationships: {},
+            outfits: [], currentOutfitId: ''
+          });
+        });
+        (Array.isArray(parsed.lorebook) ? parsed.lorebook : []).slice(0, 8).forEach(e => {
+          if (!e || !e.title || !e.content) return;
+          newScen.lorebook.push({ id: 'lore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), title: String(e.title).slice(0, 120), keywords: String(e.keywords || e.title).slice(0, 240), content: String(e.content).slice(0, 900) });
+        });
+
+        await saveState();
+        renderAllUi();
+
+        // Cast a voice per character too, reusing the same AI voice-matching
+        // already used elsewhere — no need for a second, separate pipeline.
+        if (appState.ttsEnabled && newScen.characters.length) {
+          status.innerText = 'Casting voices…';
+          try { await aiAssignCastVoices(false); } catch (e) { console.warn('Voice casting skipped:', e?.message || e); }
+        }
+
+        closeNewScenarioDrawer();
+        openModal('setupModal');
+        if (appState.ttsEnabled) warmUpTtsEngine();
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'scenario generation failed');
+      } finally {
+        genBtn.disabled = false; randBtn.disabled = false;
+      }
     }
 
     async function deleteScenario(id) {
@@ -10452,7 +10701,7 @@ REQUIREMENTS:
     function renderVirtualMessages(force=false, explicitIndices=null){
       const container=document.getElementById('messagesContainer');const active=getActiveScenario();if(!container||!active)return;
       document.getElementById('chapterBadgeText').innerText=`Ch. ${active.currentChapter||1}`;
-      const all=active.messages||[];if(!all.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Configure your Gemini API key and cast in Setup, or import past Zeta logs to begin.</p><button onclick="openModal('setupModal')" class="mt-2 bg-zetaAccent text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl">Configure & Start</button></div>`;return;}
+      const all=active.messages||[];if(!all.length){container.innerHTML=`<div id="emptyState" class="flex flex-col items-center justify-center h-full text-center py-12 px-4 text-slate-400 space-y-3"><div class="w-16 h-16 rounded-2xl bg-zetaCard flex items-center justify-center text-3xl border border-zetaBorder">📖</div><h3 class="text-lg font-semibold text-white">Your story is ready</h3><p class="text-xs sm:text-sm max-w-md text-slate-400">Start a new scenario — write your own, describe one for Gemini to build, or let it invent something entirely.</p><button onclick="createNewScenarioFlow()" class="mt-2 bg-zetaAccent text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-xl">✨ New Scenario</button></div>`;return;}
       if(!virtualChatScrollBound){container.addEventListener('scroll',()=>{if(messageSearchQuery)return;chatStickToBottom=isMessagesContainerNearBottom(container);if(chatStickToBottom){const jumpBtn=document.getElementById('chatJumpToLatestBtn');if(jumpBtn)jumpBtn.style.display='none';}if(activeTypewriter.isTyping)return;requestAnimationFrame(()=>renderVirtualMessages())},{passive:true});virtualChatScrollBound=true;}
       const count=all.length;
       let start, end;
