@@ -2425,7 +2425,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       lightningStudioUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop'
-      chatterboxLaptopUrl: '',   // e.g. http://192.168.1.42:5050 — see start_chatterbox_server.py
+      chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
@@ -8193,21 +8193,25 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     function syncChatterboxLaptopFieldVisibility() {
       const field = document.getElementById('chatterboxLaptopUrlField');
-      if (field) field.classList.toggle('hidden', getActiveTtsEngine() !== 'chatterbox-laptop');
+      const select = document.getElementById('ttsEngineSelect');
+      // Keyed off the dropdown's own selected value, not getActiveTtsEngine()
+      // — the field needs to be visible for an engine the user just picked
+      // but hasn't actually switched to yet (e.g. no URL saved so far),
+      // otherwise there's no way to ever enter one in the first place.
+      const selected = select ? select.value : getActiveTtsEngine();
+      if (field) field.classList.toggle('hidden', selected !== 'chatterbox-laptop');
       const urlInput = document.getElementById('chatterboxLaptopUrl');
-      if (urlInput) urlInput.value = appState.chatterboxLaptopUrl || '';
+      if (urlInput) {
+        if (!appState.chatterboxLaptopUrl) appState.chatterboxLaptopUrl = 'http://192.168.68.77:5050';
+        urlInput.value = appState.chatterboxLaptopUrl;
+      }
     }
 
     async function changeTtsEngine(value) {
       const next = ['chatterbox-laptop', 'kokoro', 'kitten'].includes(value) ? value : 'kokoro';
       const prev = getActiveTtsEngine();
-      if (next === prev) { updateTtsEngineHint(); syncChatterboxLaptopFieldVisibility(); return; }
-
-      if (next === 'chatterbox-laptop' && !appState.chatterboxLaptopUrl) {
-        await zfAlert('Enter your laptop server URL in the field below first, then switch to this engine.', 'Laptop URL Needed');
-        document.getElementById('ttsEngineSelect').value = prev;
-        return;
-      }
+      syncChatterboxLaptopFieldVisibility();
+      if (next === prev) { updateTtsEngineHint(); return; }
 
       appState.ttsEngine = next;
       // Drop the in-browser worker and all its engine-specific state. Not
@@ -8232,7 +8236,6 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         }
       });
 
-      syncChatterboxLaptopFieldVisibility();
       await saveState();
       syncVoiceSelectButtons();
       renderCharacterCardsSetup();
