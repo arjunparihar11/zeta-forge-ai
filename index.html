@@ -1371,9 +1371,19 @@
               <button type="button" id="ttsEnabledToggleBtn" onclick="toggleTtsEnabled()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
               <label class="block text-slate-300 font-semibold mb-1 mt-3 text-xs">Voice Engine</label>
               <select id="ttsEngineSelect" onchange="changeTtsEngine(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent">
-                <option value="kokoro">⚡ Kokoro (Default — ~85MB, works on phones)</option>
+                <option value="chatterbox-laptop">💻 Chatterbox (Laptop) — best quality, needs your laptop running</option>
+                <option value="kokoro">⚡ Kokoro — ~85MB, in-browser, most expressive of the on-device options</option>
+                <option value="kitten">🐱 Kitten TTS — ~25-80MB, in-browser, lightest weight and most conservative on memory</option>
               </select>
               <p id="ttsEngineHint" class="text-[10px] text-slate-500 mt-1 leading-snug"></p>
+              <div id="chatterboxLaptopUrlField" class="hidden mt-2 space-y-1">
+                <label class="block text-slate-300 font-semibold text-xs">Laptop Server URL</label>
+                <div class="flex gap-1.5">
+                  <input id="chatterboxLaptopUrl" type="text" placeholder="http://192.168.1.42:5050 or Lightning AI URL" oninput="appState.chatterboxLaptopUrl = this.value.trim(); saveState();" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent" />
+                  <button type="button" onclick="testChatterboxLaptopServer()" class="text-xs bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-zetaLight px-3 rounded-xl transition shrink-0">Test</button>
+                </div>
+                <p id="chatterboxLaptopStatus" class="text-[10px] text-slate-500"></p>
+              </div>
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">VN Auto-Play Reading Speed <span id="vnSpeedValue">1.0×</span></label>
@@ -1635,6 +1645,17 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         <div class="space-y-1.5">
           <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Primary Voice</label>
           <select id="vlVoice" onchange="onVoiceLabFieldChange()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent"></select>
+        </div>
+
+        <div id="vlCloneSection" class="hidden space-y-2 p-3 bg-zetaCard border border-zetaAccent/40 rounded-xl">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">🧬 Clone a Voice (Gemini → Chatterbox)</label>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Generates a short spoken sample in a described voice via Gemini, then sends it to your laptop as a reference for Chatterbox to clone going forward.</p>
+          <textarea id="vlCloneDescription" rows="2" placeholder="Describe the voice (e.g. a gruff, weathered old sailor with a slight rasp) — or leave blank and tap Auto-Describe to have Gemini read this character's persona instead." class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-[11px] text-white focus:border-zetaAccent"></textarea>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="autoDescribeVoiceForVoiceLab()" id="vlAutoDescribeBtn" class="flex-1 text-[11px] bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 py-1.5 rounded-lg transition active:scale-95">✨ Auto-Describe from Persona</button>
+            <button type="button" onclick="cloneVoiceFromVoiceLab()" id="vlCloneBtn" class="flex-1 text-[11px] bg-zetaAccent hover:bg-zetaAccentHover text-white font-semibold py-1.5 rounded-lg transition active:scale-95">🎙️ Generate &amp; Assign</button>
+          </div>
+          <p id="vlCloneStatus" class="text-[10px] text-slate-500"></p>
         </div>
 
         <div class="space-y-1.5 p-3 bg-zetaCard border border-zetaBorder rounded-xl">
@@ -2403,7 +2424,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
       lightningStudioUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
-      ttsEngine: 'kokoro',   // only engine now — Chatterbox option removed
+      ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop'
+      chatterboxLaptopUrl: '',   // e.g. http://192.168.1.42:5050 — see start_chatterbox_server.py
+      chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
       localTurnsServed: 0,
@@ -6578,6 +6601,10 @@ JSON FORMAT:
     // Chatterbox is opt-in for desktop with WebGPU — far larger and heavier,
     // but higher quality and expression-controllable.
     const CHATTERBOX_MODEL_ID = 'onnx-community/chatterbox-ONNX';
+    // The 80M "mini" variant, chosen over the 15M "nano" for the best
+    // expressiveness the Kitten family offers, per KittenML's own quality
+    // ranking of the three sizes (14M/40M/80M).
+    const KITTEN_MODEL_ID = 'onnx-community/KittenTTS-Mini-v0.8-ONNX';
     // A Chatterbox "voice" is a precomputed speaker conditional rather than a
     // named preset. Until a pack is supplied these map onto the model's built-in
     // default speaker with differing expressiveness, and are described the same
@@ -6589,6 +6616,18 @@ JSON FORMAT:
       cb_grave:'Grave — dark and serious, restrained delivery',
       cb_playful:'Playful — light and teasing, lively delivery'
     };
+    // Kitten TTS ships exactly these 8 named voices — no dynamic list to read
+    // from the model the way Kokoro exposes tts.voices.
+    const KITTEN_VOICES = {
+      'expr-voice-1-f': 'Bella — female',
+      'expr-voice-2-f': 'Luna — female',
+      'expr-voice-3-f': 'Rosie — female',
+      'expr-voice-4-f': 'Kiki — female',
+      'expr-voice-1-m': 'Jasper — male',
+      'expr-voice-2-m': 'Bruno — male',
+      'expr-voice-3-m': 'Hugo — male',
+      'expr-voice-4-m': 'Leo — male'
+    };
     const CHATTERBOX_VOICE_SETTINGS = {
       cb_default: { exaggeration: 0.5 },
       cb_warm:    { exaggeration: 0.35 },
@@ -6596,7 +6635,7 @@ JSON FORMAT:
       cb_grave:   { exaggeration: 0.25 },
       cb_playful: { exaggeration: 0.75 }
     };
-    function getActiveTtsEngine() { return appState.ttsEngine === 'chatterbox' ? 'chatterbox' : 'kokoro'; }
+    function getActiveTtsEngine() { return ['chatterbox-laptop', 'kitten'].includes(appState.ttsEngine) ? appState.ttsEngine : 'kokoro'; }
     async function webGpuAvailable() {
       try {
         if (!navigator.gpu) return false;
@@ -6656,6 +6695,7 @@ JSON FORMAT:
 
       let engine = 'kokoro';
       let cbPipe = null;
+      let kittenPipe = null;
 
       self.onmessage = async (e) => {
         const msg = e.data;
@@ -6672,6 +6712,21 @@ JSON FORMAT:
                 });
               }
               self.postMessage({ type: 'loaded', engine: 'chatterbox' });
+              return;
+            }
+            if (engine === 'kitten') {
+              if (!kittenPipe) {
+                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4/+esm');
+                // Kitten's quantized weights use int8 ops not supported by the
+                // WebGPU execution provider — CPU/WASM only regardless of
+                // device, which is also the safer choice given everything
+                // learned about WebGPU + TTS on this platform already.
+                kittenPipe = await pipeline('text-to-speech', msg.modelId, {
+                  device: 'wasm',
+                  progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
+                });
+              }
+              self.postMessage({ type: 'loaded', engine: 'kitten', device: 'wasm' });
               return;
             }
             let loadedDevice = 'wasm';
@@ -6736,6 +6791,16 @@ JSON FORMAT:
               self.postMessage({ type: 'audio', id: msg.id, audio: merged, sampling_rate: sr }, [merged.buffer]);
               return;
             }
+            if (engine === 'kitten') {
+              // Voice selection here (speaker_embeddings keyed by voice id) is
+              // a best-effort match to transformers.js's usual multi-speaker
+              // TTS pipeline convention — worth confirming against the actual
+              // model's expected call shape if voice selection doesn't take.
+              const out = await kittenPipe(msg.text, { speaker_embeddings: msg.voice });
+              const audio = out.audio instanceof Float32Array ? out.audio : new Float32Array(out.audio);
+              self.postMessage({ type: 'audio', id: msg.id, audio, sampling_rate: out.sampling_rate || 24000 }, [audio.buffer]);
+              return;
+            }
             const voice = await resolveVoice(msg.voice);
             const raw = await tts.generate(msg.text, { voice, speed: msg.speed });
             const audio = raw.audio instanceof Float32Array ? raw.audio : new Float32Array(raw.audio);
@@ -6795,10 +6860,11 @@ JSON FORMAT:
           const KOKORO_ALLOW_WEBGPU = false;
           const useGpu = KOKORO_ALLOW_WEBGPU && await webGpuAvailable();
           workerRequestedGpu = useGpu;
+          const modelId = engine === 'chatterbox' ? CHATTERBOX_MODEL_ID : engine === 'kitten' ? KITTEN_MODEL_ID : KOKORO_MODEL_ID;
           kokoroWorker.postMessage({
             type: 'load',
             engine,
-            modelId: engine === 'chatterbox' ? CHATTERBOX_MODEL_ID : KOKORO_MODEL_ID,
+            modelId,
             webgpu: useGpu
           });
         })();
@@ -6867,7 +6933,9 @@ JSON FORMAT:
     // auto-assign, preload, VN playback) goes through this, so switching
     // engines swaps the available voices everywhere without touching them.
     function getKokoroVoiceList() {
-      if (getActiveTtsEngine() === 'chatterbox') return { ...CHATTERBOX_VOICES };
+      const engine = getActiveTtsEngine();
+      if (engine === 'chatterbox-laptop') return { ...CHATTERBOX_VOICES, ...(appState.chatterboxClonedVoices || {}) };
+      if (engine === 'kitten') return { ...KITTEN_VOICES };
       if (kokoroTTS && kokoroTTS.voices && typeof kokoroTTS.voices === 'object') {
         const out = {};
         Object.keys(kokoroTTS.voices).forEach(id => {
@@ -6904,18 +6972,112 @@ JSON FORMAT:
       if (strength > 60) out = out.replace(/\b([A-Z]{3,})\b/g, (m, w) => `${w}!`);
       return out;
     }
-    function pcmToWavBlob(float32, sampleRate) {
-      const buffer = new ArrayBuffer(44 + float32.length * 2);
+    // Gemini's native audio output is raw 16-bit signed PCM (mimeType like
+    // "audio/L16;rate=24000"), not the float32 samples pcmToWavBlob() above
+    // expects from Kokoro — writes the int16 data straight into the WAV
+    // container instead of round-tripping through float32 unnecessarily.
+    function pcm16Base64ToWavBlob(base64, sampleRate) {
+      const raw = atob(base64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      const buffer = new ArrayBuffer(44 + bytes.length);
       const view = new DataView(buffer);
       const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-      writeStr(0, 'RIFF'); view.setUint32(4, 36 + float32.length * 2, true); writeStr(8, 'WAVE');
+      writeStr(0, 'RIFF'); view.setUint32(4, 36 + bytes.length, true); writeStr(8, 'WAVE');
       writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
       view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-      writeStr(36, 'data'); view.setUint32(40, float32.length * 2, true);
-      let offset = 44;
-      for (let i = 0; i < float32.length; i++, offset += 2) { const s = Math.max(-1, Math.min(1, float32[i])); view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+      writeStr(36, 'data'); view.setUint32(40, bytes.length, true);
+      new Uint8Array(buffer, 44).set(bytes);
       return new Blob([buffer], { type: 'audio/wav' });
     }
+
+    // Has Gemini read a character's persona/visual profile and produce a
+    // short, concrete voice description suitable for feeding into the TTS
+    // sample prompt below — the "auto" half of the auto/manual choice.
+    async function describeVoiceFromPersona(name, persona, visualProfile) {
+      if (!appState.apiKey) throw new Error('Add a Gemini API key in Setup first.');
+      const prompt = `Based on this character, write ONE short, concrete description (max 25 words) of how their speaking VOICE should sound — age, tone, pace, texture, accent if implied. Describe the voice only, not the character. No preamble, no quotes, just the description.
+
+Name: ${name || 'Character'}
+Persona: ${persona || 'Not specified'}
+Visual Profile: ${visualProfile || 'Not specified'}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      const res = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 100 }, safetySettings: buildSafetySettings() })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error?.message || `Voice description failed (${res.status}).`);
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) throw new Error('Gemini did not return a description.');
+      return text.replace(/^["']|["']$/g, '');
+    }
+
+    // Generates a short spoken sample matching a text description of a voice,
+    // via Gemini's native audio generation — this becomes the reference clip
+    // Chatterbox clones from, rather than a hand-recorded sample.
+    async function generateGeminiVoiceSample(voiceDescription, sampleText) {
+      if (!appState.apiKey) throw new Error('Add a Gemini API key in Setup first.');
+      const prompt = `Say the following line, fully embodying this voice: ${voiceDescription}\n\nLine to say: "${sampleText}"`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      const res = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
+          },
+          safetySettings: buildSafetySettings()
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error?.message || `Voice sample generation failed (${res.status}).`);
+      const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
+      if (!part) throw new Error('Gemini did not return audio for this voice sample.');
+      const rateMatch = /rate=(\d+)/.exec(part.inlineData.mimeType || '');
+      const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+      return pcm16Base64ToWavBlob(part.inlineData.data, sampleRate);
+    }
+
+    // Uploads a reference clip to the laptop server, registering it as a
+    // clonable voice under voiceId — see /clone-voice in
+    // start_chatterbox_server.py.
+    async function uploadReferenceVoiceToLaptop(voiceId, wavBlob, label) {
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (!base) throw new Error('No laptop server URL configured for Chatterbox (Laptop).');
+      const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(wavBlob);
+      });
+      const res = await fetch(`${base}/clone-voice`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(20000),
+        body: JSON.stringify({ voice_id: voiceId, audio_base64: base64, label: label || voiceId })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Laptop server rejected the voice upload (${res.status}).`);
+      return data;
+    }
+
+    // Orchestrates the full pipeline for one character: get a voice
+    // description (auto from persona, or whatever the user typed), generate
+    // a sample via Gemini, upload it to the laptop as a reference voice, and
+    // assign it. Returns the description actually used, so the caller can
+    // reflect it back into the UI.
+    async function cloneVoiceViaGemini(charOrPersona, manualDescription) {
+      if (getActiveTtsEngine() !== 'chatterbox-laptop') throw new Error('Switch to the Chatterbox (Laptop) engine first — voice cloning only applies to that tier.');
+      const name = charOrPersona.name || 'Character';
+      const description = (manualDescription || '').trim() || await describeVoiceFromPersona(name, getCharacterPersona(charOrPersona), getCharacterVisualProfile(charOrPersona));
+      const sampleLine = `Hello, I'm ${name}. It's good to finally meet you.`;
+      const wavBlob = await generateGeminiVoiceSample(description, sampleLine);
+      const voiceId = `clone_${(charOrPersona.id || name).toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
+      await uploadReferenceVoiceToLaptop(voiceId, wavBlob, `${name} (cloned)`);
+      return { voiceId, description };
+    }
+
     let vnAudioCtx = null;
     function getVnAudioContext() { if (!vnAudioCtx) vnAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); return vnAudioCtx; }
     // Kokoro-js's public API doesn't expose raw style tensors to blend at the
@@ -7269,12 +7431,54 @@ JSON FORMAT:
 
     // Returns { url, blob }. Pitch is baked in here once, at render time, so
     // playback never has to touch Web Audio again.
+    // Chatterbox (Laptop): a plain HTTP call to a server the user runs on
+    // their own laptop (see the companion server script) — no local model,
+    // no worker, no WASM/WebGPU execution on the phone at all. This is what
+    // actually sidesteps the Safari/transformers.js instability entirely,
+    // the same way the Workstation LLM tier already works for text.
+    let chatterboxLaptopReady = false;
+    async function generateChatterboxLaptopAudio(text, voice) {
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (!base) throw new Error('No laptop server URL configured for Chatterbox (Laptop).');
+      const res = await fetch(`${base}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(30000),
+        body: JSON.stringify({ text, voice: voice || 'cb_default' })
+      });
+      if (!res.ok) throw new Error(`Laptop TTS server returned ${res.status}`);
+      const blob = await res.blob();
+      return { url: URL.createObjectURL(blob), blob };
+    }
+
+    async function testChatterboxLaptopServer() {
+      const statusEl = document.getElementById('chatterboxLaptopStatus');
+      const base = (document.getElementById('chatterboxLaptopUrl')?.value || '').trim().replace(/\/+$/, '');
+      appState.chatterboxLaptopUrl = base;
+      await saveState();
+      if (!base) { if (statusEl) statusEl.innerText = '⚠️ Enter a URL first.'; return; }
+      if (statusEl) statusEl.innerText = 'Checking…';
+      try {
+        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(8000) });
+        chatterboxLaptopReady = res.ok;
+        if (statusEl) statusEl.innerText = res.ok ? '✅ Reachable and ready.' : `⚠️ Server responded with ${res.status}.`;
+      } catch (e) {
+        chatterboxLaptopReady = false;
+        if (statusEl) statusEl.innerText = '❌ Could not reach the server. Check it\'s running and on the same network.';
+      }
+    }
+
     async function renderVnAudioCached(speakerName, text, profile) {
       const key = vnAudioCacheKey(speakerName, text, profile);
       if (vnAudioCache.has(key)) return vnAudioCache.get(key);
       // Layer this line's delivery over the character's base voice profile.
       const lineProfile = deriveLineDelivery(text, profile);
       const spoken = applyActionSoundMap(stripDeliveryTags(String(text)));
+      if (getActiveTtsEngine() === 'chatterbox-laptop') {
+        const entry = await generateChatterboxLaptopAudio(spoken, lineProfile.voice);
+        cacheVnAudio(key, entry);
+        return entry;
+      }
       let buffer = await generateKokoroAudioBuffer(spoken, lineProfile);
       buffer = await renderBufferWithPitch(buffer, Math.max(-1200, Math.min(1200, Number(lineProfile.pitch) || 0)));
       const blob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
@@ -7306,14 +7510,18 @@ JSON FORMAT:
     // spoken line isn't a cold start. Runs in the background, one voice at a
     // time, yielding between each so it never blocks the UI.
     async function preloadCastVoices() {
-      if (voiceWarmInFlight || !kokoroEngineReady) return;
+      const engine = getActiveTtsEngine();
+      if (voiceWarmInFlight || (engine === 'chatterbox-laptop' ? !chatterboxLaptopReady : !kokoroEngineReady)) return;
       const pending = getCastVoiceIds().filter(v => !warmedVoices.has(v));
       if (!pending.length) return;
       voiceWarmInFlight = true;
       try {
         for (const voiceId of pending) {
           try {
-            if (!workerUnavailable && kokoroWorker) {
+            if (engine === 'chatterbox-laptop') {
+              // Nothing to warm server-side that we control from here — just
+              // mark it warmed so the UI doesn't keep treating it as pending.
+            } else if (!workerUnavailable && kokoroWorker) {
               // Warm inside the worker so it never touches the UI thread.
               await workerRequest({ type: 'warm', voice: voiceId });
             } else {
@@ -7333,7 +7541,15 @@ JSON FORMAT:
     async function warmUpTtsEngine() {
       try {
         setVnTtsStatus('loading');
-        await loadKokoroTTS();
+        if (getActiveTtsEngine() === 'chatterbox-laptop') {
+          const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+          if (!base) throw new Error('No laptop server URL configured.');
+          const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(8000) });
+          chatterboxLaptopReady = res.ok;
+          if (!res.ok) throw new Error(`Laptop server responded with ${res.status}`);
+        } else {
+          await loadKokoroTTS();
+        }
         setVnTtsStatus('idle');
         // Load the cast's voices before anything is asked to speak.
         await preloadCastVoices();
@@ -7345,7 +7561,9 @@ JSON FORMAT:
     }
     // Render the upcoming line in the background so the next step is instant.
     function prefetchNextVnLine() {
-      if (!appState.ttsEnabled || !kokoroEngineReady || vnPrefetchInFlight) return;
+      const engine = getActiveTtsEngine();
+      const engineReady = engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady;
+      if (!appState.ttsEnabled || !engineReady || vnPrefetchInFlight) return;
       const active = getActiveScenario();
       if (!active || active.viewMode !== 'vn') return;
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
@@ -7624,13 +7842,21 @@ JSON FORMAT:
       document.getElementById('vlEmphasis').value = voiceLabDraft.emphasis || 0;
       document.getElementById('vlPronunciation').value = voiceLabDraft.pronunciations || '';
       document.getElementById('vlStatus').innerText = '';
+      const cloneSection = document.getElementById('vlCloneSection');
+      if (cloneSection) cloneSection.classList.toggle('hidden', getActiveTtsEngine() !== 'chatterbox-laptop');
+      document.getElementById('vlCloneDescription').value = '';
+      document.getElementById('vlCloneStatus').innerText = '';
       updateVoiceLabLabels();
       updateVoiceLabModelStatus();
 
       const modal = document.getElementById('voiceLabModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
       // Warm the model now so the first preview isn't a cold start.
-      if (!kokoroEngineReady) loadKokoroTTS(p => updateVoiceLabModelStatus(p)).then(() => updateVoiceLabModelStatus()).catch(() => updateVoiceLabModelStatus());
+      if (getActiveTtsEngine() === 'chatterbox-laptop') {
+        if (!chatterboxLaptopReady) warmUpTtsEngine().then(() => updateVoiceLabModelStatus());
+      } else if (!kokoroEngineReady) {
+        loadKokoroTTS(p => updateVoiceLabModelStatus(p)).then(() => updateVoiceLabModelStatus()).catch(() => updateVoiceLabModelStatus());
+      }
     }
 
     function closeVoiceLab(event) {
@@ -7642,6 +7868,11 @@ JSON FORMAT:
     function updateVoiceLabModelStatus(progress) {
       const el = document.getElementById('vlModelStatus');
       if (!el) return;
+      const engine = getActiveTtsEngine();
+      if (engine === 'chatterbox-laptop') {
+        el.innerText = chatterboxLaptopReady ? '✅ Laptop server ready' : '⚠️ Laptop server not reachable — check Setup → Voice Engine';
+        return;
+      }
       if (kokoroEngineReady) {
         const deviceNote = kokoroActiveDevice === 'webgpu' ? ' · GPU-accelerated' : kokoroActiveDevice === 'wasm' ? ' · CPU (WebGPU unavailable or failed to load)' : '';
         el.innerText = styleBlendSupported === false
@@ -7686,15 +7917,24 @@ JSON FORMAT:
       const btn = document.getElementById('vlPlayBtn');
       const status = document.getElementById('vlStatus');
       const profile = collectVoiceLabDraft();
+      const engine = getActiveTtsEngine();
       btn.disabled = true;
-      status.innerText = kokoroEngineReady ? 'Generating preview…' : 'Loading voice model…';
+      status.innerText = (engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady) ? 'Generating preview…' : (engine === 'chatterbox-laptop' ? 'Connecting to laptop server…' : 'Loading voice model…');
       try {
-        await loadKokoroTTS(p => updateVoiceLabModelStatus(p));
-        updateVoiceLabModelStatus();
-        let buffer = await generateKokoroAudioBuffer(text, profile);
-        buffer = await renderBufferWithPitch(buffer, Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)));
-        const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
-        const url = URL.createObjectURL(wavBlob);
+        let url;
+        if (engine === 'chatterbox-laptop') {
+          if (!chatterboxLaptopReady) await warmUpTtsEngine();
+          updateVoiceLabModelStatus();
+          const entry = await generateChatterboxLaptopAudio(text, profile.voice);
+          url = entry.url;
+        } else {
+          await loadKokoroTTS(p => updateVoiceLabModelStatus(p));
+          updateVoiceLabModelStatus();
+          let buffer = await generateKokoroAudioBuffer(text, profile);
+          buffer = await renderBufferWithPitch(buffer, Math.max(-1200, Math.min(1200, Number(profile.pitch) || 0)));
+          const wavBlob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
+          url = URL.createObjectURL(wavBlob);
+        }
         const audio = getVnAudioElement();
         vnSpeechToken++; // don't let a VN line interleave with the preview
         try { audio.pause(); } catch (e) {}
@@ -7709,6 +7949,51 @@ JSON FORMAT:
       } finally {
         btn.disabled = false;
         updateVoiceLabModelStatus();
+      }
+    }
+
+    async function autoDescribeVoiceForVoiceLab() {
+      const target = resolveVoiceLabTarget();
+      if (!target || !target.obj) return;
+      const btn = document.getElementById('vlAutoDescribeBtn');
+      const status = document.getElementById('vlCloneStatus');
+      btn.disabled = true;
+      status.innerText = 'Reading persona…';
+      try {
+        const description = await describeVoiceFromPersona(target.name, getCharacterPersona(target.obj), getCharacterVisualProfile(target.obj));
+        document.getElementById('vlCloneDescription').value = description;
+        status.innerText = 'Description ready — tap Generate & Assign, or edit it first.';
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'could not describe voice');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function cloneVoiceFromVoiceLab() {
+      const target = resolveVoiceLabTarget();
+      if (!target || !target.obj) return;
+      const btn = document.getElementById('vlCloneBtn');
+      const status = document.getElementById('vlCloneStatus');
+      const manualDescription = document.getElementById('vlCloneDescription').value;
+      btn.disabled = true;
+      status.innerText = manualDescription.trim() ? 'Generating sample from your description…' : 'Reading persona and generating sample…';
+      try {
+        const { voiceId, description } = await cloneVoiceViaGemini(target.obj, manualDescription);
+        document.getElementById('vlCloneDescription').value = description;
+        if (!appState.chatterboxClonedVoices) appState.chatterboxClonedVoices = {};
+        appState.chatterboxClonedVoices[voiceId] = `${target.name} (cloned)`;
+        await saveState();
+        // Assign the new cloned voice immediately, same as picking it from
+        // the Primary Voice dropdown would.
+        voiceLabDraft.voice = voiceId;
+        buildVoiceLabOptions(document.getElementById('vlVoice'), voiceId, false);
+        document.getElementById('vlVoice').value = voiceId;
+        status.innerText = `✅ Cloned and assigned as "${target.name} (cloned)". Save to keep it.`;
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'voice cloning failed');
+      } finally {
+        btn.disabled = false;
       }
     }
 
@@ -7902,25 +8187,33 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     // Switching engines tears down the worker and clears every cached render,
     // since the two engines have entirely different voice packs and output.
-    async function changeTtsEngine(value) {
-      const next = value === 'chatterbox' ? 'chatterbox' : 'kokoro';
-      const prev = getActiveTtsEngine();
-      if (next === prev) { updateTtsEngineHint(); return; }
+    function ttsEngineLabel(engine) {
+      return engine === 'chatterbox-laptop' ? 'Chatterbox (Laptop)' : engine === 'kitten' ? 'Kitten TTS' : 'Kokoro';
+    }
 
-      if (next === 'chatterbox') {
-        const gpu = await webGpuAvailable();
-        const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-        const warn = [];
-        if (!gpu) warn.push('• WebGPU is not available in this browser, so it would fall back to CPU (WASM) — expect very slow generation.');
-        if (coarse) warn.push('• This looks like a phone or tablet. Chatterbox is far larger than Kokoro and may exhaust memory.');
-        warn.push('• First use downloads a large model (hundreds of MB) and caches it.');
-        warn.push('• Existing voice assignments will be remapped, since the two engines use different voice packs.');
-        const ok = await zfConfirm(`Switch to Chatterbox (High Quality)?\n\n${warn.join('\n')}\n\nYou can switch back to Kokoro at any time.`, 'Switch Voice Engine', 'Switch');
-        if (!ok) { document.getElementById('ttsEngineSelect').value = prev; return; }
+    function syncChatterboxLaptopFieldVisibility() {
+      const field = document.getElementById('chatterboxLaptopUrlField');
+      if (field) field.classList.toggle('hidden', getActiveTtsEngine() !== 'chatterbox-laptop');
+      const urlInput = document.getElementById('chatterboxLaptopUrl');
+      if (urlInput) urlInput.value = appState.chatterboxLaptopUrl || '';
+    }
+
+    async function changeTtsEngine(value) {
+      const next = ['chatterbox-laptop', 'kokoro', 'kitten'].includes(value) ? value : 'kokoro';
+      const prev = getActiveTtsEngine();
+      if (next === prev) { updateTtsEngineHint(); syncChatterboxLaptopFieldVisibility(); return; }
+
+      if (next === 'chatterbox-laptop' && !appState.chatterboxLaptopUrl) {
+        await zfAlert('Enter your laptop server URL in the field below first, then switch to this engine.', 'Laptop URL Needed');
+        document.getElementById('ttsEngineSelect').value = prev;
+        return;
       }
 
       appState.ttsEngine = next;
-      // Drop the worker and all engine-specific state.
+      // Drop the in-browser worker and all its engine-specific state. Not
+      // relevant for chatterbox-laptop (nothing local is ever loaded for it),
+      // but harmless to always run — and necessary when switching AWAY from
+      // it back to an in-browser engine, or between kokoro/kitten themselves.
       try { if (kokoroWorker) kokoroWorker.terminate(); } catch (e) {}
       kokoroWorker = null; kokoroWorkerReady = null; workerUnavailable = false;
       kokoroTTS = null; kokoroLoadingPromise = null; kokoroEngineReady = false;
@@ -7939,19 +8232,23 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         }
       });
 
+      syncChatterboxLaptopFieldVisibility();
       await saveState();
       syncVoiceSelectButtons();
       renderCharacterCardsSetup();
       updateTtsEngineHint();
       if (appState.ttsEnabled) warmUpTtsEngine();
-      await zfAlert(`Voice engine set to ${next === 'chatterbox' ? 'Chatterbox (High Quality)' : 'Kokoro'}. Use ✨ AI Match Voices to re-cast your characters with the new pack.`, 'Engine Switched');
+      await zfAlert(`Voice engine set to ${ttsEngineLabel(next)}. Use ✨ AI Match Voices to re-cast your characters with the new pack.`, 'Engine Switched');
     }
 
     function updateTtsEngineHint() {
       const el = document.getElementById('ttsEngineHint');
       if (!el) return;
-      el.innerText = getActiveTtsEngine() === 'chatterbox'
-        ? 'Higher quality and expression control, but a much larger download and desktop-class hardware. Long lines are split and stitched automatically.'
+      const engine = getActiveTtsEngine();
+      el.innerText = engine === 'chatterbox-laptop'
+        ? 'Best quality and expression control of the three — runs entirely on your laptop over your network, so it never touches your phone\'s memory at all. Needs the laptop server running and reachable.'
+        : engine === 'kitten'
+        ? 'The lightest weight of the on-device options — smallest memory footprint, at some cost to expressiveness versus Kokoro.'
         : 'Small, fast and phone-friendly. 54 preset voices with native English pronunciation.';
     }
 
@@ -8093,6 +8390,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       syncVoiceSelectButtons();
       const engSel = document.getElementById('ttsEngineSelect');
       if (engSel) engSel.value = getActiveTtsEngine();
+      syncChatterboxLaptopFieldVisibility();
       updateTtsEngineHint();
       const preEl=document.getElementById('ttsPreloadInput'); if(preEl) preEl.value=appState.ttsPreloadWindow||4; const preLbl=document.getElementById('ttsPreloadValue'); if(preLbl) preLbl.innerText=`±${appState.ttsPreloadWindow||4} lines`;
       const speedEl=document.getElementById('vnSpeedInput'); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
@@ -8698,7 +8996,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         // concurrently with it (and with later blocks in this same batch) —
         // by the time the user is ready to move forward, playback should
         // already be cached instead of starting cold.
-        if (appState.ttsEnabled && kokoroEngineReady && fullText) {
+        if (appState.ttsEnabled && (getActiveTtsEngine() === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady) && fullText) {
           const ttsProfile = getVoiceProfileForSpeaker(speaker);
           if (ttsProfile) renderVnAudioCached(speaker, fullText, ttsProfile).catch(() => {});
         }
