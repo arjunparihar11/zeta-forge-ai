@@ -10494,7 +10494,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // "[Ignis]:" instead of "Ignis:". Allow optional [] around the name so
       // those tags are still recognized as speaker boundaries instead of
       // bleeding through as literal visible text.
-      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))\\[?(${namesPattern})\\]?:`, 'g');
+      // Roleplay-tuned local models (Magnum included) write dialogue with
+      // typographic "smart" quotes (" " ' ') rather than straight ASCII
+      // quotes -- the previous boundary check only recognized a straight "
+      // before a name tag, so "...late." Marcus: "..." would split fine but
+      // "...late.” Marcus: “..." (curly quotes) would not, leaving the raw
+      // "Marcus:" tag bleeding through as literal text. Widened the boundary
+      // character classes to include curly quotes, an ellipsis character,
+      // and a couple of other common closing punctuation marks.
+      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"“”‘’…,;)]\\s*)|(?<=[\\*"”’]))\\[?(${namesPattern})\\]?:`, 'g');
       const pieces = [];
       let lastIndex = 0;
       let currentSpeaker = initialSpeaker;
