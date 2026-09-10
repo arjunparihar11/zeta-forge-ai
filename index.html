@@ -11256,7 +11256,74 @@ REQUIREMENTS:
       });
       return copy.scenarios ? copy : wrapper.scenarios[0];
     }
-    async function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(appState),null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){const scenarioCopy=await inlineImagesForExport(active);const clips=collectChatterboxVoiceClipsForScenario(active);if(Object.keys(clips).length)scenarioCopy._chatterboxVoiceClips=clips;downloadBlob(JSON.stringify(scenarioCopy,null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){zfAlert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
+    // A story built up over many turns can accumulate a lot of generated
+    // images (character photos, sprite sheets, VN backgrounds, per-message
+    // scene snapshots). inlineImagesForExport has to hold every one of those
+    // as a base64 string simultaneously, then again inside the final
+    // JSON.stringify'd megastring, then again inside the download Blob --
+    // easily 3-4x the images' total size in memory at once, which is exactly
+    // what was crashing the export on a long-running scenario (mobile
+    // browsers especially, with much smaller per-tab memory ceilings).
+    // Reading blob.size doesn't require decoding any image, so this estimate
+    // is cheap even across hundreds of images, and lets performExport warn
+    // before doing the expensive part rather than after it's already crashed.
+    async function estimateStateImageBytes(obj) {
+      const wrapper = obj.scenarios ? obj : { scenarios: [obj] };
+      let total = 0;
+      await walkStateImages(wrapper, async (value) => {
+        if (typeof value === 'string' && value.startsWith('blob:')) {
+          try { total += (await (await fetch(value)).blob()).size; } catch (e) { /* unreadable blob -- ignore for the estimate, inlining will just skip it too */ }
+        }
+        return value;
+      });
+      return total;
+    }
+    // The lighter alternative once a scenario/backup is too big to safely
+    // inline: keep every field except blank out the image data itself, so
+    // the story text, characters, lorebook, and settings are all still a
+    // complete, restorable backup -- just without the embedded pictures.
+    async function stripImagesForExport(obj) {
+      const copy = typeof structuredClone === 'function' ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+      if ('apiKey' in copy) copy.apiKey = '';
+      const wrapper = copy.scenarios ? copy : { scenarios: [copy] };
+      await walkStateImages(wrapper, async () => '');
+      return copy.scenarios ? copy : wrapper.scenarios[0];
+    }
+    const EXPORT_IMAGE_WARN_BYTES = 60 * 1024 * 1024; // ~60MB of images is where mobile tabs start to be at real risk
+    async function performExport(mode) {
+      const active = getActiveScenario();
+      const base = (active.title || 'story').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      try {
+        if (mode === 'all-json' || mode === 'scenario-json') {
+          const target = mode === 'all-json' ? appState : active;
+          const approxBytes = await estimateStateImageBytes(target);
+          let includeImages = true;
+          if (approxBytes > EXPORT_IMAGE_WARN_BYTES) {
+            includeImages = await zfOpenDialog({
+              title: 'Large Export',
+              message: `This ${mode === 'all-json' ? 'backup' : 'scenario'} has roughly ${(approxBytes / (1024 * 1024)).toFixed(0)}MB of embedded images. Including all of it in one file risks crashing the browser tab, especially on mobile. Include the images anyway, or export a lighter version with just the story text, characters, and settings (no embedded pictures)?`,
+              okText: 'Include Images',
+              cancelText: 'Skip Images (Lighter)'
+            });
+          }
+          const copy = includeImages ? await inlineImagesForExport(target) : await stripImagesForExport(target);
+          if (mode === 'all-json') {
+            downloadBlob(JSON.stringify(copy, null, 2), 'application/json', `zetaforge_all_scenarios_${new Date().toISOString().slice(0, 10)}.json`);
+          } else {
+            const clips = collectChatterboxVoiceClipsForScenario(active);
+            if (Object.keys(clips).length) copy._chatterboxVoiceClips = clips;
+            downloadBlob(JSON.stringify(copy, null, 2), 'application/json', `${base}_scenario.json`);
+          }
+        } else {
+          if (!active.messages.length) { zfAlert('No story content to export in current scenario.'); return; }
+          downloadBlob(exportStoryMarkdown(active), 'text/markdown', `${base}_transcript.md`);
+        }
+        closeModal('exportModal');
+      } catch (e) {
+        console.error('Export failed:', e);
+        zfAlert(`Export failed: ${e?.message || e}. This usually means there was too much embedded image data for the browser to hold in memory at once — try again and choose "Skip Images" if prompted, or export the Markdown transcript instead.`, 'Export Failed');
+      }
+    }
     // exportStory() and exportJsonBackup() were removed here during an audit
     // pass — trivial one-line aliases for openModal('exportModal') and
     // performExport('all-json'), which are what every actual call site uses
