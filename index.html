@@ -10355,6 +10355,97 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       );
     }
 
+    // Fires TTS generation for a finished speaker block in the background, as
+    // soon as splitTextBySpeakers can tell it's complete -- used while the
+    // local LLM's response is still streaming in, so the voice line for the
+    // first character to finish "speaking" is already being generated (or
+    // done) by the time playSequentialTypewriter gets to it, instead of
+    // starting cold only after the entire reply has finished generating.
+    // Errors are swallowed exactly like playSequentialTypewriter's own
+    // per-block TTS kickoff -- a failed/duplicate prewarm just means that
+    // line generates normally, a little later, when its bubble actually
+    // plays (renderVnAudioCached's own cache key makes a repeat call free).
+    function prewarmVnLineAudio(speakerName, text) {
+      if (!appState.ttsEnabled || !text || !text.trim()) return;
+      const engine = getActiveTtsEngine();
+      const engineReady = engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady;
+      if (!engineReady) return;
+      const profile = getVoiceProfileForSpeaker(speakerName);
+      if (!profile) return;
+      renderVnAudioCached(speakerName, text, profile).catch(() => {});
+    }
+    // Tracks, across repeated calls as more text streams in, which
+    // speaker-blocks in a growing buffer are already "finished" (a later
+    // speaker tag appeared after them, so their text can no longer change)
+    // and prewarms each newly-finished one exactly once. The in-progress
+    // last block is never prewarmed by feed() -- it may still grow as more
+    // tokens arrive -- only finish() (called once the stream ends) also
+    // prewarms that final block.
+    function makeIncrementalVnPrewarmer() {
+      let prewarmedCount = 0;
+      function piecesFor(bufferText) {
+        return splitTextBySpeakers(bufferText, getKnownSpeakerNames(getActiveScenario()), 'Narrator');
+      }
+      return {
+        feed(bufferText) {
+          const pieces = piecesFor(bufferText);
+          const finishedCount = Math.max(0, pieces.length - 1);
+          for (let i = prewarmedCount; i < finishedCount; i++) prewarmVnLineAudio(pieces[i].speaker, pieces[i].text);
+          prewarmedCount = Math.max(prewarmedCount, finishedCount);
+        },
+        finish(bufferText) {
+          const pieces = piecesFor(bufferText);
+          for (let i = prewarmedCount; i < pieces.length; i++) prewarmVnLineAudio(pieces[i].speaker, pieces[i].text);
+          prewarmedCount = pieces.length;
+        }
+      };
+    }
+    // Consumes an OpenAI-compatible chat/completions response that may be a
+    // real SSE stream (LM Studio and most local servers, when they honor
+    // stream:true) or a single JSON object (a server that ignores it) --
+    // either way returns the full accumulated text. While a real stream is
+    // flowing, onChunk(bufferSoFar) fires after every delta so the caller
+    // can prewarm TTS for finished speaker-blocks as they complete instead
+    // of waiting for the whole reply to finish generating first.
+    async function consumeLocalLLMStream(response, onChunk) {
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.body || !response.body.getReader || contentType.includes('application/json')) {
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+        if (onChunk && text) onChunk(text);
+        return text;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lineTail = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          lineTail += decoder.decode(value, { stream: true });
+          const lines = lineTail.split('\n');
+          lineTail = lines.pop() || '';
+          let grew = false;
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const json = JSON.parse(payload);
+              const delta = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.text ?? '';
+              if (delta) { buffer += delta; grew = true; }
+            } catch (e) { /* partial/malformed SSE line -- the next chunk usually completes it */ }
+          }
+          if (grew && onChunk) onChunk(buffer);
+        }
+      } finally {
+        try { reader.cancel(); } catch (e) {}
+      }
+      return buffer;
+    }
+
     async function callLocalRoutineLLM(contentsArray, options, endpointInfo) {
       const cappedContents = capContentsToTokenBudget(contentsArray, endpointInfo.contextCap || 8192);
       const systemText = await buildSystemInstructionForLocalLLM();
@@ -10366,9 +10457,13 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const base = (endpointInfo.url || '').trim().replace(/\/+$/, '');
       if (!base) { openModal('setupModal'); throw new Error(`Enter an endpoint URL for ${endpointInfo.label || 'your local profile'} in setup.`); }
       const target = `${base}/chat/completions`;
-      const body = { model: endpointInfo.model || 'local-model', messages, temperature: appState.temperature || 0.85, max_tokens: options.maxOutputTokens || 850, stream: false };
+      // stream: true lets us start generating each character's voice line as
+      // soon as their block of text finishes arriving, instead of waiting
+      // for the whole reply -- see consumeLocalLLMStream/makeIncrementalVnPrewarmer.
+      const body = { model: endpointInfo.model || 'local-model', messages, temperature: appState.temperature || 0.85, max_tokens: options.maxOutputTokens || 850, stream: true };
       let lastError;
       for (let attempt = 0; attempt <= API_RETRY_LIMIT; attempt++) {
+        const prewarmer = makeIncrementalVnPrewarmer();
         try {
           const response = await fetch(target, { method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
           if (!response.ok) {
@@ -10379,8 +10474,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
             continue;
           }
-          const data = await response.json();
-          const rawOutput = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+          const rawOutput = await consumeLocalLLMStream(response, bufferSoFar => prewarmer.feed(bufferSoFar));
+          prewarmer.finish(rawOutput);
           appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
           appState.lastLocalProvider = endpointInfo.label || '';
           lastTurnEngine = { kind: 'local', label: endpointInfo.label || 'Local', profileKey: endpointInfo.profileKey || '' };
