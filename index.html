@@ -7926,9 +7926,25 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     // actually sidesteps the Safari/transformers.js instability entirely,
     // the same way the Workstation LLM tier already works for text.
     let chatterboxLaptopReady = false;
+    // Rolling average of recent Chatterbox request durations, used to size
+    // the VN prefetch window adaptively (see prefetchNextVnLine) — on a GPU
+    // server a line might take ~1-2s, making a multi-line lookahead perfectly
+    // safe, while on CPU it can take 30s+, where even one queued prefetch
+    // behind the live line is too much. Starts empty (treated as "slow")
+    // until a few real requests have landed.
+    const chatterboxRequestDurations = [];
+    function recordChatterboxDuration(ms) {
+      chatterboxRequestDurations.push(ms);
+      if (chatterboxRequestDurations.length > 5) chatterboxRequestDurations.shift();
+    }
+    function avgChatterboxDuration() {
+      if (!chatterboxRequestDurations.length) return Infinity; // unknown yet — assume slow
+      return chatterboxRequestDurations.reduce((a, b) => a + b, 0) / chatterboxRequestDurations.length;
+    }
     async function generateChatterboxLaptopAudio(text, voice) {
       const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
       if (!base) throw new Error('No laptop server URL configured for Chatterbox (Laptop).');
+      const startedAt = performance.now();
       const res = await fetch(`${base}/tts`, {
         method: 'POST',
         headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
@@ -7942,7 +7958,119 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       });
       if (!res.ok) throw new Error(`Laptop TTS server returned ${res.status}`);
       const blob = await res.blob();
+      recordChatterboxDuration(performance.now() - startedAt);
       return { url: URL.createObjectURL(blob), blob };
+    }
+
+    // Decodes and concatenates a run of WAV blobs (one per sentence-chunk,
+    // as produced by /tts-stream) into a single WAV — used to build one
+    // cacheable blob after a streamed line finishes playing, so replaying
+    // that exact line later hits the normal cache instead of streaming again.
+    async function concatWavBlobs(blobs) {
+      const ctx = getVnAudioContext();
+      const buffers = [];
+      for (const b of blobs) {
+        buffers.push(await ctx.decodeAudioData(await b.arrayBuffer()));
+      }
+      const sampleRate = buffers[0].sampleRate;
+      const totalLength = buffers.reduce((sum, buf) => sum + buf.length, 0);
+      const combined = new Float32Array(totalLength);
+      let offset = 0;
+      for (const buf of buffers) {
+        combined.set(buf.getChannelData(0), offset);
+        offset += buf.length;
+      }
+      return pcmToWavBlob(combined, sampleRate);
+    }
+
+    // Plays a Chatterbox line sentence-by-sentence as each chunk finishes
+    // generating, instead of waiting for the whole line (see /tts-stream in
+    // start_chatterbox_server.py). On CPU a single sentence can already take
+    // over a minute, so starting playback on chunk 1 while chunks 2+ are
+    // still generating is a large perceived-latency win. isCurrent() is
+    // checked before advancing playback so a user who steps to a different
+    // line mid-stream doesn't get stale audio queued up; the background
+    // fetch is still drained to completion either way so the finished result
+    // can still be cached for next time. Resolves with the ordered array of
+    // per-chunk WAV blobs (for concatWavBlobs), or rejects if streaming
+    // isn't usable (older browser, network failure, no audio at all) — the
+    // caller falls back to the plain non-streaming request in that case.
+    async function speakChatterboxStreamed(text, voice, audioEl, isCurrent, onFirstPlay) {
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (!base) throw new Error('No laptop server URL configured for Chatterbox (Laptop).');
+      const res = await fetch(`${base}/tts-stream`, {
+        method: 'POST',
+        headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
+        signal: AbortSignal.timeout(180000),
+        body: JSON.stringify({ text, voice: voice || 'cb_default' })
+      });
+      if (!res.ok) throw new Error(`Laptop TTS server returned ${res.status}`);
+      if (!res.body || !res.body.getReader) throw new Error('This browser does not support streamed responses.');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      const chunkBlobs = [];
+      let buffered = '';
+      let nextToPlay = 0;
+      let playing = false;
+      let doneReceiving = false;
+      let settleResolve, settleReject;
+      const settled = new Promise((resolve, reject) => { settleResolve = resolve; settleReject = reject; });
+
+      const toBlob = (b64) => new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'audio/wav' });
+
+      function finishIfDone() {
+        if (doneReceiving && nextToPlay >= chunkBlobs.length && !playing) settleResolve(chunkBlobs);
+      }
+
+      function playNext() {
+        if (playing || !isCurrent()) { finishIfDone(); return; }
+        const blob = chunkBlobs[nextToPlay];
+        if (blob === undefined) { finishIfDone(); return; }
+        playing = true;
+        if (nextToPlay === 0 && onFirstPlay) onFirstPlay();
+        const url = URL.createObjectURL(blob);
+        audioEl.src = url;
+        const advance = () => {
+          try { URL.revokeObjectURL(url); } catch (e) {}
+          playing = false;
+          nextToPlay++;
+          playNext();
+        };
+        audioEl.onended = advance;
+        audioEl.onerror = advance;
+        audioEl.play().catch(advance);
+      }
+
+      (async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffered += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buffered.indexOf('\n')) >= 0) {
+              const line = buffered.slice(0, idx);
+              buffered = buffered.slice(idx + 1);
+              if (!line.trim()) continue;
+              try {
+                const obj = JSON.parse(line);
+                if (typeof obj.i === 'number' && obj.audio_base64) {
+                  chunkBlobs[obj.i] = toBlob(obj.audio_base64);
+                  playNext();
+                }
+              } catch (e) { /* skip malformed line */ }
+            }
+          }
+          doneReceiving = true;
+          if (!chunkBlobs.length) { settleReject(new Error('Laptop server returned no audio.')); return; }
+          playNext();
+        } catch (e) {
+          settleReject(e);
+        }
+      })();
+
+      return settled;
     }
 
     async function testChatterboxLaptopServer() {
@@ -7962,15 +8090,95 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       }
     }
 
+    // --- Persistent (disk) voice cache --------------------------------------
+    // vnAudioCache above is an intentionally small in-memory ring buffer (16-40
+    // lines) just for lookahead. This second layer persists rendered audio in
+    // IndexedDB so revisiting an earlier chapter, or reloading the page
+    // mid-story, never regenerates a line that was already spoken once.
+    // Chatterbox (Laptop) is the main beneficiary — its lines are genuinely
+    // slow to (re)generate — but it costs nothing to do this for every engine.
+    const VN_DISK_CACHE_DB = 'zetaforge-voice-cache';
+    const VN_DISK_CACHE_STORE = 'clips';
+    const VN_DISK_CACHE_LIMIT = 800; // clips overall across all scenarios, oldest evicted first
+    let vnDiskCacheDbPromise = null;
+    function openVnDiskCache() {
+      if (vnDiskCacheDbPromise) return vnDiskCacheDbPromise;
+      vnDiskCacheDbPromise = new Promise((resolve) => {
+        if (!window.indexedDB) { resolve(null); return; }
+        try {
+          const req = indexedDB.open(VN_DISK_CACHE_DB, 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(VN_DISK_CACHE_STORE)) {
+              const store = db.createObjectStore(VN_DISK_CACHE_STORE, { keyPath: 'key' });
+              store.createIndex('savedAt', 'savedAt');
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => { console.warn('Voice disk cache unavailable:', req.error); resolve(null); };
+        } catch (e) { resolve(null); }
+      });
+      return vnDiskCacheDbPromise;
+    }
+    function vnDiskCacheKey(scenarioId, key) { return `${scenarioId}::${key}`; }
+    async function readVnDiskCache(scenarioId, key) {
+      const db = await openVnDiskCache();
+      if (!db) return null;
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(VN_DISK_CACHE_STORE, 'readonly');
+          const req = tx.objectStore(VN_DISK_CACHE_STORE).get(vnDiskCacheKey(scenarioId, key));
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        } catch (e) { resolve(null); }
+      });
+    }
+    function trimVnDiskCache(db) {
+      try {
+        const tx = db.transaction(VN_DISK_CACHE_STORE, 'readwrite');
+        const store = tx.objectStore(VN_DISK_CACHE_STORE);
+        const countReq = store.count();
+        countReq.onsuccess = () => {
+          const over = countReq.result - VN_DISK_CACHE_LIMIT;
+          if (over <= 0) return;
+          let deleted = 0;
+          const cursorReq = store.index('savedAt').openCursor();
+          cursorReq.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor && deleted < over) { cursor.delete(); deleted++; cursor.continue(); }
+          };
+        };
+      } catch (e) { /* best-effort housekeeping only */ }
+    }
+    async function writeVnDiskCache(scenarioId, key, blob) {
+      const db = await openVnDiskCache();
+      if (!db) return;
+      try {
+        const tx = db.transaction(VN_DISK_CACHE_STORE, 'readwrite');
+        tx.objectStore(VN_DISK_CACHE_STORE).put({ key: vnDiskCacheKey(scenarioId, key), blob, savedAt: Date.now() });
+        // Trim occasionally rather than on every write — counting +
+        // cursor-walking the whole store every single line is wasted work.
+        if (Math.random() < 0.08) trimVnDiskCache(db);
+      } catch (e) { console.warn('Voice disk cache write failed:', e?.message || e); }
+    }
+
     async function renderVnAudioCached(speakerName, text, profile) {
       const key = vnAudioCacheKey(speakerName, text, profile);
       if (vnAudioCache.has(key)) return vnAudioCache.get(key);
+      const scenarioId = getActiveScenario()?.id || 'default';
+      const disked = await readVnDiskCache(scenarioId, key);
+      if (disked && disked.blob) {
+        const entry = { url: URL.createObjectURL(disked.blob), blob: disked.blob };
+        cacheVnAudio(key, entry);
+        return entry;
+      }
       // Layer this line's delivery over the character's base voice profile.
       const lineProfile = deriveLineDelivery(text, profile);
       const spoken = applyActionSoundMap(stripDeliveryTags(String(text)));
       if (getActiveTtsEngine() === 'chatterbox-laptop') {
         const entry = await generateChatterboxLaptopAudio(spoken, lineProfile.voice);
         cacheVnAudio(key, entry);
+        writeVnDiskCache(scenarioId, key, entry.blob);
         return entry;
       }
       let buffer = await generateKokoroAudioBuffer(spoken, lineProfile);
@@ -7978,6 +8186,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const blob = pcmToWavBlob(buffer.getChannelData(0), buffer.sampleRate);
       const entry = { url: URL.createObjectURL(blob), blob };
       cacheVnAudio(key, entry);
+      writeVnDiskCache(scenarioId, key, blob);
       return entry;
     }
     // Warm the model (and optionally a short sample) without blocking the UI.
@@ -8067,15 +8276,25 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       // Interleave forward/backward out to the configured window so a long
       // uninterrupted read never runs out of pre-rendered audio, and stepping
       // back stays instant too. Ordered nearest-first.
-      // Chatterbox (Laptop) is CPU-bound and serializes every request behind
-      // one lock server-side (see tts_lock in start_chatterbox_server.py), so
-      // a full multi-line prefetch window queues several slow generations
-      // behind the line that's actually about to play — the reported "Loading
-      // voice model..." hang. Keep it to just the very next line there.
-      const win = engine === 'chatterbox-laptop' ? 1 : Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
+      // Chatterbox (Laptop) serializes every request behind one lock
+      // server-side (see tts_lock in start_chatterbox_server.py), so a full
+      // multi-line prefetch window can queue several generations behind the
+      // line that's actually about to play — the reported "Loading voice
+      // model..." hang. On CPU that's genuinely slow enough that even one
+      // queued prefetch is too much; on a GPU server a line renders in a
+      // couple of seconds, so a small lookahead is free. Size the window off
+      // the rolling average of recent request times instead of hardcoding
+      // either assumption — starts conservative (1) until it has real
+      // timings, then opens up once requests are consistently fast.
+      let chatterboxWindow = 1;
+      if (engine === 'chatterbox-laptop') {
+        const avgMs = avgChatterboxDuration();
+        chatterboxWindow = avgMs < 2500 ? 3 : avgMs < 6000 ? 2 : 1;
+      }
+      const win = engine === 'chatterbox-laptop' ? chatterboxWindow : Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       const offsets = [];
       if (engine === 'chatterbox-laptop') {
-        offsets.push(1);
+        for (let d = 1; d <= win; d++) offsets.push(d); // forward-only — backward lookahead doubles queue pressure for little benefit while stepping forward through a scene
       } else {
         for (let d = 1; d <= win; d++) { offsets.push(d); offsets.push(-d); }
       }
@@ -8252,10 +8471,60 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (!profile) return;
       try {
         const cacheKey = vnAudioCacheKey(speakerName, text, profile);
+        const engine = getActiveTtsEngine();
+        const scenarioId = getActiveScenario()?.id || 'default';
+
+        // Chatterbox (Laptop) generation is slow enough — CPU especially —
+        // that waiting for the whole line before any sound plays is the main
+        // complaint this addresses. If this exact line isn't cached anywhere
+        // (memory or disk), stream it sentence-by-sentence so playback
+        // starts on the first sentence instead of the last. Falls through to
+        // the normal request below on any failure (older browser, network
+        // hiccup, streaming unsupported, etc).
+        if (!vnAudioCache.has(cacheKey) && engine === 'chatterbox-laptop') {
+          const disked = await readVnDiskCache(scenarioId, cacheKey);
+          if (!disked) {
+            setVnTtsStatus('loading');
+            const lineProfile = deriveLineDelivery(text, profile);
+            const spoken = applyActionSoundMap(stripDeliveryTags(String(text)));
+            vnPlaybackInFlight = true;
+            try {
+              const chunkBlobs = await speakChatterboxStreamed(
+                spoken, lineProfile.voice, audioEl,
+                () => token === vnSpeechToken,
+                () => setVnTtsStatus('playing')
+              );
+              vnPlaybackInFlight = false;
+              if (token === vnSpeechToken) { setVnTtsStatus('idle'); onVnSpeechEnded(); }
+              // Stitch into one cached blob (in the background) so replaying
+              // this exact line later hits the normal cache instead of
+              // streaming again. A single-chunk line is already exactly what
+              // the non-streaming path would have produced — cache it
+              // directly rather than a pointless decode/re-encode round trip.
+              if (chunkBlobs.length === 1) {
+                const blob = chunkBlobs[0];
+                cacheVnAudio(cacheKey, { url: URL.createObjectURL(blob), blob });
+                writeVnDiskCache(scenarioId, cacheKey, blob);
+              } else if (chunkBlobs.length > 1) {
+                concatWavBlobs(chunkBlobs).then(blob => {
+                  cacheVnAudio(cacheKey, { url: URL.createObjectURL(blob), blob });
+                  writeVnDiskCache(scenarioId, cacheKey, blob);
+                }).catch(e => console.warn('Could not cache streamed line:', e?.message || e));
+              }
+              prefetchNextVnLine();
+              return;
+            } catch (e) {
+              vnPlaybackInFlight = false;
+              console.warn('Chatterbox streaming playback failed, falling back to non-streaming:', e?.message || e);
+              // fall through to the normal path below
+            }
+          }
+        }
+
         // Only show the loading state if this line isn't already rendered —
         // a cache hit should feel instant, not flash a spinner.
-        if (!vnAudioCache.has(cacheKey)) setVnTtsStatus('loading');
         const wasCached = vnAudioCache.has(cacheKey);
+        if (!wasCached) setVnTtsStatus('loading');
         if (!wasCached) vnPlaybackInFlight = true;
         let entry;
         try {
