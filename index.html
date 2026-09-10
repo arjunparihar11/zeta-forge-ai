@@ -10474,7 +10474,23 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
             continue;
           }
-          const rawOutput = await consumeLocalLLMStream(response, bufferSoFar => prewarmer.feed(bufferSoFar));
+          // The 'workstation' profile is, by ZetaForge's own naming/defaults
+          // (default URL http://192.168.1.45:1234/v1, a LAN address), the
+          // same physical machine as Chatterbox (Laptop) -- that's the whole
+          // point of that tier. Prewarming TTS mid-stream fires a Chatterbox
+          // generate() call on that same machine WHILE its GPU is still busy
+          // running the LLM's own decode, and on a card with only a few GB
+          // of VRAM (this is a real, observed case at 6GB) running both at
+          // once doesn't parallelize -- it contends, and sampling can crater
+          // from ~10 it/s to ~1 it/s or worse, slow enough to time out and
+          // show as a TTS error. So on that specific pairing, skip the
+          // mid-stream prewarm calls entirely and let prewarmer.finish()
+          // below start every line's TTS in one shot right after the LLM is
+          // actually done and has freed the GPU -- still faster than the old
+          // fully-sequential behavior (nothing waits for playSequentialTypewriter
+          // to get around to it), just not overlapping the two GPU workloads.
+          const ttsSharesGpuWithThisLlm = getActiveTtsEngine() === 'chatterbox-laptop' && endpointInfo.profileKey === 'workstation';
+          const rawOutput = await consumeLocalLLMStream(response, ttsSharesGpuWithThisLlm ? null : (bufferSoFar => prewarmer.feed(bufferSoFar)));
           prewarmer.finish(rawOutput);
           appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
           appState.lastLocalProvider = endpointInfo.label || '';
