@@ -10692,10 +10692,21 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // appears at a line/clause boundary followed by a colon. Most text has
     // no such embedded name at all, so the common case is a single piece
     // attributed to initialSpeaker.
+    // Words that legitimately precede a colon at the very start of a line in
+    // narration but are never a character's name -- excluded from the
+    // generic (unknown-name) speaker-tag match below so headings/asides like
+    // "Meanwhile: ..." or "The End: ..." don't get misread as a newly
+    // introduced side character. Checked against the tag's first word only.
+    const NON_NAME_LEAD_WORDS = new Set(['the','a','an','note','warning','important','meanwhile','later','suddenly','continued','aside','ooc','author','narrator','scene','system','disclaimer','edit','update','recap','summary','chapter','part','epilogue','prologue','interlude','flashback','earlier','elsewhere','moments','hours','days','weeks','months','years','morning','afternoon','evening','night','meanwhile','ok','okay','yes','no','fine','alright','warning','tip','hint','reminder','caption','title']);
+    function isGenuineLineStart(text, idx) {
+      if (idx <= 0) return true;
+      let i = idx - 1;
+      while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+      return i < 0 || text[i] === '\n';
+    }
     function splitTextBySpeakers(text, knownNames, initialSpeaker) {
       if (!text) return [{ speaker: initialSpeaker, text: '' }];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-      if (!namesPattern) return [{ speaker: initialSpeaker, text }];
       // Some local LLMs (e.g. Magnum) wrap the speaker tag in brackets --
       // "[Ignis]:" instead of "Ignis:". Allow optional [] around the name so
       // those tags are still recognized as speaker boundaries instead of
@@ -10708,15 +10719,41 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // "Marcus:" tag bleeding through as literal text. Widened the boundary
       // character classes to include curly quotes, an ellipsis character,
       // and a couple of other common closing punctuation marks.
-      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"“”‘’…,;)]\\s*)|(?<=[\\*"”’]))\\[?(${namesPattern})\\]?:`, 'g');
+      const boundary = `(?:^|(?<=\\r?\\n)|(?<=[\\.\\*\\!\\?"“”‘’…,;)]\\s*)|(?<=[\\*"”’]))`;
+      // Second alternative: a side/incidental character the model introduces
+      // mid-scene (a guard, a passerby, a name never added to the cast) is
+      // still asked -- by buildSystemInstructionForLocalLLM's own prompt --
+      // to open their block the exact same way, "Name: ...", on its own new
+      // line. Previously only names ZetaForge already knew about (main cast
+      // + Narrator/Scene) counted as a valid boundary, so an unrecognized
+      // name's tag bled into whichever known speaker's block preceded it
+      // instead of becoming its own bubble. This generic alternative accepts
+      // ANY 1-3-word Title Case tag too, but ONLY at a genuine line start
+      // (never mid-clause, where a random capitalized word before a colon is
+      // far more likely to be narration than a name) and never for a word in
+      // NON_NAME_LEAD_WORDS -- both checked below, not in the regex itself,
+      // since a lookbehind can't express "and also isn't a common noun."
+      const genericNamePattern = `\\[?([A-Z][A-Za-z'’.-]*(?:[ \\t][A-Z][A-Za-z'’.-]*){0,2})\\]?:\\s?`;
+      const splitterRegex = namesPattern
+        ? new RegExp(`${boundary}(?:\\[?(${namesPattern})\\]?:|${genericNamePattern})`, 'g')
+        : new RegExp(`${boundary}${genericNamePattern}`, 'g');
       const pieces = [];
       let lastIndex = 0;
       let currentSpeaker = initialSpeaker;
       let match;
       while ((match = splitterRegex.exec(text)) !== null) {
+        const knownMatch = namesPattern ? match[1] : null;
+        const genericMatch = namesPattern ? match[2] : match[1];
+        let matchedName = knownMatch;
+        if (!matchedName && genericMatch) {
+          const firstWord = genericMatch.trim().split(/\s+/)[0].toLowerCase();
+          if (!isGenuineLineStart(text, match.index) || NON_NAME_LEAD_WORDS.has(firstWord)) continue;
+          matchedName = genericMatch.trim();
+        }
+        if (!matchedName) continue;
         const precedingText = text.slice(lastIndex, match.index).trim();
         if (precedingText) pieces.push({ speaker: currentSpeaker, text: precedingText });
-        currentSpeaker = match[1];
+        currentSpeaker = matchedName;
         lastIndex = splitterRegex.lastIndex;
       }
       const remainingText = text.slice(lastIndex).trim();
