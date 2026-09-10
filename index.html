@@ -6333,7 +6333,13 @@ Write 2-4 characters and 3-6 lorebook entries. Make the persona and visual profi
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: mode === 'random' ? 1.1 : 0.9, maxOutputTokens: 2000, responseMimeType: 'application/json' }, safetySettings: buildSafetySettings() })
+          // thinkingConfig off for the same reason as describeVoiceFromPersona:
+          // gemini-3.6-flash's hidden reasoning pass can consume the whole
+          // maxOutputTokens budget before writing any of the actual JSON,
+          // which is what "did not return a usable scenario" was — the
+          // open-ended "random" mode invites more of that reasoning than the
+          // "described" mode, matching it being the one reported broken.
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: mode === 'random' ? 1.1 : 0.9, maxOutputTokens: 2000, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error?.message || `Generation failed (${res.status}).`);
@@ -7294,7 +7300,12 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
       const res = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 100 }, safetySettings: buildSafetySettings() })
+        // thinkingConfig disables gemini-3.6-flash's hidden reasoning pass for
+        // this call — without it, reasoning tokens were eating the whole
+        // maxOutputTokens budget before the model got to the actual
+        // description, which is exactly why this was coming back as one
+        // truncated word. maxOutputTokens is bumped too, as headroom.
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 200, thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error?.message || `Voice description failed (${res.status}).`);
@@ -7495,6 +7506,66 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (p && p.catch) p.catch(() => {});
       vnAudioUnlocked = true;
     }
+    // --- iOS ringer/silent-switch bypass ----------------------------------
+    // Whether the hardware mute switch silences a given <audio> element is
+    // inconsistent across iOS/Safari versions and isn't something a web page
+    // can query or set directly (there's no JS API for AVAudioSession
+    // category). The community-vetted workaround — used by web games and
+    // audio apps for years — is to, on the very first tap/click of the
+    // session, start a silent, looping <audio> element that keeps playing in
+    // the background AND unlock a WebAudio AudioContext with a real
+    // buffer-source start. Once both are running from a genuine user
+    // gesture, subsequent audio (including audio started later without a
+    // fresh gesture, like auto-advance) plays through even with the ringer
+    // switched to silent, on the large majority of iOS versions. This is not
+    // a guarantee Apple documents or promises — only the most reliable
+    // mitigation available from plain web content.
+    let iosAudioUnlockDone = false;
+    let iosSilentLoopEl = null;
+    const IOS_AUDIO_UNLOCK_EVENTS = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+    function attemptIosAudioSessionUnlock() {
+      if (iosAudioUnlockDone) return;
+      let htmlOk = false, webAudioOk = false;
+      try {
+        if (!iosSilentLoopEl) {
+          iosSilentLoopEl = document.createElement('audio');
+          iosSilentLoopEl.setAttribute('playsinline', '');
+          iosSilentLoopEl.setAttribute('x-webkit-airplay', 'deny');
+          iosSilentLoopEl.preload = 'auto';
+          iosSilentLoopEl.loop = true;
+          iosSilentLoopEl.style.display = 'none';
+          // ~0.1s of silence, looped forever — inaudible, but keeps an
+          // actual <audio> element continuously "active" for the session.
+          iosSilentLoopEl.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+          document.body.appendChild(iosSilentLoopEl);
+        }
+        const playPromise = iosSilentLoopEl.play();
+        if (playPromise && playPromise.then) {
+          playPromise.then(() => { htmlOk = true; maybeFinishIosUnlock(); }).catch(() => {});
+        } else {
+          htmlOk = true;
+        }
+      } catch (e) { /* ignore — will retry on next gesture */ }
+      try {
+        const ctx = getVnAudioContext();
+        const src = ctx.createBufferSource();
+        src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate || 22050);
+        src.connect(ctx.destination);
+        src.start(0);
+        if (ctx.state === 'running') { webAudioOk = true; }
+        else if (ctx.resume) { ctx.resume().then(() => { webAudioOk = true; maybeFinishIosUnlock(); }).catch(() => {}); }
+      } catch (e) { /* ignore — will retry on next gesture */ }
+      if (htmlOk && webAudioOk) maybeFinishIosUnlock();
+      function maybeFinishIosUnlock() {
+        if (iosAudioUnlockDone) return;
+        const ctxState = (vnAudioCtx && vnAudioCtx.state) || 'suspended';
+        const loopRunning = iosSilentLoopEl && !iosSilentLoopEl.paused;
+        if (!loopRunning || ctxState !== 'running') return;
+        iosAudioUnlockDone = true;
+        IOS_AUDIO_UNLOCK_EVENTS.forEach(evt => window.removeEventListener(evt, attemptIosAudioSessionUnlock, true));
+      }
+    }
+    IOS_AUDIO_UNLOCK_EVENTS.forEach(evt => window.addEventListener(evt, attemptIosAudioSessionUnlock, { capture: true, passive: true }));
     // Bakes the Pitch/Intonation slider into the buffer via an offline render
     // (AudioBufferSourceNode.detune is a true pitch-only shift, no speed
     // change) so the result can be played back through a plain <audio>
@@ -8095,7 +8166,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     function syncTtsToggleButtons() {
       const on = !!appState.ttsEnabled;
       const setupBtn = document.getElementById('ttsEnabledToggleBtn');
-      if (setupBtn) setupBtn.innerText = on ? '🔊 Voice Acting: On (Kokoro)' : '🔇 Voice Acting: Off';
+      if (setupBtn) setupBtn.innerText = on ? `🔊 Voice Acting: On (${ttsEngineLabel(getActiveTtsEngine())})` : '🔇 Voice Acting: Off';
       const vnIcon = document.getElementById('vnTtsToggleIcon');
       if (vnIcon) vnIcon.innerText = on ? '🔊' : '🔇';
       setVnTtsStatus('idle');
@@ -8475,15 +8546,56 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (!appState.apiKey) { openModal('setupModal'); await zfAlert('An API key is needed for AI voice matching. You can still use the heuristic auto-assign without one.', 'API Key Required'); return; }
 
       const engine = getActiveTtsEngine();
+      const people = [active.userPersona, ...(active.characters || [])].filter(p => p && p.name);
+      const targets = people.filter(p => overwrite || !p.ttsVoice);
+      if (!targets.length) { await zfAlert('Every character already has a voice. Use the ↻ button to rematch the whole cast.', 'Nothing to Match'); return; }
+
+      // Chatterbox (Laptop) doesn't have a real named voice catalog to match
+      // against — its "pool" is 5 generic presets — so matching personas
+      // against it the way Kokoro/Kitten do below produced an empty catalog
+      // and always failed with "did not return a usable assignment" (the
+      // engine check here used to compare against the literal string
+      // 'chatterbox', which getActiveTtsEngine() never actually returns — it
+      // returns 'chatterbox-laptop'). Instead, generate an actual unique
+      // cloned voice per character via the same Gemini pipeline the Voice
+      // Lab's "Generate & Assign" button uses, one character at a time.
+      if (engine === 'chatterbox-laptop') {
+        if (!chatterboxLaptopReady) { await zfAlert('Connect to your laptop server first (Setup → Voice Engine → Test) — cloning a voice per character needs it reachable.', 'Laptop Server Not Ready'); return; }
+        if (!await zfConfirm(`Have Gemini read ${targets.length} character description${targets.length === 1 ? '' : 's'} and generate a unique cloned voice for each via your laptop server?${overwrite ? ' This overwrites existing choices.' : ''}\n\nThis calls Gemini once per character and can take a little while.`, 'AI Voice Match', 'Match')) return;
+
+        const notes = [];
+        const failures = [];
+        for (let i = 0; i < targets.length; i++) {
+          const p = targets[i];
+          showLoading(true, `Cloning voice ${i + 1} of ${targets.length} — ${p.name}...`);
+          try {
+            const { voiceId, description } = await cloneVoiceViaGemini(p);
+            p.ttsVoice = voiceId;
+            p.voiceLab = Object.assign(defaultVoiceLabProfile(), p.voiceLab || {}, { voice: voiceId });
+            if (!appState.chatterboxClonedVoices) appState.chatterboxClonedVoices = {};
+            appState.chatterboxClonedVoices[voiceId] = `${p.name} (cloned)`;
+            notes.push(`${p.name}: ${description}`);
+          } catch (err) {
+            failures.push(`${p.name}: ${err?.message || err}`);
+          }
+        }
+        await saveState();
+        syncVoiceSelectButtons();
+        renderCharacterCardsSetup();
+        clearVnAudioCache();
+        if (appState.ttsEnabled) preloadCastVoices();
+        showLoading(false);
+        const summary = notes.length ? `Cloned ${notes.length} voice${notes.length === 1 ? '' : 's'}:\n\n${notes.join('\n')}` : 'No voices were cloned.';
+        await zfAlert(summary + (failures.length ? `\n\nFailed:\n${failures.join('\n')}` : ''), (!notes.length && failures.length) ? 'Matching Failed' : 'AI Voice Match Complete');
+        return;
+      }
+
       const list = getKokoroVoiceList();
       const narratorVoice = active.narratorProfile?.ttsVoice || '';
       // The narrator should always sound distinct from the cast — exclude
       // whatever voice it's already using from the pool offered here, rather
       // than leaving it possible for a character to end up with the same one.
-      const voiceIds = Object.keys(list).filter(id => (engine === 'chatterbox' || isEnglishVoice(id)) && id !== narratorVoice);
-      const people = [active.userPersona, ...(active.characters || [])].filter(p => p && p.name);
-      const targets = people.filter(p => overwrite || !p.ttsVoice);
-      if (!targets.length) { await zfAlert('Every character already has a voice. Use the ↻ button to rematch the whole cast.', 'Nothing to Match'); return; }
+      const voiceIds = Object.keys(list).filter(id => isEnglishVoice(id) && id !== narratorVoice);
       if (!await zfConfirm(`Have the AI read ${targets.length} character description${targets.length === 1 ? '' : 's'} and pick fitting voices?${overwrite ? ' This overwrites existing choices.' : ''}`, 'AI Voice Match', 'Match')) return;
 
       showLoading(true, 'Matching voices to personalities...');
@@ -8509,7 +8621,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 900 }, safetySettings: buildSafetySettings() })
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 900, thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
         });
         if (!res.ok) throw new Error('Voice matching request failed (' + res.status + ')');
         const data = await res.json();
@@ -8541,7 +8653,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         if (!active.narratorProfile) active.narratorProfile = { name: 'Narrator', ttsVoice: '', voiceLab: null };
         if (!active.narratorProfile.ttsVoice) {
           const usedByCast = new Set([...people.map(p => p.ttsVoice)].filter(Boolean));
-          const narratorPool = Object.keys(list).filter(id => (engine === 'chatterbox' || isEnglishVoice(id)) && !usedByCast.has(id));
+          const narratorPool = Object.keys(list).filter(id => isEnglishVoice(id) && !usedByCast.has(id));
           const narratorVoiceId = narratorPool[0] || Object.keys(list)[0];
           if (narratorVoiceId) {
             active.narratorProfile.ttsVoice = narratorVoiceId;
@@ -8572,9 +8684,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const engine = getActiveTtsEngine();
       // Chatterbox packs aren't gendered by id prefix, so fall back to the full
       // list and let distinctness (rather than gender pools) drive selection.
-      const ids = engine === 'chatterbox' ? Object.keys(all) : Object.keys(all).filter(isEnglishVoice);
-      const female = engine === 'chatterbox' ? ids : ids.filter(v => /^[ab]f_/.test(v));
-      const male = engine === 'chatterbox' ? ids : ids.filter(v => /^[ab]m_/.test(v));
+      const ids = engine === 'chatterbox-laptop' ? Object.keys(all) : Object.keys(all).filter(isEnglishVoice);
+      const female = engine === 'chatterbox-laptop' ? ids : ids.filter(v => /^[ab]f_/.test(v));
+      const male = engine === 'chatterbox-laptop' ? ids : ids.filter(v => /^[ab]m_/.test(v));
       const people = [active.userPersona, ...(active.characters || [])].filter(p => p && p.name);
       const targets = people.filter(p => overwrite || !p.ttsVoice);
       if (!targets.length) { if (!silent) await zfAlert('Every character already has a voice assigned. Use the ↻ button if you want to reassign the whole cast.', 'Nothing to Assign'); return; }
@@ -9978,7 +10090,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!text) return [{ speaker: initialSpeaker, text: '' }];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
       if (!namesPattern) return [{ speaker: initialSpeaker, text }];
-      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))(${namesPattern}):`, 'g');
+      // Some local LLMs (e.g. Magnum) wrap the speaker tag in brackets --
+      // "[Ignis]:" instead of "Ignis:". Allow optional [] around the name so
+      // those tags are still recognized as speaker boundaries instead of
+      // bleeding through as literal visible text.
+      const splitterRegex = new RegExp(`(?:\\r?\\n|^|(?<=[\\.\\*\\!\\?"]\\s*)|(?<=[\\*"]))\\[?(${namesPattern})\\]?:`, 'g');
       const pieces = [];
       let lastIndex = 0;
       let currentSpeaker = initialSpeaker;
