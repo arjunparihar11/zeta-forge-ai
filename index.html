@@ -1658,6 +1658,25 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           <p id="vlCloneStatus" class="text-[10px] text-slate-500"></p>
         </div>
 
+        <div id="vlOwnClipSection" class="hidden space-y-2 p-3 bg-zetaCard border border-zetaBorder rounded-xl">
+          <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">🎧 Or Use Your Own Clip</label>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Record, upload (mp4 is fine — just the audio is used), or pull a clip from YouTube as the reference Chatterbox clones from. 5-15s of clean, single-speaker audio works best.</p>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="toggleVoiceLabRecording()" id="vlRecordBtn" class="flex-1 text-[11px] bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 py-1.5 rounded-lg transition active:scale-95">🎙️ Record</button>
+            <label class="flex-1 text-[11px] bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 py-1.5 rounded-lg transition active:scale-95 text-center cursor-pointer">
+              📁 Upload File
+              <input type="file" id="vlFileUpload" accept="audio/*,video/mp4" class="hidden" onchange="handleVoiceLabFileUpload(this.files[0])" />
+            </label>
+          </div>
+          <div class="flex gap-1.5 items-center pt-1">
+            <input type="text" id="vlYoutubeUrl" placeholder="YouTube link" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-[11px] text-white focus:border-zetaAccent" />
+            <input type="number" id="vlYoutubeStart" value="0" min="0" step="1" title="Start (seconds)" class="w-14 bg-zetaInput border border-zetaBorder rounded-lg px-2 py-2 text-[11px] text-white focus:border-zetaAccent" />
+            <input type="number" id="vlYoutubeLength" value="15" min="3" max="30" step="1" title="Length (seconds)" class="w-14 bg-zetaInput border border-zetaBorder rounded-lg px-2 py-2 text-[11px] text-white focus:border-zetaAccent" />
+          </div>
+          <button type="button" onclick="fetchYoutubeClipForVoiceLab()" id="vlYoutubeBtn" class="w-full text-[11px] bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 py-1.5 rounded-lg transition active:scale-95">▶ Fetch From YouTube</button>
+          <p id="vlOwnClipStatus" class="text-[10px] text-slate-500"></p>
+        </div>
+
         <div class="space-y-1.5 p-3 bg-zetaCard border border-zetaBorder rounded-xl">
           <label class="block text-[11px] font-semibold text-zetaLight uppercase tracking-wider">Voice Blend</label>
           <select id="vlBlendVoice" onchange="onVoiceLabFieldChange()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent"></select>
@@ -7240,6 +7259,28 @@ JSON FORMAT:
       return new Blob([buffer], { type: 'audio/wav' });
     }
 
+    // Float32 PCM (e.g. AudioBuffer.getChannelData(0), range -1..1) -> 16-bit
+    // mono WAV. Companion to pcm16Base64ToWavBlob() above, which handles the
+    // already-16-bit base64 case (Gemini's TTS output); this one is for
+    // audio still in Web Audio's native float format (Kokoro generation,
+    // decoded recordings/uploads/YouTube clips).
+    function pcmToWavBlob(channelData, sampleRate) {
+      const numSamples = channelData.length;
+      const buffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(buffer);
+      const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+      writeStr(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true); writeStr(8, 'WAVE');
+      writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+      writeStr(36, 'data'); view.setUint32(40, numSamples * 2, true);
+      let offset = 44;
+      for (let i = 0; i < numSamples; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, channelData[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
     // Has Gemini read a character's persona/visual profile and produce a
     // short, concrete voice description suitable for feeding into the TTS
     // sample prompt below — the "auto" half of the auto/manual choice.
@@ -7541,6 +7582,12 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     const IS_SMALL_DEVICE = (navigator.maxTouchPoints > 1 && Math.min(screen.width, screen.height) < 820);
     const VN_AUDIO_CACHE_LIMIT = IS_SMALL_DEVICE ? 16 : 40;
     let vnPrefetchInFlight = null;
+    // Set while the currently on-screen line is being synthesized. Chatterbox
+    // serializes requests server-side now (see start_chatterbox_server.py's
+    // tts_lock), so a prefetch firing at the same moment would just queue
+    // behind the line the user is actually waiting on, adding latency for no
+    // benefit — skip starting new prefetches until that line is done.
+    let vnPlaybackInFlight = false;
 
     function vnAudioCacheKey(speakerName, text, profile) {
       return `${speakerName}::${profile.voice}::${profile.blendVoice || ''}::${profile.blendWeight || 0}::${profile.pace || 1}::${profile.pitch || 0}::${profile.emphasis || 0}::${(text || '').slice(0, 400)}`;
@@ -7692,7 +7739,12 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const res = await fetch(`${base}/tts`, {
         method: 'POST',
         headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
-        signal: AbortSignal.timeout(30000),
+        // CPU inference plus the server-side lock that now serializes
+        // concurrent requests (prefetch + on-screen line) means a request
+        // can legitimately sit queued for a while before it even starts
+        // generating — 30s was tripping on that queueing, not just slow
+        // generation itself.
+        signal: AbortSignal.timeout(120000),
         body: JSON.stringify({ text, voice: voice || 'cb_default' })
       });
       if (!res.ok) throw new Error(`Laptop TTS server returned ${res.status}`);
@@ -7812,7 +7864,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     function prefetchNextVnLine() {
       const engine = getActiveTtsEngine();
       const engineReady = engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady;
-      if (!appState.ttsEnabled || !engineReady || vnPrefetchInFlight) return;
+      if (!appState.ttsEnabled || !engineReady || vnPrefetchInFlight || vnPlaybackInFlight) return;
       const active = getActiveScenario();
       if (!active || active.viewMode !== 'vn') return;
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
@@ -8001,7 +8053,14 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         // Only show the loading state if this line isn't already rendered —
         // a cache hit should feel instant, not flash a spinner.
         if (!vnAudioCache.has(cacheKey)) setVnTtsStatus('loading');
-        const entry = await renderVnAudioCached(speakerName, text, profile);
+        const wasCached = vnAudioCache.has(cacheKey);
+        if (!wasCached) vnPlaybackInFlight = true;
+        let entry;
+        try {
+          entry = await renderVnAudioCached(speakerName, text, profile);
+        } finally {
+          if (!wasCached) vnPlaybackInFlight = false;
+        }
         if (token !== vnSpeechToken) return;
         audioEl.src = entry.url;   // cache-owned URL; never revoked here
         setVnTtsStatus('playing');
@@ -8093,8 +8152,15 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       document.getElementById('vlStatus').innerText = '';
       const cloneSection = document.getElementById('vlCloneSection');
       if (cloneSection) cloneSection.classList.toggle('hidden', getActiveTtsEngine() !== 'chatterbox-laptop');
+      const ownClipSection = document.getElementById('vlOwnClipSection');
+      if (ownClipSection) ownClipSection.classList.toggle('hidden', getActiveTtsEngine() !== 'chatterbox-laptop');
       document.getElementById('vlCloneDescription').value = '';
       document.getElementById('vlCloneStatus').innerText = '';
+      document.getElementById('vlOwnClipStatus').innerText = '';
+      document.getElementById('vlYoutubeUrl').value = '';
+      // Recording, if left running from a previous open, shouldn't keep the
+      // mic hot in the background once the drawer is reopened for someone else.
+      if (vlMediaRecorder && vlMediaRecorder.state === 'recording') vlMediaRecorder.stop();
       updateVoiceLabLabels();
       updateVoiceLabModelStatus();
 
@@ -8241,6 +8307,124 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         status.innerText = `✅ Cloned and assigned as "${target.name} (cloned)". Save to keep it.`;
       } catch (err) {
         status.innerText = 'Error: ' + (err?.message || 'voice cloning failed');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // --- Voice Lab: your own reference clip (record / upload / YouTube) ----
+    // All three paths converge on the same place: decode whatever audio we
+    // got into an AudioBuffer, then hand it to finalizeVoiceLabReferenceClip,
+    // which is the same upload+assign tail cloneVoiceFromVoiceLab() uses
+    // above, just under a "_custom" voice id instead of Gemini's description.
+    async function audioBufferFromArrayBuffer(arrayBuffer) {
+      const ctx = getVnAudioContext();
+      // decodeAudioData can detach/consume its input in some browsers — slice
+      // defensively so a retry (or the caller reusing the buffer) is safe.
+      return await ctx.decodeAudioData(arrayBuffer.slice(0));
+    }
+
+    async function finalizeVoiceLabReferenceClip(audioBuffer, sourceLabel) {
+      const target = resolveVoiceLabTarget();
+      if (!target || !target.obj) throw new Error('No character selected.');
+      const status = document.getElementById('vlOwnClipStatus');
+      const wavBlob = pcmToWavBlob(audioBuffer.getChannelData(0), audioBuffer.sampleRate);
+      const voiceId = `clone_${(target.obj.id || target.name).toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}_custom`;
+      const label = `${target.name} (${sourceLabel})`;
+      if (status) status.innerText = 'Uploading to laptop server…';
+      await uploadReferenceVoiceToLaptop(voiceId, wavBlob, label);
+      if (!appState.chatterboxClonedVoices) appState.chatterboxClonedVoices = {};
+      appState.chatterboxClonedVoices[voiceId] = label;
+      await saveState();
+      // Same "assign immediately" behavior as cloneVoiceFromVoiceLab().
+      voiceLabDraft.voice = voiceId;
+      buildVoiceLabOptions(document.getElementById('vlVoice'), voiceId, false);
+      document.getElementById('vlVoice').value = voiceId;
+      if (status) status.innerText = `✅ Uploaded and assigned as "${label}". Save to keep it.`;
+    }
+
+    let vlMediaRecorder = null;
+    let vlRecordedChunks = [];
+    let vlMediaStream = null;
+
+    async function toggleVoiceLabRecording() {
+      const btn = document.getElementById('vlRecordBtn');
+      const status = document.getElementById('vlOwnClipStatus');
+      if (vlMediaRecorder && vlMediaRecorder.state === 'recording') {
+        vlMediaRecorder.stop(); // onstop (below) does the actual processing
+        return;
+      }
+      try {
+        vlMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        vlRecordedChunks = [];
+        vlMediaRecorder = new MediaRecorder(vlMediaStream);
+        vlMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) vlRecordedChunks.push(e.data); };
+        vlMediaRecorder.onstop = async () => {
+          vlMediaStream.getTracks().forEach(t => t.stop());
+          btn.innerText = '🎙️ Record';
+          btn.classList.remove('bg-red-600', 'hover:bg-red-500');
+          try {
+            status.innerText = 'Processing recording…';
+            const blob = new Blob(vlRecordedChunks, { type: vlMediaRecorder.mimeType || 'audio/webm' });
+            const audioBuffer = await audioBufferFromArrayBuffer(await blob.arrayBuffer());
+            await finalizeVoiceLabReferenceClip(audioBuffer, 'recorded');
+          } catch (err) {
+            status.innerText = 'Error: ' + (err?.message || 'could not process recording');
+          }
+        };
+        vlMediaRecorder.start();
+        btn.innerText = '⏹ Stop';
+        btn.classList.add('bg-red-600', 'hover:bg-red-500');
+        status.innerText = 'Recording… tap Stop when done (aim for 5-15s).';
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'microphone access failed — check the browser/site permission');
+      }
+    }
+
+    async function handleVoiceLabFileUpload(file) {
+      if (!file) return;
+      const status = document.getElementById('vlOwnClipStatus');
+      const isVideo = file.type.includes('video') || /\.mp4$/i.test(file.name);
+      status.innerText = isVideo ? 'Decoding audio track from video…' : 'Decoding audio…';
+      try {
+        const audioBuffer = await audioBufferFromArrayBuffer(await file.arrayBuffer());
+        await finalizeVoiceLabReferenceClip(audioBuffer, 'uploaded');
+      } catch (err) {
+        status.innerText = 'Error: could not read audio from that file' +
+          (isVideo ? ' (some mp4 audio codecs can\'t be decoded directly in-browser — try re-exporting its audio as .wav or .mp3)' : '') +
+          '. ' + (err?.message || '');
+      } finally {
+        document.getElementById('vlFileUpload').value = '';
+      }
+    }
+
+    async function fetchYoutubeClipForVoiceLab() {
+      const status = document.getElementById('vlOwnClipStatus');
+      const btn = document.getElementById('vlYoutubeBtn');
+      const url = (document.getElementById('vlYoutubeUrl').value || '').trim();
+      const start = Number(document.getElementById('vlYoutubeStart').value) || 0;
+      const length = Number(document.getElementById('vlYoutubeLength').value) || 15;
+      if (!url) { status.innerText = 'Paste a YouTube link first.'; return; }
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (!base) { status.innerText = 'No laptop server URL configured for Chatterbox (Laptop).'; return; }
+      btn.disabled = true;
+      status.innerText = 'Downloading audio from YouTube on your laptop server… this can take a bit.';
+      try {
+        const res = await fetch(`${base}/youtube-audio`, {
+          method: 'POST',
+          headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
+          // Downloading + transcoding a video server-side is slower than a
+          // normal TTS call, and shares the same laptop, not the tts_lock.
+          signal: AbortSignal.timeout(120000),
+          body: JSON.stringify({ url, start_seconds: start, duration_seconds: length })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Laptop server returned ${res.status}`);
+        const bytes = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
+        const audioBuffer = await audioBufferFromArrayBuffer(bytes.buffer);
+        await finalizeVoiceLabReferenceClip(audioBuffer, 'from YouTube');
+      } catch (err) {
+        status.innerText = 'Error: ' + (err?.message || 'could not fetch that clip');
       } finally {
         btn.disabled = false;
       }
