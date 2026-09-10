@@ -766,8 +766,9 @@
               <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
                 <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
               </button>
-              <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
+              <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center gap-1 transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
                 <span id="vnTtsToggleIcon">🔇</span>
+                <span data-vn-tts-status-dot class="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
               </button>
             </div>
             <div class="flex items-center gap-1.5">
@@ -1371,6 +1372,7 @@
               <button type="button" id="ttsEnabledToggleBtn" onclick="toggleTtsEnabled()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
               <label class="block text-slate-300 font-semibold mb-1 mt-3 text-xs">Voice Engine</label>
               <select id="ttsEngineSelect" onchange="changeTtsEngine(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent">
+                <option value="auto">⚡ Auto — Chatterbox (Laptop) → Kokoro → Kitten, whichever is available</option>
                 <option value="chatterbox-laptop">💻 Chatterbox (Laptop) — best quality, needs your laptop running</option>
                 <option value="kokoro">⚡ Kokoro — ~85MB, in-browser, most expressive of the on-device options</option>
                 <option value="kitten">🐱 Kitten TTS — ~25-80MB, in-browser, lightest weight and most conservative on memory</option>
@@ -1803,6 +1805,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           </label>
           <div id="newScenarioTtsEngineField" class="hidden">
             <select id="newScenarioTtsEngine" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:border-zetaAccent">
+              <option value="auto">⚡ Auto — best available</option>
               <option value="chatterbox-laptop">💻 Chatterbox (Laptop) — best quality</option>
               <option value="kokoro">⚡ Kokoro — in-browser</option>
               <option value="kitten">🐱 Kitten TTS — lightest weight</option>
@@ -2511,7 +2514,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
       lightningStudioUrl: '',
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
-      ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop'
+      ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop' | 'auto'
       chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       chatterboxVoiceClipData: {},  // voiceId -> base64 wav of the reference clip, so a scenario export can carry its cloned voices and re-register them with whatever laptop server imports it
@@ -2929,7 +2932,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
       if (typeof appState.lightningStudioUrl !== 'string') appState.lightningStudioUrl = '';
-      if (appState.ttsEngine !== 'kokoro') appState.ttsEngine = 'kokoro';
+      // Was unconditionally forcing 'kokoro' on every load regardless of what
+      // was actually saved, silently reverting a Chatterbox/Kitten/Auto
+      // choice back to Kokoro on the next reload. Validate against every
+      // real value instead of clamping to one specific one.
+      if (!['chatterbox-laptop', 'kokoro', 'kitten', 'auto'].includes(appState.ttsEngine)) appState.ttsEngine = 'kokoro';
       if (!['gemini','workstation','deviceIphone','deviceIpad','auto'].includes(appState.llmProfile)) appState.llmProfile = 'gemini';
       if (!appState.llmProfiles || typeof appState.llmProfiles !== 'object') appState.llmProfiles = {};
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -6310,7 +6317,7 @@ IMPORTANT RULES:
       document.getElementById('newScenarioName').value = `Scenario #${appState.scenarios.length + 1}`;
       document.getElementById('newScenarioLlm').value = appState.llmProfile || 'gemini';
       document.getElementById('newScenarioTtsToggle').checked = !!appState.ttsEnabled;
-      document.getElementById('newScenarioTtsEngine').value = getActiveTtsEngine();
+      document.getElementById('newScenarioTtsEngine').value = appState.ttsEngine === 'auto' ? 'auto' : getActiveTtsEngine();
       document.getElementById('newScenarioAiDescription').value = '';
       document.getElementById('newScenarioAiStatus').innerText = '';
       toggleNewScenarioTtsFields();
@@ -6960,7 +6967,14 @@ JSON FORMAT:
       cb_grave:   { exaggeration: 0.25 },
       cb_playful: { exaggeration: 0.75 }
     };
-    function getActiveTtsEngine() { return ['chatterbox-laptop', 'kitten'].includes(appState.ttsEngine) ? appState.ttsEngine : 'kokoro'; }
+    // 'auto' resolves to whichever concrete engine resolveAutoTtsEngine() last
+    // determined was best available (see that function, defined further
+    // down near chatterboxLaptopReady) — defaults to 'kokoro' before the
+    // first resolution has run.
+    function getActiveTtsEngine() {
+      if (appState.ttsEngine === 'auto') return resolvedAutoTtsEngine || 'kokoro';
+      return ['chatterbox-laptop', 'kitten'].includes(appState.ttsEngine) ? appState.ttsEngine : 'kokoro';
+    }
     async function webGpuAvailable() {
       try {
         if (!navigator.gpu) return false;
@@ -7709,7 +7723,9 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       }
     }
     let vnAutoWaitingForSpeech = false;
+    let lastVnTtsStatusState = 'idle';
     function setVnTtsStatus(state) {
+      lastVnTtsStatusState = state;
       // Visible progress on the stage itself — otherwise a line that takes a
       // couple of seconds to synthesise looks like the app has simply stopped.
       const ind = document.getElementById('vnTtsLoadingIndicator');
@@ -7727,9 +7743,27 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         }
       }
       const vnBtn = document.getElementById('vnTtsToggleBtn');
-      if (!vnBtn) return;
-      const labels = { idle: appState.ttsEnabled ? (voiceWarmInFlight ? 'Voice narration: On — preloading voices…' : 'Voice narration: On (tap to mute)') : 'Voice narration: Off (tap to enable)', loading: 'Generating voice line…', playing: 'Playing voice line…', error: 'Voice generation failed — tap to retry next line' };
+      if (!vnBtn) { renderVnTtsStatusDot(state); return; }
+      const engineLabel = ttsEngineLabel(getActiveTtsEngine()) + (appState.ttsEngine === 'auto' ? ' · Auto' : '');
+      const labels = { idle: appState.ttsEnabled ? (voiceWarmInFlight ? `Voice narration: On — preloading voices… (${engineLabel})` : `Voice narration: On — ${engineLabel} (tap to mute)`) : 'Voice narration: Off (tap to enable)', loading: `Generating voice line… (${engineLabel})`, playing: `Playing voice line… (${engineLabel})`, error: 'Voice generation failed — tap to retry next line' };
       vnBtn.title = labels[state] || labels.idle;
+      renderVnTtsStatusDot(state);
+    }
+    // Small color-coded dot on the VN stage's voice-narration toggle,
+    // mirroring the LLM connection dot at the bottom of the app: green means
+    // the active TTS engine is actually ready right now, amber while it's
+    // loading/checking, red on a failure, gray while narration is off.
+    function renderVnTtsStatusDot(state) {
+      const dot = document.querySelector('#vnTtsToggleBtn [data-vn-tts-status-dot]');
+      if (!dot) return;
+      const base = 'inline-block w-1.5 h-1.5 rounded-full';
+      if (!appState.ttsEnabled) { dot.className = `${base} bg-slate-500`; return; }
+      const st = state || lastVnTtsStatusState;
+      if (st === 'loading') { dot.className = `${base} bg-amber-400 animate-pulse`; return; }
+      if (st === 'error') { dot.className = `${base} bg-rose-500`; return; }
+      const engine = getActiveTtsEngine();
+      const engineReady = engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady;
+      dot.className = `${base} ${engineReady ? 'bg-emerald-400' : 'bg-slate-500'}`;
     }
     function vnCurrentTurnHasVoice() {
       const active = getActiveScenario();
@@ -7926,6 +7960,49 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     // actually sidesteps the Safari/transformers.js instability entirely,
     // the same way the Workstation LLM tier already works for text.
     let chatterboxLaptopReady = false;
+
+    // --- TTS engine auto-selection ------------------------------------------
+    // Mirrors the LLM tier's Smart Auto-Routing: when appState.ttsEngine is
+    // 'auto', prefer Chatterbox (Laptop) whenever its server is actually
+    // reachable (best quality, and now the fastest too, running on-GPU),
+    // falling back to Kokoro, and only to Kitten if Kokoro itself failed to
+    // load. Re-checked on the same cadence as LLM auto-routing so a laptop
+    // server that comes online mid-session gets picked up without a manual
+    // engine switch.
+    let resolvedAutoTtsEngine = null;
+    let lastConcreteTtsEngine = null;
+    let autoTtsEngineCache = { result: null, expiresAt: 0 };
+    async function resolveAutoTtsEngine(force) {
+      if (appState.ttsEngine !== 'auto') return getActiveTtsEngine();
+      if (!force && autoTtsEngineCache.result && Date.now() < autoTtsEngineCache.expiresAt) {
+        applyResolvedTtsEngine(autoTtsEngineCache.result);
+        return resolvedAutoTtsEngine;
+      }
+      let result = 'kokoro';
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (base) {
+        try {
+          const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(4000) });
+          if (res.ok) result = 'chatterbox-laptop';
+        } catch (e) { /* laptop server unreachable right now — fall through to an on-device engine */ }
+      }
+      chatterboxLaptopReady = result === 'chatterbox-laptop';
+      if (result !== 'chatterbox-laptop') result = kokoroLoadError ? 'kitten' : 'kokoro';
+      autoTtsEngineCache = { result, expiresAt: Date.now() + AUTO_ROUTE_CACHE_TTL_MS };
+      applyResolvedTtsEngine(result);
+      return resolvedAutoTtsEngine;
+    }
+    // Runs the same worker/cache teardown and voice-id remap a manual engine
+    // switch does (see changeTtsEngine) whenever auto-resolution actually
+    // changes which concrete engine is active — the two engines' voice
+    // packs aren't compatible with each other.
+    function applyResolvedTtsEngine(next) {
+      resolvedAutoTtsEngine = next;
+      if (lastConcreteTtsEngine && lastConcreteTtsEngine !== next) resetTtsEngineRuntimeState(next);
+      lastConcreteTtsEngine = next;
+      renderVnTtsStatusDot();
+    }
+
     // Rolling average of recent Chatterbox request durations, used to size
     // the VN prefetch window adaptively (see prefetchNextVnLine) — on a GPU
     // server a line might take ~1-2s, making a multi-line lookahead perfectly
@@ -8222,8 +8299,22 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         for (const voiceId of pending) {
           try {
             if (engine === 'chatterbox-laptop') {
-              // Nothing to warm server-side that we control from here — just
-              // mark it warmed so the UI doesn't keep treating it as pending.
+              // Ask the laptop server to precompute (and cache) this voice's
+              // reference-clip conditioning now, before the scene needs it —
+              // see /warm-voice in start_chatterbox_server.py. A no-op on the
+              // server for a built-in preset id (only cloned voices carry any
+              // real precompute cost), and failure here just means the first
+              // line pays the normal cost instead — not worth surfacing.
+              const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+              if (base) {
+                const warmRes = await fetch(`${base}/warm-voice`, {
+                  method: 'POST',
+                  headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
+                  signal: AbortSignal.timeout(30000),
+                  body: JSON.stringify({ voice: voiceId })
+                });
+                if (!warmRes.ok) throw new Error(`/warm-voice returned ${warmRes.status}`);
+              }
             } else if (!workerUnavailable && kokoroWorker) {
               // Warm inside the worker so it never touches the UI thread.
               await workerRequest({ type: 'warm', voice: voiceId });
@@ -8244,6 +8335,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     async function warmUpTtsEngine() {
       try {
         setVnTtsStatus('loading');
+        if (appState.ttsEngine === 'auto') await resolveAutoTtsEngine();
         if (getActiveTtsEngine() === 'chatterbox-laptop') {
           const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
           if (!base) throw new Error('No laptop server URL configured.');
@@ -9133,36 +9225,19 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // Switching engines tears down the worker and clears every cached render,
     // since the two engines have entirely different voice packs and output.
     function ttsEngineLabel(engine) {
+      if (engine === 'auto') return `Auto (${ttsEngineLabel(getActiveTtsEngine())})`;
       return engine === 'chatterbox-laptop' ? 'Chatterbox (Laptop)' : engine === 'kitten' ? 'Kitten TTS' : 'Kokoro';
     }
 
-    function syncChatterboxLaptopFieldVisibility() {
-      const field = document.getElementById('chatterboxLaptopUrlField');
-      const select = document.getElementById('ttsEngineSelect');
-      // Keyed off the dropdown's own selected value, not getActiveTtsEngine()
-      // — the field needs to be visible for an engine the user just picked
-      // but hasn't actually switched to yet (e.g. no URL saved so far),
-      // otherwise there's no way to ever enter one in the first place.
-      const selected = select ? select.value : getActiveTtsEngine();
-      if (field) field.classList.toggle('hidden', selected !== 'chatterbox-laptop');
-      const urlInput = document.getElementById('chatterboxLaptopUrl');
-      if (urlInput) {
-        if (!appState.chatterboxLaptopUrl) appState.chatterboxLaptopUrl = 'http://192.168.68.77:5050';
-        urlInput.value = appState.chatterboxLaptopUrl;
-      }
-    }
-
-    async function changeTtsEngine(value) {
-      const next = ['chatterbox-laptop', 'kokoro', 'kitten'].includes(value) ? value : 'kokoro';
-      const prev = getActiveTtsEngine();
-      syncChatterboxLaptopFieldVisibility();
-      if (next === prev) { updateTtsEngineHint(); return; }
-
-      appState.ttsEngine = next;
-      // Drop the in-browser worker and all its engine-specific state. Not
-      // relevant for chatterbox-laptop (nothing local is ever loaded for it),
-      // but harmless to always run — and necessary when switching AWAY from
-      // it back to an in-browser engine, or between kokoro/kitten themselves.
+    // Drops the in-browser worker and all its engine-specific state (not
+    // relevant for chatterbox-laptop — nothing local is ever loaded for it —
+    // but harmless to always run, and necessary switching AWAY from it back
+    // to an in-browser engine, or between kokoro/kitten themselves), then
+    // remaps any character voice id the new engine's pack doesn't recognize.
+    // Shared by an explicit engine pick (changeTtsEngine) and by an 'auto'
+    // resolution that actually changes which concrete engine is active
+    // (applyResolvedTtsEngine) — both are the same underlying transition.
+    function resetTtsEngineRuntimeState(next) {
       try { if (kokoroWorker) kokoroWorker.terminate(); } catch (e) {}
       kokoroWorker = null; kokoroWorkerReady = null; workerUnavailable = false;
       kokoroTTS = null; kokoroLoadingPromise = null; kokoroEngineReady = false;
@@ -9170,8 +9245,6 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       clearVnAudioCache(); warmedVoices.clear(); blendedVoiceCache.clear();
       workerJobs.clear();
 
-      // Voice ids don't carry across engines — remap anyone now pointing at a
-      // voice the new pack doesn't have.
       const valid = Object.keys(getKokoroVoiceList());
       const active = getActiveScenario();
       [active.userPersona, ...(active.characters || [])].forEach(p => {
@@ -9180,11 +9253,46 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           if (p.voiceLab) { p.voiceLab.voice = ''; p.voiceLab.blendVoice = ''; }
         }
       });
+    }
+
+    function syncChatterboxLaptopFieldVisibility() {
+      const field = document.getElementById('chatterboxLaptopUrlField');
+      const select = document.getElementById('ttsEngineSelect');
+      // Keyed off the dropdown's own selected value, not getActiveTtsEngine()
+      // — the field needs to be visible for an engine the user just picked
+      // but hasn't actually switched to yet (e.g. no URL saved so far),
+      // otherwise there's no way to ever enter one in the first place. Auto
+      // still needs the URL configured for its own probe to ever pick
+      // Chatterbox, so it stays visible for that choice too.
+      const selected = select ? select.value : getActiveTtsEngine();
+      if (field) field.classList.toggle('hidden', selected !== 'chatterbox-laptop' && selected !== 'auto');
+      const urlInput = document.getElementById('chatterboxLaptopUrl');
+      if (urlInput) {
+        if (!appState.chatterboxLaptopUrl) appState.chatterboxLaptopUrl = 'http://192.168.68.77:5050';
+        urlInput.value = appState.chatterboxLaptopUrl;
+      }
+    }
+
+    async function changeTtsEngine(value) {
+      const next = ['chatterbox-laptop', 'kokoro', 'kitten', 'auto'].includes(value) ? value : 'kokoro';
+      syncChatterboxLaptopFieldVisibility();
+      if (appState.ttsEngine === next) { updateTtsEngineHint(); return; }
+
+      appState.ttsEngine = next;
+      if (next === 'auto') {
+        autoTtsEngineCache = { result: null, expiresAt: 0 }; // force a fresh check on this explicit switch
+        await resolveAutoTtsEngine(true);
+      } else {
+        resolvedAutoTtsEngine = null;
+        resetTtsEngineRuntimeState(next);
+        lastConcreteTtsEngine = next;
+      }
 
       await saveState();
       syncVoiceSelectButtons();
       renderCharacterCardsSetup();
       updateTtsEngineHint();
+      renderVnTtsStatusDot();
       if (appState.ttsEnabled) warmUpTtsEngine();
       await zfAlert(`Voice engine set to ${ttsEngineLabel(next)}. Use ✨ AI Match Voices to re-cast your characters with the new pack.`, 'Engine Switched');
     }
@@ -9193,11 +9301,14 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const el = document.getElementById('ttsEngineHint');
       if (!el) return;
       const engine = getActiveTtsEngine();
-      el.innerText = engine === 'chatterbox-laptop'
+      const base = engine === 'chatterbox-laptop'
         ? 'Best quality and expression control of the three — runs entirely on your laptop over your network, so it never touches your phone\'s memory at all. Needs the laptop server running and reachable.'
         : engine === 'kitten'
         ? 'The lightest weight of the on-device options — smallest memory footprint, at some cost to expressiveness versus Kokoro.'
         : 'Small, fast and phone-friendly. 54 preset voices with native English pronunciation.';
+      el.innerText = appState.ttsEngine === 'auto'
+        ? `⚡ Auto: checks Chatterbox (Laptop) → Kokoro → Kitten TTS and uses whichever is actually available right now (currently ${ttsEngineLabel(engine)}). ${base}`
+        : base;
     }
 
     function syncVoiceSelectButtons() {
@@ -9337,7 +9448,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       syncTtsToggleButtons();
       syncVoiceSelectButtons();
       const engSel = document.getElementById('ttsEngineSelect');
-      if (engSel) engSel.value = getActiveTtsEngine();
+      if (engSel) engSel.value = appState.ttsEngine === 'auto' ? 'auto' : getActiveTtsEngine();
       syncChatterboxLaptopFieldVisibility();
       updateTtsEngineHint();
       const preEl=document.getElementById('ttsPreloadInput'); if(preEl) preEl.value=appState.ttsPreloadWindow||4; const preLbl=document.getElementById('ttsPreloadValue'); if(preLbl) preLbl.innerText=`±${appState.ttsPreloadWindow||4} lines`;
