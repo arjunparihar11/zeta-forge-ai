@@ -2514,6 +2514,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop'
       chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
+      chatterboxVoiceClipData: {},  // voiceId -> base64 wav of the reference clip, so a scenario export can carry its cloned voices and re-register them with whatever laptop server imports it
       llmProfile: 'gemini',
       llmProfiles: JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS)),
       localTurnsServed: 0,
@@ -4533,6 +4534,47 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       }
     }
 
+    // After background removal, different cells of the same 4x4 sheet often
+    // leave very different amounts of transparent margin around the actual
+    // character (a close-up bust shot naturally fills its cell differently
+    // than a full-body pose, and the removal mask itself isn't pixel-perfect
+    // frame to frame). Every sprite is later displayed at the same max-height
+    // box on the VN stage via object-contain, which scales the WHOLE canvas
+    // including that padding — so a sprite with lots of empty margin renders
+    // visibly smaller than one that already fills its frame, even though
+    // nothing is "wrong" with either image individually. Cropping each sprite
+    // tightly to its own opaque content (plus a small uniform padding) before
+    // it's stored normalizes that away.
+    function trimCanvasToOpaqueBounds(sourceCanvas, width, height, paddingRatio = 0.04) {
+      const probeCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+      const { data } = probeCtx.getImageData(0, 0, width, height);
+      const ALPHA_THRESHOLD = 12; // ignores near-fully-transparent antialiasing/noise pixels
+      let minX = width, minY = height, maxX = -1, maxY = -1;
+      for (let y = 0; y < height; y++) {
+        const rowStart = y * width * 4;
+        for (let x = 0; x < width; x++) {
+          if (data[rowStart + x * 4 + 3] > ALPHA_THRESHOLD) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < 0 || maxY < 0) return null; // nothing opaque at all (a fully-erased mask) — leave untouched
+      const boxW = maxX - minX + 1, boxH = maxY - minY + 1;
+      // Already fills the frame — skip the pointless re-encode.
+      if (boxW >= width * 0.97 && boxH >= height * 0.97) return null;
+      const pad = Math.round(Math.max(boxW, boxH) * paddingRatio);
+      const x0 = Math.max(0, minX - pad), y0 = Math.max(0, minY - pad);
+      const x1 = Math.min(width, maxX + 1 + pad), y1 = Math.min(height, maxY + 1 + pad);
+      const outW = x1 - x0, outH = y1 - y0;
+      const out = document.createElement('canvas');
+      out.width = outW; out.height = outH;
+      out.getContext('2d').drawImage(sourceCanvas, x0, y0, outW, outH, 0, 0, outW, outH);
+      return { canvas: out, width: outW, height: outH };
+    }
+
     async function ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBackground = true) {
       const img = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = dataUrl; });
       if (img.naturalWidth < 512 || img.naturalHeight < 512) throw new Error(`Sprite sheet is too small to slice (${img.naturalWidth}x${img.naturalHeight}).`);
@@ -4543,19 +4585,28 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const cellWidth = detected.cellWidth, cellHeight = detected.cellHeight;
       const colOffsets = detected.colOffsets, rowOffsets = detected.rowOffsets;
       const maxCellDimension = 1024;
-      let exportWidth = cellWidth, exportHeight = cellHeight;
-      if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) { if (exportWidth > exportHeight) { exportHeight = Math.round(exportHeight * maxCellDimension / exportWidth); exportWidth = maxCellDimension; } else { exportWidth = Math.round(exportWidth * maxCellDimension / exportHeight); exportHeight = maxCellDimension; } }
       const cellCanvas = document.createElement('canvas'); cellCanvas.width = cellWidth; cellCanvas.height = cellHeight;
       const ctx = cellCanvas.getContext('2d', { willReadFrequently: true });
-      const downscaleCanvas = document.createElement('canvas'); downscaleCanvas.width = exportWidth; downscaleCanvas.height = exportHeight; const downscaleCtx = downscaleCanvas.getContext('2d');
+      const downscaleCanvas = document.createElement('canvas'); const downscaleCtx = downscaleCanvas.getContext('2d');
       const removalMode = appState.spriteBgRemovalMode || 'ai';
       const keyColor = appState.spriteBgKeyColor || null;
       const slicedSprites = [];
       for (let row=0; row<4; row++) for (let col=0; col<4; col++) {
         const index=row*4+col; const emotionSlug=SPRITE_EMOTIONS[index] || `sprite_${index+1}`;
         ctx.clearRect(0,0,cellWidth,cellHeight); ctx.drawImage(img,colOffsets[col],rowOffsets[row],cellWidth,cellHeight,0,0,cellWidth,cellHeight);
-        if (removeBackground) { const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); await removeSpriteBackground(imgData.data,cellWidth,cellHeight,removalMode,keyColor); ctx.putImageData(imgData,0,0); }
-        let spriteDataUrl; if (cellWidth!==exportWidth || cellHeight!==exportHeight) { downscaleCtx.clearRect(0,0,exportWidth,exportHeight); downscaleCtx.imageSmoothingEnabled=true; downscaleCtx.imageSmoothingQuality='high'; downscaleCtx.drawImage(cellCanvas,0,0,exportWidth,exportHeight); spriteDataUrl=downscaleCanvas.toDataURL('image/png'); } else spriteDataUrl=cellCanvas.toDataURL('image/png');
+        let srcCanvas = cellCanvas, srcWidth = cellWidth, srcHeight = cellHeight;
+        if (removeBackground) {
+          const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); await removeSpriteBackground(imgData.data,cellWidth,cellHeight,removalMode,keyColor); ctx.putImageData(imgData,0,0);
+          const trimmed = trimCanvasToOpaqueBounds(cellCanvas, cellWidth, cellHeight);
+          if (trimmed) { srcCanvas = trimmed.canvas; srcWidth = trimmed.width; srcHeight = trimmed.height; }
+        }
+        // Export size is derived per-sprite now (not once for the whole
+        // sheet) since trimming can leave each cell with a different size
+        // and aspect ratio.
+        let exportWidth = srcWidth, exportHeight = srcHeight;
+        if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) { if (exportWidth > exportHeight) { exportHeight = Math.round(exportHeight * maxCellDimension / exportWidth); exportWidth = maxCellDimension; } else { exportWidth = Math.round(exportWidth * maxCellDimension / exportHeight); exportHeight = maxCellDimension; } }
+        let spriteDataUrl;
+        if (srcWidth!==exportWidth || srcHeight!==exportHeight) { downscaleCanvas.width=exportWidth; downscaleCanvas.height=exportHeight; downscaleCtx.clearRect(0,0,exportWidth,exportHeight); downscaleCtx.imageSmoothingEnabled=true; downscaleCtx.imageSmoothingQuality='high'; downscaleCtx.drawImage(srcCanvas,0,0,exportWidth,exportHeight); spriteDataUrl=downscaleCanvas.toDataURL('image/png'); } else spriteDataUrl=srcCanvas.toDataURL('image/png');
         slicedSprites.push({src:spriteDataUrl,caption:formatEmotionLabel(emotionSlug)});
       }
       // Let the user brush-correct each of the 16 masks (restore missed edges,
@@ -7320,25 +7371,38 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     async function generateGeminiVoiceSample(voiceDescription, sampleText) {
       if (!appState.apiKey) throw new Error('Add a Gemini API key in Setup first.');
       const prompt = `Say the following line, fully embodying this voice: ${voiceDescription}\n\nLine to say: "${sampleText}"`;
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      // Google moved Gemini TTS from the old :generateContent + responseModalities
+      // shape onto the new Interactions API (POST /v1beta/interactions, model +
+      // input + response_format + generation_config.speech_config). The old
+      // shape now returns a generic "Request contains an invalid argument" for
+      // every call, regardless of content, since the field names no longer
+      // match what the backend expects.
+      const endpoint = 'https://generativelanguage.googleapis.com/v1beta/interactions';
       const res = await fetch(endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': appState.apiKey, 'Api-Revision': '2026-05-20' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
-          },
-          safetySettings: buildSafetySettings()
+          model: 'gemini-3.1-flash-tts-preview',
+          input: prompt,
+          response_format: { type: 'audio' },
+          generation_config: { speech_config: [{ voice: 'Kore' }] }
         })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error?.message || `Voice sample generation failed (${res.status}).`);
-      const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
-      if (!part) throw new Error('Gemini did not return audio for this voice sample.');
-      const rateMatch = /rate=(\d+)/.exec(part.inlineData.mimeType || '');
-      const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
-      return pcm16Base64ToWavBlob(part.inlineData.data, sampleRate);
+      // Audio lands in steps[].content[] as a {type:'audio', data, mime_type,
+      // sample_rate} block; some gateways/SDKs also surface a convenience
+      // top-level output_audio field, so check both.
+      let audioBlock = null;
+      for (const step of data.steps || []) {
+        const found = (step.content || []).find(c => c && c.type === 'audio' && c.data);
+        if (found) { audioBlock = found; break; }
+      }
+      if (!audioBlock && data.output_audio?.data) audioBlock = data.output_audio;
+      if (!audioBlock) throw new Error('Gemini did not return audio for this voice sample.');
+      const rateMatch = /rate=(\d+)/.exec(audioBlock.mime_type || '');
+      const sampleRate = audioBlock.sample_rate || (rateMatch ? Number(rateMatch[1]) : 24000);
+      return pcm16Base64ToWavBlob(audioBlock.data, sampleRate);
     }
 
     // Uploads a reference clip to the laptop server, registering it as a
@@ -7360,6 +7424,15 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Laptop server rejected the voice upload (${res.status}).`);
+      // Keep the reference clip itself (not just its label) so a scenario
+      // export can carry the voice along and re-register it with whatever
+      // laptop server imports it — see collectChatterboxVoiceClipsForScenario
+      // / restoreChatterboxVoiceClipsFromImport. Cloned voices only exist on
+      // the machine running start_chatterbox_server.py, so without this a
+      // scenario shared or moved to another device references a voice_id
+      // nothing has ever uploaded.
+      if (!appState.chatterboxVoiceClipData) appState.chatterboxVoiceClipData = {};
+      appState.chatterboxVoiceClipData[voiceId] = base64;
       return data;
     }
 
@@ -7377,6 +7450,55 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const voiceId = `clone_${(charOrPersona.id || name).toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
       await uploadReferenceVoiceToLaptop(voiceId, wavBlob, `${name} (cloned)`);
       return { voiceId, description };
+    }
+
+    // --- Carrying cloned voices across export/import -----------------------
+    // A Chatterbox-cloned voice only exists as a file on whichever machine is
+    // running start_chatterbox_server.py — the scenario JSON only ever stored
+    // the voice_id string (e.g. "clone_char123"), so importing that scenario
+    // on another device, or after the server's reference_voices folder is
+    // gone, left every character pointing at a voice nothing has registered.
+    // These two functions bundle the actual reference clip into a scenario
+    // export and restore it (re-uploading to the currently configured laptop
+    // server) on import, so cloned voices travel with the story.
+    function collectChatterboxVoiceClipsForScenario(scenario) {
+      const out = {};
+      if (!scenario) return out;
+      const ids = [scenario.userPersona, ...(scenario.characters || []), scenario.narratorProfile]
+        .filter(Boolean)
+        .flatMap(p => [p.ttsVoice, p.voiceLab?.blendVoice].filter(Boolean))
+        .filter(id => typeof id === 'string' && id.startsWith('clone_'));
+      for (const id of new Set(ids)) {
+        const clip = appState.chatterboxVoiceClipData?.[id];
+        if (clip) out[id] = { label: appState.chatterboxClonedVoices?.[id] || id, audioBase64: clip };
+      }
+      return out;
+    }
+
+    async function restoreChatterboxVoiceClipsFromImport(clips) {
+      const result = { restored: 0, failed: [] };
+      if (!clips || typeof clips !== 'object') return result;
+      if (!appState.chatterboxClonedVoices) appState.chatterboxClonedVoices = {};
+      if (!appState.chatterboxVoiceClipData) appState.chatterboxVoiceClipData = {};
+      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+      for (const [voiceId, entry] of Object.entries(clips)) {
+        if (!entry || !entry.audioBase64) continue;
+        // Save the clip locally regardless of whether the server upload
+        // below succeeds — that's what lets it keep traveling through
+        // further exports/imports even before a laptop server is reachable.
+        appState.chatterboxClonedVoices[voiceId] = entry.label || voiceId;
+        appState.chatterboxVoiceClipData[voiceId] = entry.audioBase64;
+        if (!base) continue;
+        try {
+          const bytes = Uint8Array.from(atob(entry.audioBase64), c => c.charCodeAt(0));
+          const wavBlob = new Blob([bytes], { type: 'audio/wav' });
+          await uploadReferenceVoiceToLaptop(voiceId, wavBlob, entry.label || voiceId);
+          result.restored++;
+        } catch (e) {
+          result.failed.push(`${entry.label || voiceId}: ${e?.message || e}`);
+        }
+      }
+      return result;
     }
 
     let vnAudioCtx = null;
@@ -7945,9 +8067,18 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       // Interleave forward/backward out to the configured window so a long
       // uninterrupted read never runs out of pre-rendered audio, and stepping
       // back stays instant too. Ordered nearest-first.
-      const win = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
+      // Chatterbox (Laptop) is CPU-bound and serializes every request behind
+      // one lock server-side (see tts_lock in start_chatterbox_server.py), so
+      // a full multi-line prefetch window queues several slow generations
+      // behind the line that's actually about to play — the reported "Loading
+      // voice model..." hang. Keep it to just the very next line there.
+      const win = engine === 'chatterbox-laptop' ? 1 : Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       const offsets = [];
-      for (let d = 1; d <= win; d++) { offsets.push(d); offsets.push(-d); }
+      if (engine === 'chatterbox-laptop') {
+        offsets.push(1);
+      } else {
+        for (let d = 1; d <= win; d++) { offsets.push(d); offsets.push(-d); }
+      }
       const candidates = offsets.map(o => validTurns[currentVnIndex + o]);
       for (const turn of candidates) {
         if (!turn || !(turn.text || '').trim()) continue;
@@ -10605,7 +10736,7 @@ REQUIREMENTS:
       });
       return copy.scenarios ? copy : wrapper.scenarios[0];
     }
-    async function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(appState),null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(active),null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){zfAlert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
+    async function performExport(mode){const active=getActiveScenario();const base=(active.title||'story').toLowerCase().replace(/[^a-z0-9]+/g,'_');if(mode==='all-json'){downloadBlob(JSON.stringify(await inlineImagesForExport(appState),null,2),'application/json',`zetaforge_all_scenarios_${new Date().toISOString().slice(0,10)}.json`);}else if(mode==='scenario-json'){const scenarioCopy=await inlineImagesForExport(active);const clips=collectChatterboxVoiceClipsForScenario(active);if(Object.keys(clips).length)scenarioCopy._chatterboxVoiceClips=clips;downloadBlob(JSON.stringify(scenarioCopy,null,2),'application/json',`${base}_scenario.json`);}else{if(!active.messages.length){zfAlert('No story content to export in current scenario.');return;}downloadBlob(exportStoryMarkdown(active),'text/markdown',`${base}_transcript.md`);}closeModal('exportModal');}
     // exportStory() and exportJsonBackup() were removed here during an audit
     // pass — trivial one-line aliases for openModal('exportModal') and
     // performExport('all-json'), which are what every actual call site uses
@@ -10629,6 +10760,27 @@ REQUIREMENTS:
           // from here on, matched by id, never wholesale-replacing it.
           const incoming = Array.isArray(parsed.scenarios) ? parsed.scenarios : [parsed];
           if (!Array.isArray(appState.scenarios)) appState.scenarios = [];
+
+          // Gather any cloned-voice reference clips riding along with this
+          // import — a single-scenario export carries them under
+          // scenario._chatterboxVoiceClips (see performExport), while a full
+          // app backup already has the whole chatterboxVoiceClipData map at
+          // the top level since that's just part of appState. Pull them out
+          // (and off the scenario objects themselves) before the merge below
+          // so they're restored once, centrally, rather than duplicated
+          // inside every scenario's own saved JSON going forward.
+          const importedVoiceClips = {};
+          for (const scenario of incoming) {
+            if (scenario && scenario._chatterboxVoiceClips) {
+              Object.assign(importedVoiceClips, scenario._chatterboxVoiceClips);
+              delete scenario._chatterboxVoiceClips;
+            }
+          }
+          if (parsed.chatterboxVoiceClipData) {
+            for (const [id, audioBase64] of Object.entries(parsed.chatterboxVoiceClipData)) {
+              if (!importedVoiceClips[id]) importedVoiceClips[id] = { label: parsed.chatterboxClonedVoices?.[id] || id, audioBase64 };
+            }
+          }
 
           let added = 0, overwritten = 0, skipped = 0, lastImportedId = null;
           for (const scenario of incoming) {
@@ -10664,6 +10816,9 @@ REQUIREMENTS:
           // disrupting whatever the user is currently working on.
           if (incoming.length === 1 && lastImportedId) appState.activeScenarioId = lastImportedId;
 
+          let voiceRestore = null;
+          if (Object.keys(importedVoiceClips).length) voiceRestore = await restoreChatterboxVoiceClipsFromImport(importedVoiceClips);
+
           await saveState();
           renderAllUi();
           syncModalForm();
@@ -10671,7 +10826,14 @@ REQUIREMENTS:
           if (added) parts.push(`${added} added`);
           if (overwritten) parts.push(`${overwritten} overwritten`);
           if (skipped) parts.push(`${skipped} kept as-is`);
-          zfAlert(`Import complete: ${parts.join(', ')}. Your other scenarios and current settings were left untouched.`, 'Import Complete');
+          let summary = `Import complete: ${parts.join(', ')}. Your other scenarios and current settings were left untouched.`;
+          if (voiceRestore) {
+            const total = Object.keys(importedVoiceClips).length;
+            if (voiceRestore.restored) summary += `\n\n🎙️ Registered ${voiceRestore.restored} of ${total} cloned voice${total === 1 ? '' : 's'} with your laptop server.`;
+            else if (!appState.chatterboxLaptopUrl) summary += `\n\n🎙️ Saved ${total} cloned voice clip${total === 1 ? '' : 's'} from this import — configure a laptop server URL in Setup and re-import (or use Voice Lab) to register them.`;
+            if (voiceRestore.failed.length) summary += `\n\nSome voices couldn't be registered automatically:\n${voiceRestore.failed.join('\n')}`;
+          }
+          zfAlert(summary, 'Import Complete');
           closeModal('importModal');
         } catch (err) {
           zfAlert("Error parsing JSON file: " + err.message);
