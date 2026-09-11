@@ -632,6 +632,7 @@
           <div class="flex items-center gap-1.5">
             <span id="summaryStatusBadge" class="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.5 rounded">In Progress</span>
             <button onclick="archiveCurrentChapterManually()" class="text-[10px] bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder px-2 py-0.5 rounded transition active:scale-95" title="Archive current chapter now">📚 Archive</button>
+            <button onclick="undoLastChapterArchive()" id="undoChapterArchiveBtn" class="hidden text-[10px] bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded transition active:scale-95" title="Undo the most recent chapter archive">↩️ Undo Archive</button>
             <button onclick="refreshActiveChapterCharacterArcs()" id="refreshArcsBtn" class="text-[10px] bg-zetaAccent/30 hover:bg-zetaAccent/50 text-zetaLight border border-zetaAccent/50 px-2 py-0.5 rounded transition active:scale-95 flex items-center gap-1" title="Generate AI Character Arc Summaries">
               ✨ <span id="refreshArcsBtnText">Re-Analyze</span>
             </button>
@@ -6714,6 +6715,8 @@ Write 2-4 characters and 3-6 lorebook entries. Make the persona and visual profi
       const currentRawTokens = getActiveRawTokens();
       const limit = (appState.tokenThreshold || 120000);
       document.getElementById('statActiveTokens').innerText = `${(currentRawTokens/1000).toFixed(1)}k / ${(limit/1000).toFixed(0)}k tokens`;
+      const undoBtn = document.getElementById('undoChapterArchiveBtn');
+      if (undoBtn) undoBtn.classList.toggle('hidden', !active.lastChapterArchive);
       bindDefensiveClickListeners();
 
       select.innerHTML = '';
@@ -11108,8 +11111,46 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           const payload={contents:[{role:'user',parts:[{text:`Summarize Chapter ${active.currentChapter||1}. Return JSON with milestoneSummary (2-3 sentences) and characterArcs mapping each of ${cast.join(', ')} to 3-4 sentences. Preserve only established facts.\n\n${dialogue}`}]}],generationConfig:{temperature:.25,maxOutputTokens:1000,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
           const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,null)||recap}catch(e){}}
         }
-        active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:'msg_'+Date.now(),isChapterDivider:true,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;await saveState(true);renderAllUi();populateChapterChronicle();
+        // Snapshot everything undoLastChapterArchive() needs to fully reverse
+        // this one action — a wrong tap on 📚 Archive otherwise loses the
+        // chapter's own character-arc data (activeChapterArcs is nulled
+        // below) with no way back short of editing saved state by hand.
+        const priorChapterNum=active.currentChapter; const priorActiveChapterArcs=active.activeChapterArcs; const dividerId='msg_'+Date.now();
+        active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:dividerId,isChapterDivider:true,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;active.lastChapterArchive={dividerMessageId:dividerId,priorChapterNum,priorActiveChapterArcs};await saveState(true);renderAllUi();populateChapterChronicle();
       }catch(e){zfAlert('Manual archive notice: '+e.message)}finally{showLoading(false)}
+    }
+
+    // Reverses whichever chapter archive (manual 📚 Archive tap, or an
+    // automatic token-threshold archive) most recently ran on this scenario:
+    // drops the recap it appended, removes its "Chapter N Archived" divider
+    // message, and restores both currentChapter and activeChapterArcs to
+    // what they were immediately before. Only one action deep — archiving
+    // again (by either path) overwrites the stash, and a used/absent stash
+    // means there's nothing left to undo.
+    async function undoLastChapterArchive(){
+      const active=getActiveScenario();
+      const stash=active.lastChapterArchive;
+      if(!stash){ zfAlert('No recent chapter archive to undo — this is only available right after archiving.'); return; }
+      const ok=await zfConfirm(`Undo archiving Chapter ${stash.priorChapterNum}? Its turns stay right where they are — this just puts it back as the active chapter and removes its archived summary.`,'↩️ Undo Chapter Archive','Undo Archive');
+      if(!ok) return;
+      showLoading(true,'Undoing chapter archive...');
+      try{
+        const divIdx=(active.messages||[]).findIndex(m=>m.id===stash.dividerMessageId);
+        if(divIdx>=0) active.messages.splice(divIdx,1);
+        // The archive this undoes always pushed to the END of both arrays —
+        // match on chapterNum too rather than assuming index, in case
+        // background recap compaction touched the front of the array since.
+        if(Array.isArray(active.archivedRecaps)){ const i=active.archivedRecaps.length-1; if(i>=0 && active.archivedRecaps[i].chapterNum===stash.priorChapterNum) active.archivedRecaps.splice(i,1); }
+        if(Array.isArray(active.archivedRecapsRaw)){ const i=active.archivedRecapsRaw.length-1; if(i>=0 && active.archivedRecapsRaw[i].chapterNum===stash.priorChapterNum) active.archivedRecapsRaw.splice(i,1); }
+        active.activeChapterArcs=stash.priorActiveChapterArcs||null;
+        active.currentChapter=stash.priorChapterNum;
+        active.lastChapterArchive=null;
+        await saveState(true);
+        renderAllUi();
+        populateChapterChronicle();
+        zfAlert(`Chapter ${stash.priorChapterNum} is the active chapter again.`,'Archive Undone');
+      }catch(e){ zfAlert('Undo failed: '+e.message); }
+      finally{ showLoading(false); }
     }
 
     async function checkAndTriggerChapterArchival() {
@@ -11176,16 +11217,24 @@ TASK: Return a JSON object with:
           active.archivedRecaps.push(completedRecap);
           await compactOldRecapsIfNeeded();
 
+          // Same undo snapshot as the manual 📚 Archive button (see
+          // undoLastChapterArchive) — an automatic token-threshold archive
+          // can land at an awkward moment too, so it gets the same way back.
+          const priorChapterNum = active.currentChapter;
+          const priorActiveChapterArcs = active.activeChapterArcs;
+          const dividerId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
           active.activeChapterArcs = null;
 
           active.messages.push({
-            id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            id: dividerId,
             isChapterDivider: true,
             text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           });
 
           active.currentChapter = (active.currentChapter || 1) + 1;
+          active.lastChapterArchive = { dividerMessageId: dividerId, priorChapterNum, priorActiveChapterArcs };
           await saveState();
           renderMessages();
           populateChapterChronicle();
