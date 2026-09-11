@@ -770,6 +770,7 @@
                 <span id="vnTtsToggleIcon">🔇</span>
                 <span data-vn-tts-status-dot class="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
               </button>
+              <span id="vnTtsEngineLabel" class="hidden text-[10px] text-slate-400 font-medium whitespace-nowrap"></span>
             </div>
             <div class="flex items-center gap-1.5">
               <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
@@ -1694,7 +1695,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           <div class="flex items-center justify-between"><span class="text-[11px] text-slate-400">Pitch / Intonation</span><span id="vlPitchVal" class="text-[11px] text-zetaGlow font-semibold">0 cents</span></div>
           <input type="range" id="vlPitch" min="-600" max="600" step="10" value="0" oninput="onVoiceLabFieldChange()" class="w-full" />
           <div class="flex items-center justify-between pt-1"><span class="text-[11px] text-slate-400">Pacing / Speed</span><span id="vlPaceVal" class="text-[11px] text-zetaGlow font-semibold">1.0×</span></div>
-          <input type="range" id="vlPace" min="0.5" max="2" step="0.1" value="1" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <input type="range" id="vlPace" min="0.5" max="3" step="0.1" value="1" oninput="onVoiceLabFieldChange()" class="w-full" />
+          <p class="text-[10px] text-slate-500 leading-relaxed">Kokoro/Kitten generate at up to 2× directly (higher is clamped); Chatterbox (Laptop) has no native speed control, so past 2× this just plays the finished clip back faster — it won't shorten how long a line takes to generate.</p>
           <div class="flex items-center justify-between pt-1"><span class="text-[11px] text-slate-400">Emphasis / Stress</span><span id="vlEmphasisVal" class="text-[11px] text-zetaGlow font-semibold">0%</span></div>
           <input type="range" id="vlEmphasis" min="0" max="100" step="5" value="0" oninput="onVoiceLabFieldChange()" class="w-full" />
           <p class="text-[10px] text-slate-500 leading-relaxed">Emphasis adds natural pauses around *action* text, and at higher strength punches up ALL-CAPS words.</p>
@@ -5277,20 +5279,38 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         charObj = active.userPersona;
       } else if (!isNarrator) {
         charObj = active.characters.find(c => c.name.toLowerCase() === speakerName.toLowerCase());
+        // A side character that's never been spotlighted yet has no entry in
+        // active.characters at all — without this fallback charObj stayed
+        // null for them and the stage rendered nothing, same character every
+        // time they spoke. findSideCharacterProfile mirrors what the chat
+        // bubble avatar (getAvatarHtml) already does for exactly this case.
+        if (!charObj) charObj = findSideCharacterProfile(speakerName);
       }
 
-      if (charObj && charObj.mood) {
+      // No mood tag on this turn (and no mood already remembered for the
+      // character) shouldn't blank the sprite — treat it as Neutral so
+      // getCharacterActiveAvatar has something to match a sprite caption
+      // against below.
+      const moodOverride = turn.mood || (charObj && charObj.mood) || 'Neutral';
+
+      if (charObj && (turn.mood || charObj.mood)) {
         moodBadge.innerText = `🎭 ${turn.mood || charObj.mood}`;
         moodBadge.classList.remove('hidden');
       } else {
         moodBadge.classList.add('hidden');
       }
 
-      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, turn.mood || charObj.mood) : '';
+      const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, moodOverride) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
           <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-none transition" />
         `;
+      } else if (!isNarrator && !isUser) {
+        // Character has no avatar and no uploaded/generated photos at all —
+        // fall back to the same local male/female/neutral placeholder SVG
+        // the chat view already uses instead of leaving the stage blank.
+        const gender = inferCharacterGender(charObj, speakerName);
+        stageBox.innerHTML = `<div class="max-h-full max-w-[60vw] sm:max-w-[40vw] w-48 h-48 sm:w-64 sm:h-64 rounded-2xl overflow-hidden shadow-2xl border border-slate-700/60">${buildPlaceholderAvatarSvg(speakerName, gender)}</div>`;
       } else {
         stageBox.innerHTML = '';
       }
@@ -7974,6 +7994,15 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     // the active TTS engine is actually ready right now, amber while it's
     // loading/checking, red on a failure, gray while narration is off.
     function renderVnTtsStatusDot(state) {
+      // Visible label next to the toggle showing which TTS model is actually
+      // in use (Chatterbox/Kokoro/Kitten) — placed at the top so every early
+      // return below still keeps it current.
+      const labelEl = document.getElementById('vnTtsEngineLabel');
+      if (labelEl) {
+        const on = !!appState.ttsEnabled;
+        labelEl.innerText = on ? ttsEngineLabel(getActiveTtsEngine()) : '';
+        labelEl.classList.toggle('hidden', !on);
+      }
       const dot = document.querySelector('#vnTtsToggleBtn [data-vn-tts-status-dot]');
       if (!dot) return;
       const base = 'inline-block w-1.5 h-1.5 rounded-full';
@@ -8136,7 +8165,14 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const whispering = cue === 'whisper' || cue === 'soft';
       if (shouting) {
         p.emphasis = Math.min(100, (Number(p.emphasis) || 0) + 45);
-        p.pace = Math.min(2, (Number(p.pace) || 1) * 1.12);
+        // Capped at 3 to match the Voice Lab slider's own ceiling — was
+        // capped at 2 here regardless, which meant a shout/[fast] cue could
+        // silently pull pace back DOWN to 2 even when the base slider was
+        // set higher once Chatterbox (Laptop) started respecting values
+        // above 2 (see speakVnTextForSpeaker). Kokoro/Kitten still get
+        // re-clamped to their own 2x ceiling downstream in
+        // generateKokoroAudioBuffer regardless of what's allowed here.
+        p.pace = Math.min(3, (Number(p.pace) || 1) * 1.12);
         p.pitch = Math.max(-1200, Math.min(1200, (Number(p.pitch) || 0) + 60));
       } else if (whispering) {
         p.emphasis = Math.max(0, (Number(p.emphasis) || 0) - 20);
@@ -8144,7 +8180,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         p.pitch = Math.max(-1200, Math.min(1200, (Number(p.pitch) || 0) - 50));
       }
       if (cue === 'slow') p.pace = Math.max(0.5, (Number(p.pace) || 1) * 0.85);
-      if (cue === 'fast') p.pace = Math.min(2, (Number(p.pace) || 1) * 1.2);
+      if (cue === 'fast') p.pace = Math.min(3, (Number(p.pace) || 1) * 1.2);
       return p;
     }
     // Strip the bracket cues so they're never spoken aloud.
@@ -8785,6 +8821,21 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         const cacheKey = vnAudioCacheKey(speakerName, text, profile);
         const engine = getActiveTtsEngine();
         const scenarioId = getActiveScenario()?.id || 'default';
+
+        // The Voice Lab pacing slider is baked into generation itself for
+        // Kokoro/Kitten (passed as the model's own `speed` argument in
+        // generateKokoroAudioBuffer), but the Chatterbox (Laptop) server has
+        // no such knob — generateChatterboxLaptopAudio/speakChatterboxStreamed
+        // only ever send {text, voice}. Without this, moving the slider did
+        // literally nothing for Chatterbox, however far it was pushed.
+        // Applying it as this persistent <audio> element's playbackRate
+        // covers both the streamed and cached playback paths below, since
+        // the rate sticks across a later `audioEl.src` reassignment. It only
+        // speeds up how the already-generated clip plays back — it can't
+        // shorten how long Chatterbox itself took to generate that clip.
+        audioEl.playbackRate = engine === 'chatterbox-laptop'
+          ? Math.max(0.5, Math.min(3, Number(deriveLineDelivery(text, profile).pace) || 1))
+          : 1;
 
         // Chatterbox (Laptop) generation is slow enough — CPU especially —
         // that waiting for the whole line before any sound plays is the main
