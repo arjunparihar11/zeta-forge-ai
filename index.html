@@ -7391,10 +7391,21 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       // shape now returns a generic "Request contains an invalid argument" for
       // every call, regardless of content, since the field names no longer
       // match what the backend expects.
+      //
+      // Do NOT send an Api-Revision header here: it's a non-simple header that
+      // triggers a CORS preflight, and generativelanguage.googleapis.com does
+      // not include "api-revision" in its Access-Control-Allow-Headers list —
+      // the preflight gets a 403 with no CORS headers at all, so every call
+      // from a browser fails as a generic "Failed to fetch" before it ever
+      // reaches Google (confirmed directly; see
+      // https://github.com/googleapis/js-genai/issues/1723). The new
+      // steps-array response schema this header would have opted into has
+      // been the default since the migration window closed anyway, so
+      // omitting it changes nothing except making this work from a browser.
       const endpoint = 'https://generativelanguage.googleapis.com/v1beta/interactions';
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': appState.apiKey, 'Api-Revision': '2026-05-20' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': appState.apiKey },
         body: JSON.stringify({
           model: 'gemini-3.1-flash-tts-preview',
           input: prompt,
