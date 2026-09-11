@@ -1771,6 +1771,38 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     </div>
   </div>
 
+  <!-- Manual grid-cut adjustment for the user's OWN sprite-sheet uploads:
+       detectSpriteGrid()'s auto-detected gutters work well for AI-generated
+       sheets but often misalign on a sheet the user assembled themselves —
+       especially once its background is already transparent, since there's
+       no reliable "gutter" left to detect. This lets them drag the
+       column/row cut lines before slicing; every resulting box is still cut
+       as a centered square so 1:1 -> 1024x1024 is guaranteed regardless of
+       where the lines end up. -->
+  <div id="spriteGridAdjustModal" class="fixed inset-0 bg-black/80 z-[68] items-center justify-center p-3 hidden backdrop-blur-sm">
+    <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="p-3 border-b border-zetaBorder bg-zetaCard flex items-center justify-between gap-2">
+        <h2 class="text-sm font-bold text-white">✂️ Adjust Sprite Cuts</h2>
+        <button type="button" onclick="resetSpriteGridAdjust()" class="text-[11px] px-2.5 py-1 rounded-lg border border-zetaBorder bg-zetaInput text-slate-300 hover:text-white transition active:scale-95 shrink-0">↺ Reset to auto-detect</button>
+      </div>
+      <div class="p-3 overflow-y-auto flex-1 space-y-3">
+        <p class="text-[10px] text-slate-500 leading-relaxed">Drag the highlighted lines so each of the 16 boxes fully frames one sprite. Every box is cut as a centered square, so alignment is all that matters here — squaring and the resize to 1024×1024 happen automatically.</p>
+        <div id="spriteGridAdjustStage" class="relative select-none touch-none mx-auto" style="max-width:100%;">
+          <img id="spriteGridAdjustImg" class="w-full block rounded-lg border border-zetaBorder" draggable="false" alt="Sprite sheet" />
+          <div id="spriteGridAdjustLines" class="absolute inset-0 pointer-events-none"></div>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold text-zetaLight uppercase tracking-wider mb-1.5">Preview</p>
+          <div id="spriteGridAdjustPreview" class="grid grid-cols-4 gap-1 bg-slate-950 rounded-lg p-1.5 border border-zetaBorder"></div>
+        </div>
+      </div>
+      <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
+        <button type="button" onclick="respondSpriteGridAdjust(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel</button>
+        <button type="button" onclick="respondSpriteGridAdjust(true)" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow transition active:scale-95">Looks good — slice 16</button>
+      </div>
+    </div>
+  </div>
+
   <!-- New Scenario setup drawer: quick fields (name/LLM/TTS) before handing
        off to the full Setup modal, plus an AI-generation shortcut that can
        populate the whole scenario from a description or from nothing at all. -->
@@ -4582,17 +4614,42 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       return { canvas: out, width: outW, height: outH };
     }
 
-    async function ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBackground = true) {
+    // Pads a (possibly rectangular) canvas out to a square with transparent
+    // margin, centered — never crops or stretches. trimCanvasToOpaqueBounds
+    // above can leave a tall pose or a wide one with a non-square bounding
+    // box; squaring it here (rather than just resizing) is what actually
+    // guarantees every sprite lands on an exact 1024x1024, not a distorted
+    // rectangle, once the resize-to-1024 step runs.
+    function padCanvasToSquare(sourceCanvas, width, height) {
+      if (width === height) return { canvas: sourceCanvas, width, height };
+      const size = Math.max(width, height);
+      const out = document.createElement('canvas');
+      out.width = size; out.height = size;
+      out.getContext('2d').drawImage(sourceCanvas, Math.round((size - width) / 2), Math.round((size - height) / 2));
+      return { canvas: out, width: size, height: size };
+    }
+
+    // customGrid, when passed, is { colBoundaries, rowBoundaries } — two
+    // 5-length arrays of x/y cut positions in the sheet's natural pixel
+    // space, produced by the user dragging lines in openSpriteGridAdjustModal
+    // (own-upload flow). Each of the 4 columns/rows can then have a
+    // different width/height, unlike detectSpriteGrid's single uniform
+    // guess used for the AI-generation flow when customGrid is omitted.
+    async function ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBackground = true, customGrid = null) {
       const img = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = dataUrl; });
       if (img.naturalWidth < 512 || img.naturalHeight < 512) throw new Error(`Sprite sheet is too small to slice (${img.naturalWidth}x${img.naturalHeight}).`);
       // Auto-detect the actual grid from transparent gutters rather than
       // assuming an exact 4x4 of 1024px cells. Models frequently drift — a few
       // pixels of offset silently mismapped every expression before this.
-      const detected = detectSpriteGrid(img);
-      const cellWidth = detected.cellWidth, cellHeight = detected.cellHeight;
-      const colOffsets = detected.colOffsets, rowOffsets = detected.rowOffsets;
+      // (Skipped when the user already supplied their own corrected grid.)
+      let colOffsets, rowOffsets, cellWidth, cellHeight;
+      if (!customGrid) {
+        const detected = detectSpriteGrid(img);
+        cellWidth = detected.cellWidth; cellHeight = detected.cellHeight;
+        colOffsets = detected.colOffsets; rowOffsets = detected.rowOffsets;
+      }
       const maxCellDimension = 1024;
-      const cellCanvas = document.createElement('canvas'); cellCanvas.width = cellWidth; cellCanvas.height = cellHeight;
+      const cellCanvas = document.createElement('canvas');
       const ctx = cellCanvas.getContext('2d', { willReadFrequently: true });
       const downscaleCanvas = document.createElement('canvas'); const downscaleCtx = downscaleCanvas.getContext('2d');
       const removalMode = appState.spriteBgRemovalMode || 'ai';
@@ -4600,16 +4657,41 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const slicedSprites = [];
       for (let row=0; row<4; row++) for (let col=0; col<4; col++) {
         const index=row*4+col; const emotionSlug=SPRITE_EMOTIONS[index] || `sprite_${index+1}`;
-        ctx.clearRect(0,0,cellWidth,cellHeight); ctx.drawImage(img,colOffsets[col],rowOffsets[row],cellWidth,cellHeight,0,0,cellWidth,cellHeight);
-        let srcCanvas = cellCanvas, srcWidth = cellWidth, srcHeight = cellHeight;
+
+        let sx, sy, cw, ch;
+        if (customGrid) {
+          // Force every manually-cut cell to a centered SQUARE region — the
+          // user only needs to line the cuts up with each sprite; squaring
+          // is handled here regardless of how the lines land, so it never
+          // distorts on the resize-to-1024 step below.
+          const x0 = customGrid.colBoundaries[col], x1 = customGrid.colBoundaries[col + 1];
+          const y0 = customGrid.rowBoundaries[row], y1 = customGrid.rowBoundaries[row + 1];
+          const w = x1 - x0, h = y1 - y0;
+          cw = ch = Math.max(1, Math.round(Math.min(w, h)));
+          sx = Math.round(x0 + (w - cw) / 2);
+          sy = Math.round(y0 + (h - ch) / 2);
+        } else {
+          sx = colOffsets[col]; sy = rowOffsets[row]; cw = cellWidth; ch = cellHeight;
+        }
+
+        cellCanvas.width = cw; cellCanvas.height = ch;
+        ctx.clearRect(0,0,cw,ch); ctx.drawImage(img,sx,sy,cw,ch,0,0,cw,ch);
+        let srcCanvas = cellCanvas, srcWidth = cw, srcHeight = ch;
         if (removeBackground) {
-          const imgData=ctx.getImageData(0,0,cellWidth,cellHeight); await removeSpriteBackground(imgData.data,cellWidth,cellHeight,removalMode,keyColor); ctx.putImageData(imgData,0,0);
-          const trimmed = trimCanvasToOpaqueBounds(cellCanvas, cellWidth, cellHeight);
+          const imgData=ctx.getImageData(0,0,cw,ch); await removeSpriteBackground(imgData.data,cw,ch,removalMode,keyColor); ctx.putImageData(imgData,0,0);
+          const trimmed = trimCanvasToOpaqueBounds(cellCanvas, cw, ch);
           if (trimmed) { srcCanvas = trimmed.canvas; srcWidth = trimmed.width; srcHeight = trimmed.height; }
+        }
+        // Guarantee 1:1 before the resize below, whichever path produced
+        // this cell — trimming to opaque content (or an uneven manual cut)
+        // can otherwise leave a non-square box.
+        if (srcWidth !== srcHeight) {
+          const squared = padCanvasToSquare(srcCanvas, srcWidth, srcHeight);
+          srcCanvas = squared.canvas; srcWidth = squared.width; srcHeight = squared.height;
         }
         // Export size is derived per-sprite now (not once for the whole
         // sheet) since trimming can leave each cell with a different size
-        // and aspect ratio.
+        // (always square, per above, but not always the same square).
         let exportWidth = srcWidth, exportHeight = srcHeight;
         if (exportWidth > maxCellDimension || exportHeight > maxCellDimension) { if (exportWidth > exportHeight) { exportHeight = Math.round(exportHeight * maxCellDimension / exportWidth); exportWidth = maxCellDimension; } else { exportWidth = Math.round(exportWidth * maxCellDimension / exportHeight); exportHeight = maxCellDimension; } }
         let spriteDataUrl;
@@ -4622,6 +4704,128 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       // pixel-perfect on every one of 16 different expressions/poses.
       const finalSprites = removeBackground ? await openSpriteMaskEditor(slicedSprites) : slicedSprites;
       if (!targetObj.photos) targetObj.photos=[]; targetObj.photos=finalSprites.concat(targetObj.photos); if (!targetObj.avatar && finalSprites[0]) targetObj.avatar=finalSprites[0].src;
+    }
+
+    // --- Manual grid-cut adjustment for the user's OWN sprite-sheet uploads --
+    // detectSpriteGrid()'s transparent-gutter heuristic is tuned for
+    // AI-generated sheets with even spacing; a sheet the user assembled
+    // themselves (already-transparent background, irregular placement) can
+    // come out badly misaligned with no real gutters left to find. This
+    // shows the auto-detected grid as a starting guess and lets the user
+    // drag each of the 3 internal column lines and 3 internal row lines to
+    // correct it, with a live 4x4 preview of the resulting (always-square)
+    // crops, before any slicing actually happens.
+    let spriteGridAdjustState = null; // { img, natW, natH, colB, rowB, resolve, dragging }
+
+    async function openSpriteGridAdjustModal(dataUrl) {
+      const img = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = dataUrl; });
+      if (img.naturalWidth < 512 || img.naturalHeight < 512) throw new Error(`Sprite sheet is too small to slice (${img.naturalWidth}x${img.naturalHeight}).`);
+      const detected = detectSpriteGrid(img);
+      const colB = [...detected.colOffsets, img.naturalWidth];
+      const rowB = [...detected.rowOffsets, img.naturalHeight];
+      spriteGridAdjustState = { img, natW: img.naturalWidth, natH: img.naturalHeight, colB, rowB, resolve: null, dragging: null };
+      const imgEl = document.getElementById('spriteGridAdjustImg');
+      imgEl.src = dataUrl;
+      buildSpriteGridAdjustLines();
+      renderSpriteGridAdjustPreview();
+      openModal('spriteGridAdjustModal');
+      return new Promise(resolve => { spriteGridAdjustState.resolve = resolve; });
+    }
+
+    function resetSpriteGridAdjust() {
+      const state = spriteGridAdjustState;
+      if (!state) return;
+      const detected = detectSpriteGrid(state.img);
+      state.colB = [...detected.colOffsets, state.natW];
+      state.rowB = [...detected.rowOffsets, state.natH];
+      updateSpriteGridAdjustLinePositions();
+      renderSpriteGridAdjustPreview();
+    }
+
+    function respondSpriteGridAdjust(ok) {
+      const state = spriteGridAdjustState;
+      closeModal('spriteGridAdjustModal');
+      if (!state) return;
+      const resolve = state.resolve;
+      spriteGridAdjustState = null;
+      if (resolve) resolve(ok ? { colBoundaries: state.colB, rowBoundaries: state.rowB } : null);
+    }
+
+    function buildSpriteGridAdjustLines() {
+      const host = document.getElementById('spriteGridAdjustLines');
+      if (!host) return;
+      let html = '';
+      for (let i = 1; i <= 3; i++) html += `<div class="sprite-grid-line" data-axis="col" data-index="${i}" style="position:absolute;top:0;bottom:0;width:22px;margin-left:-11px;pointer-events:auto;cursor:ew-resize;touch-action:none;"><div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-zetaAccent shadow"></div></div>`;
+      for (let i = 1; i <= 3; i++) html += `<div class="sprite-grid-line" data-axis="row" data-index="${i}" style="position:absolute;left:0;right:0;height:22px;margin-top:-11px;pointer-events:auto;cursor:ns-resize;touch-action:none;"><div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-zetaAccent shadow"></div></div>`;
+      host.innerHTML = html;
+      host.querySelectorAll('[data-axis]').forEach(el => el.addEventListener('pointerdown', beginSpriteGridDrag));
+      updateSpriteGridAdjustLinePositions();
+    }
+
+    function updateSpriteGridAdjustLinePositions() {
+      const state = spriteGridAdjustState;
+      const host = document.getElementById('spriteGridAdjustLines');
+      if (!state || !host) return;
+      host.querySelectorAll('[data-axis="col"]').forEach(el => { el.style.left = `${(state.colB[Number(el.dataset.index)] / state.natW) * 100}%`; });
+      host.querySelectorAll('[data-axis="row"]').forEach(el => { el.style.top = `${(state.rowB[Number(el.dataset.index)] / state.natH) * 100}%`; });
+    }
+
+    function beginSpriteGridDrag(e) {
+      const state = spriteGridAdjustState;
+      if (!state) return;
+      state.dragging = { axis: e.currentTarget.dataset.axis, index: Number(e.currentTarget.dataset.index) };
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      window.addEventListener('pointermove', continueSpriteGridDrag);
+      window.addEventListener('pointerup', endSpriteGridDrag);
+      e.preventDefault();
+    }
+
+    function continueSpriteGridDrag(e) {
+      const state = spriteGridAdjustState;
+      if (!state || !state.dragging) return;
+      const stage = document.getElementById('spriteGridAdjustStage');
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      const { axis, index } = state.dragging;
+      const MIN_GAP = 12; // natural px — keeps a cell from collapsing away entirely
+      if (axis === 'col') {
+        const natX = Math.round(((e.clientX - rect.left) / rect.width) * state.natW);
+        const lo = state.colB[index - 1] + MIN_GAP, hi = state.colB[index + 1] - MIN_GAP;
+        state.colB[index] = Math.max(lo, Math.min(hi, natX));
+      } else {
+        const natY = Math.round(((e.clientY - rect.top) / rect.height) * state.natH);
+        const lo = state.rowB[index - 1] + MIN_GAP, hi = state.rowB[index + 1] - MIN_GAP;
+        state.rowB[index] = Math.max(lo, Math.min(hi, natY));
+      }
+      updateSpriteGridAdjustLinePositions();
+      requestAnimationFrame(renderSpriteGridAdjustPreview);
+    }
+
+    function endSpriteGridDrag() {
+      if (spriteGridAdjustState) spriteGridAdjustState.dragging = null;
+      window.removeEventListener('pointermove', continueSpriteGridDrag);
+      window.removeEventListener('pointerup', endSpriteGridDrag);
+    }
+
+    function renderSpriteGridAdjustPreview() {
+      const state = spriteGridAdjustState;
+      const host = document.getElementById('spriteGridAdjustPreview');
+      if (!state || !host) return;
+      if (!host.childElementCount) {
+        host.innerHTML = Array.from({ length: 16 }).map(() => `<canvas width="60" height="60" class="w-full aspect-square rounded sprite-mask-checkerboard"></canvas>`).join('');
+      }
+      const canvases = host.querySelectorAll('canvas');
+      for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+        const canvas = canvases[row * 4 + col];
+        const ctx = canvas.getContext('2d');
+        const x0 = state.colB[col], x1 = state.colB[col + 1];
+        const y0 = state.rowB[row], y1 = state.rowB[row + 1];
+        const w = x1 - x0, h = y1 - y0;
+        const side = Math.max(1, Math.min(w, h));
+        const sx = x0 + (w - side) / 2, sy = y0 + (h - side) / 2;
+        ctx.clearRect(0, 0, 60, 60);
+        ctx.drawImage(state.img, sx, sy, side, side, 0, 0, 60, 60);
+      }
     }
 
     async function handleAvatarManagerUpload(event) {
@@ -4662,10 +4866,15 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const active = getActiveScenario();
       const removeBg = active.removeSpriteSheetBackground !== false;
       const countEl = document.getElementById('avatarManagerCount');
-      if (countEl) countEl.innerText = 'Extracting 16 Sprites...';
       try {
         const dataUrl = await new Promise((resolve, reject) => { const reader=new FileReader(); reader.onload=e=>resolve(e.target.result); reader.onerror=reject; reader.readAsDataURL(file); });
-        await ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBg);
+        // Auto-detection alone is unreliable on the user's own sheets (no
+        // guaranteed even spacing, background often already removed with no
+        // gutters left to find) — let them confirm/drag the cut lines first.
+        const grid = await openSpriteGridAdjustModal(dataUrl);
+        if (!grid) return; // cancelled — leave their sheet untouched, nothing extracted
+        if (countEl) countEl.innerText = 'Extracting 16 Sprites...';
+        await ingestSpriteSheetDataUrl(dataUrl, targetObj, removeBg, grid);
         await saveState(); renderAvatarManagerGallery(); renderCharacterCardsSetup(); renderSidebar();
         zfAlert(`✨ Successfully extracted 16 sprites for ${targetObj.name || 'character'}${removeBg ? ' with background removal' : ' without background removal'}!`);
       } catch (err) { zfAlert('Sprite sheet error: ' + err.message); }
