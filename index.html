@@ -5984,14 +5984,18 @@ IMPORTANT RULES:
           }],
           generationConfig: {
             temperature: 0.15,
-            maxOutputTokens: 1200,
-            responseMimeType: "application/json"
+            maxOutputTokens: 1800,
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 }
           },
           safetySettings: buildSafetySettings()
         };
 
         // Relationship analysis is a higher-value operation: always use the
         // stronger Flash model regardless of the user's routine model choice.
+        // thinkingConfig off for the same reason as refreshActiveChapterCharacterArcs:
+        // gemini-3.6-flash burns its maxOutputTokens budget on hidden reasoning
+        // tokens before writing any actual JSON otherwise. Bumped tokens as headroom.
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -6879,14 +6883,20 @@ JSON FORMAT:
           }],
           generationConfig: {
             temperature: 0.35,
-            maxOutputTokens: 1200,
-            responseMimeType: "application/json"
+            maxOutputTokens: 1800,
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 }
           },
           safetySettings: buildSafetySettings()
         };
 
         // Chapter-level analysis is a higher-value operation: always use the
         // stronger Flash model regardless of the user's routine model choice.
+        // thinkingConfig off for the same reason as describeVoiceFromPersona /
+        // the routine-LLM prompt builder: gemini-3.6-flash burns its
+        // maxOutputTokens budget on hidden reasoning tokens before writing any
+        // of the actual JSON, which was producing "Unparseable model response"
+        // here. maxOutputTokens is bumped too, as headroom.
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -11014,7 +11024,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         // chapter's own character-arc data (activeChapterArcs is nulled
         // below) with no way back short of editing saved state by hand.
         const priorChapterNum=active.currentChapter; const priorActiveChapterArcs=active.activeChapterArcs; const dividerId='msg_'+Date.now();
-        active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:dividerId,isChapterDivider:true,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;active.lastChapterArchive={dividerMessageId:dividerId,priorChapterNum,priorActiveChapterArcs};await saveState(true);renderAllUi();populateChapterChronicle();
+        active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:dividerId,isChapterDivider:true,chapterNum:active.currentChapter,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;active.lastChapterArchive={dividerMessageId:dividerId,priorChapterNum,priorActiveChapterArcs};await saveState(true);renderAllUi();populateChapterChronicle();
       }catch(e){zfAlert('Manual archive notice: '+e.message)}finally{showLoading(false)}
     }
 
@@ -11052,16 +11062,122 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     }
 
     // Entry point for tapping a "Chapter N Archived • Starting Chapter N+1"
-    // divider chip in the text/chat view. Only the archive active.
-    // lastChapterArchive still points at (i.e. the one that just happened)
-    // can actually be undone — an older divider further up the transcript
-    // has already been superseded by whatever archived after it, so tapping
-    // one of those explains why instead of silently undoing the wrong thing.
+    // divider chip in the text/chat view. The archive active.lastChapterArchive
+    // still points at (i.e. the one that just happened) gets the precise,
+    // fully-reversible Undo above. Any older divider further up the
+    // transcript has already been superseded by whatever archived after it,
+    // so a plain undo can't cleanly restore it — instead it offers the more
+    // general Remove Chapter operation (see removeArchivedChapterByDivider),
+    // which merges that chapter into whatever follows it and renumbers
+    // everything after down by one.
     function handleChapterDividerClick(messageId){
       const active=getActiveScenario();
       const stash=active.lastChapterArchive;
       if(stash && stash.dividerMessageId===messageId){ undoLastChapterArchive(); return; }
-      zfAlert('Only the most recent chapter archive can be undone. This one has already been superseded by a later chapter — use ✏️ Edit / 🗑️ Del on individual turns instead if you need to change this chapter.', "Can't Undo This One");
+      removeArchivedChapterByDivider(messageId);
+    }
+
+    // Resolves which archived chapter number a divider message represents.
+    // Prefers the explicit chapterNum stamped on the message itself (added
+    // going forward); dividers saved before that field existed fall back to
+    // counting position among all chapter-divider messages, which lands on
+    // the same number since dividers are always created in chapter order.
+    function resolveDividerChapterNum(active, messageId) {
+      const dividers = (active.messages || []).filter(m => m.isChapterDivider);
+      const idx = dividers.findIndex(m => m.id === messageId);
+      if (idx === -1) return null;
+      const marker = dividers[idx];
+      return (typeof marker.chapterNum === 'number') ? marker.chapterNum : idx + 1;
+    }
+
+    // Shifts a chapterNum value down by one for every chapter number greater
+    // than removedNum. Handles both a plain number and a compacted "A-B"
+    // range string (compactOldRecapsIfNeeded folds old chapters into one of
+    // those once there are enough of them) by shifting each end the same way.
+    function shiftChapterNumValue(value, removedNum) {
+      if (typeof value === 'number') return value > removedNum ? value - 1 : value;
+      if (typeof value === 'string') {
+        const m = /^(\d+)-(\d+)$/.exec(value.trim());
+        if (m) {
+          const a = Number(m[1]) > removedNum ? Number(m[1]) - 1 : Number(m[1]);
+          const b = Number(m[2]) > removedNum ? Number(m[2]) - 1 : Number(m[2]);
+          return `${a}-${b}`;
+        }
+      }
+      return value;
+    }
+
+    // Rewrites the chapter numbers baked into a divider's own display text
+    // ("Chapter X Archived (12k tokens) • Starting Chapter Y") after an
+    // earlier chapter was removed. This is a targeted find/replace rather
+    // than a fresh re-template so any "(Nk tokens)" suffix survives intact.
+    function shiftDividerText(text, removedNum) {
+      return (text || '')
+        .replace(/Chapter (\d+) Archived/, (full, n) => `Chapter ${shiftChapterNumValue(Number(n), removedNum)} Archived`)
+        .replace(/Starting Chapter (\d+)/, (full, n) => `Starting Chapter ${shiftChapterNumValue(Number(n), removedNum)}`);
+    }
+
+    // Removes an archived chapter entirely and renumbers around the gap.
+    // Deleting chapter N's own divider is what actually merges its turns
+    // into whatever comes next in the transcript — another archived chapter
+    // (which then inherits slot N) or the still-active, unarchived chapter
+    // (which simply becomes chapter N) — and every later chapter shifts down
+    // by one to stay contiguous (N+2 -> N+1 -> N, etc). This is the general
+    // form of what Undo already does for the single most-recent archive;
+    // this covers every older one too, at the cost of not being reversible.
+    async function removeArchivedChapterByDivider(messageId) {
+      const active = getActiveScenario();
+      const chapterNum = resolveDividerChapterNum(active, messageId);
+      if (chapterNum === null) { zfAlert("Couldn't identify which chapter this tag belongs to."); return; }
+
+      const ok = await zfConfirm(
+        `Remove Chapter ${chapterNum}? Its turns stay in the transcript, but the chapter break disappears here — everything after it merges in and takes over as Chapter ${chapterNum}, and every later chapter renumbers down by one to stay in order. This can't be undone, and if the surviving chapter already had its own AI summary, that summary won't automatically reflect the newly-merged turns — use ✨ Re-Analyze afterward if you want it refreshed.`,
+        `Remove Chapter ${chapterNum}?`,
+        'Remove Chapter'
+      );
+      if (!ok) return;
+
+      showLoading(true, `Removing Chapter ${chapterNum}...`);
+      try {
+        const divIdx = (active.messages || []).findIndex(m => m.id === messageId);
+        if (divIdx >= 0) active.messages.splice(divIdx, 1);
+
+        // Drop chapter N's own recap entries (exact-number matches only — a
+        // chapter already folded into a compacted "A-B" range can't be
+        // cleanly excised from that summary, so it's left as-is and just
+        // renumbered below along with everything else).
+        if (Array.isArray(active.archivedRecaps)) {
+          const i = active.archivedRecaps.findIndex(r => r && r.chapterNum === chapterNum);
+          if (i >= 0) active.archivedRecaps.splice(i, 1);
+        }
+        if (Array.isArray(active.archivedRecapsRaw)) {
+          const i = active.archivedRecapsRaw.findIndex(r => r && r.chapterNum === chapterNum);
+          if (i >= 0) active.archivedRecapsRaw.splice(i, 1);
+        }
+
+        (active.archivedRecaps || []).forEach(r => { if (r) r.chapterNum = shiftChapterNumValue(r.chapterNum, chapterNum); });
+        (active.archivedRecapsRaw || []).forEach(r => { if (r) r.chapterNum = shiftChapterNumValue(r.chapterNum, chapterNum); });
+        (active.messages || []).forEach(m => {
+          if (!m.isChapterDivider) return;
+          if (typeof m.chapterNum === 'number') m.chapterNum = shiftChapterNumValue(m.chapterNum, chapterNum);
+          m.text = shiftDividerText(m.text, chapterNum);
+        });
+        active.currentChapter = Math.max(1, (active.currentChapter || 1) - 1);
+
+        // A pending quick-undo stash refers to absolute chapter numbers that
+        // may have just shifted — safer to invalidate it than risk undoing
+        // the wrong chapter later.
+        active.lastChapterArchive = null;
+
+        await saveState(true);
+        renderAllUi();
+        populateChapterChronicle();
+        zfAlert(`Chapter ${chapterNum} removed. Later chapters have been renumbered.`, 'Chapter Removed');
+      } catch (e) {
+        zfAlert('Remove chapter failed: ' + e.message);
+      } finally {
+        showLoading(false);
+      }
     }
 
     async function checkAndTriggerChapterArchival() {
@@ -11095,14 +11211,18 @@ TASK: Return a JSON object with:
             }],
             generationConfig: {
               temperature: 0.35,
-              maxOutputTokens: 1200,
-              responseMimeType: "application/json"
+              maxOutputTokens: 1800,
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 }
             },
             safetySettings: buildSafetySettings()
           };
 
           // Chapter-level analysis is a higher-value operation: always use the
           // stronger Flash model regardless of the user's routine model choice.
+          // thinkingConfig off for the same reason as refreshActiveChapterCharacterArcs:
+          // gemini-3.6-flash burns its maxOutputTokens budget on hidden reasoning
+          // tokens before writing any actual JSON otherwise. Bumped tokens as headroom.
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           summaryReqPayload.serviceTier = BACKGROUND_SERVICE_TIER;
           const summaryRes = await fetch(endpoint, {
@@ -11140,6 +11260,7 @@ TASK: Return a JSON object with:
           active.messages.push({
             id: dividerId,
             isChapterDivider: true,
+            chapterNum: active.currentChapter,
             text: `Chapter ${active.currentChapter} Archived (${Math.round(currentTokens/1000)}k tokens) • Starting Chapter ${active.currentChapter + 1}`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           });
@@ -12049,7 +12170,7 @@ REQUIREMENTS:
       virtualChatState.start=start;virtualChatState.end=end;virtualChatState.indices=explicitIndices||[];virtualChatState.query=messageSearchQuery;
       const topH=offsetForIndex(all,start),bottomH=Math.max(0,offsetForIndex(all,count)-offsetForIndex(all,end));const frag=document.createDocumentFragment();const top=document.createElement('div');top.className='virtual-chat-spacer';top.style.height=topH+'px';frag.appendChild(top);
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
-        if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div onclick="handleChapterDividerClick('${escapeJsString(m.id)}')" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow cursor-pointer active:scale-95 transition" title="Tap for the option to undo this chapter archive">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
+        if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div onclick="handleChapterDividerClick('${escapeJsString(m.id)}')" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow cursor-pointer active:scale-95 transition" title="Tap to undo (most recent archive) or remove this chapter and renumber the rest">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
         else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
