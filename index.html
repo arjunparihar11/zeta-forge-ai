@@ -1418,6 +1418,15 @@
               </select>
             </div>
           </div>
+          <div class="mt-1">
+            <label class="block text-slate-300 font-semibold mb-1 text-xs">Local Image-Gen Fallback (optional)</label>
+            <p class="text-[10px] text-slate-500 mb-1.5 leading-snug">Gemini stays the default. If it's rate-limited or refuses a scene, ZetaForge falls back to this laptop server before finally trying the anonymous public renderer — see start_image_fallback_server.py.</p>
+            <div class="flex gap-1.5">
+              <input id="imageFallbackLaptopUrl" type="text" placeholder="http://192.168.1.42:5060" oninput="appState.imageFallbackLaptopUrl = this.value.trim(); saveState();" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent" />
+              <button type="button" onclick="testImageFallbackServer()" class="text-xs bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-zetaLight px-3 rounded-xl transition shrink-0">Test</button>
+            </div>
+            <p id="imageFallbackLaptopStatus" class="text-[10px] text-slate-500 mt-1"></p>
+          </div>
         </div>
 
         <hr class="border-zetaBorder" />
@@ -2538,6 +2547,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop' | 'auto'
       chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
+      imageFallbackLaptopUrl: '',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       chatterboxVoiceClipData: {},  // voiceId -> base64 wav of the reference clip, so a scenario export can carry its cloned voices and re-register them with whatever laptop server imports it
       llmProfile: 'gemini',
@@ -5403,7 +5413,16 @@ All 16 sprites must be generated on a single clean image with a fully transparen
           console.warn("Gemini VN backdrop generation bypassed:", geminiErr);
         }
 
-        if (!fullDataUrl) throw new Error('Gemini could not render the VN backdrop. Please retry.');
+        if (!fullDataUrl && appState.imageFallbackLaptopUrl) {
+          try {
+            btn.innerHTML = `<span>⏳</span> <span>Local fallback...</span>`;
+            fullDataUrl = await generateSceneImageViaLocalFallback(promptText);
+          } catch (fallbackErr) {
+            console.warn("Local image fallback bypassed:", fallbackErr.message);
+          }
+        }
+
+        if (!fullDataUrl) throw new Error('Gemini could not render the VN backdrop, and no local fallback is configured (or it also failed). Please retry.');
 
         active.vnBackground = fullDataUrl;
         await saveState();
@@ -8425,6 +8444,43 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       }
     }
 
+    async function testImageFallbackServer() {
+      const statusEl = document.getElementById('imageFallbackLaptopStatus');
+      const base = (document.getElementById('imageFallbackLaptopUrl')?.value || '').trim().replace(/\/+$/, '');
+      appState.imageFallbackLaptopUrl = base;
+      await saveState();
+      if (!base) { if (statusEl) statusEl.innerText = '⚠️ Enter a URL first.'; return; }
+      if (statusEl) statusEl.innerText = 'Checking…';
+      try {
+        const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(8000) });
+        if (statusEl) statusEl.innerText = res.ok ? '✅ Reachable. Note: a real fallback still swaps LM Studio models and takes real time — this only confirms the server is up.' : `⚠️ Server responded with ${res.status}.`;
+      } catch (e) {
+        if (statusEl) statusEl.innerText = '❌ Could not reach the server. Check it\'s running and on the same network.';
+      }
+    }
+
+    // Calls the optional local laptop fallback (start_image_fallback_server.py)
+    // when Gemini's image generation was rate-limited or refused a scene.
+    // Gemini is always tried first — this is only reached from generateSceneImage
+    // / generateVnSceneBackground after that attempt already came back empty.
+    // The server unloads the local LLM, generates, then reloads it before
+    // responding, so this can legitimately take tens of seconds — the timeout
+    // here is generous on purpose rather than a sign something's stuck.
+    async function generateSceneImageViaLocalFallback(prompt) {
+      const base = (appState.imageFallbackLaptopUrl || '').trim().replace(/\/+$/, '');
+      if (!base) return null;
+      const res = await fetch(`${base}/generate-image`, {
+        method: 'POST',
+        headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ prompt }),
+        signal: AbortSignal.timeout(120000)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.image) throw new Error(data.error || `Local image fallback failed (${res.status}).`);
+      if (data.warning) console.warn('Local image fallback warning:', data.warning);
+      return data.image;
+    }
+
     // --- Persistent (disk) voice cache --------------------------------------
     // vnAudioCache above is an intentionally small in-memory ring buffer (16-40
     // lines) just for lookahead. This second layer persists rendered audio in
@@ -9722,6 +9778,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (engSel) engSel.value = appState.ttsEngine === 'auto' ? 'auto' : getActiveTtsEngine();
       syncChatterboxLaptopFieldVisibility();
       updateTtsEngineHint();
+      const imgFallbackEl = document.getElementById('imageFallbackLaptopUrl'); if (imgFallbackEl) imgFallbackEl.value = appState.imageFallbackLaptopUrl || '';
+      const imgFallbackStatusEl = document.getElementById('imageFallbackLaptopStatus'); if (imgFallbackStatusEl) imgFallbackStatusEl.innerText = '';
       const preEl=document.getElementById('ttsPreloadInput'); if(preEl) preEl.value=appState.ttsPreloadWindow||4; const preLbl=document.getElementById('ttsPreloadValue'); if(preLbl) preLbl.innerText=`±${appState.ttsPreloadWindow||4} lines`;
       const speedEl=document.getElementById('vnSpeedInput'); if(speedEl) speedEl.value=appState.vnReadingSpeed||1; const speedLabel=document.getElementById('vnSpeedValue'); if(speedLabel) speedLabel.innerText=`${(appState.vnReadingSpeed||1).toFixed(1)}×`;
 
@@ -11416,6 +11474,20 @@ REQUIREMENTS:
           }
         } catch (e) {
           console.warn("Direct model generation bypassed:", e);
+        }
+
+        // Gemini either errored (rate limit, etc.) or returned no image part
+        // (a safety refusal often comes back as a normal 200 with no inline
+        // image data rather than an error) — try the optional local laptop
+        // fallback next, before finally falling back to the anonymous public
+        // renderer below.
+        if (!fullDataUrl && appState.imageFallbackLaptopUrl) {
+          try {
+            showLoading(true, "Gemini unavailable for this scene — rendering via local fallback (this can take a while)...");
+            fullDataUrl = await generateSceneImageViaLocalFallback(visualPrompt + `, ${artStylePreset} aesthetic`);
+          } catch (fallbackErr) {
+            console.warn("Local image fallback bypassed:", fallbackErr.message);
+          }
         }
 
         if (!fullDataUrl) {
