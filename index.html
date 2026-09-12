@@ -1880,6 +1880,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         <h3 id="zfDialogTitle" class="text-sm font-bold text-white"></h3>
         <p id="zfDialogMessage" class="text-xs text-slate-300 leading-relaxed whitespace-pre-line"></p>
         <input id="zfDialogInput" type="text" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden" />
+        <select id="zfDialogSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden"></select>
       </div>
       <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
         <button id="zfDialogCancel" onclick="zfDialogRespond(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel</button>
@@ -2547,7 +2548,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop' | 'auto'
       chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
-      imageFallbackLaptopUrl: '',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
+      imageFallbackLaptopUrl: 'https://paralegal-pampers-chevron.ngrok-free.dev/image',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       chatterboxVoiceClipData: {},  // voiceId -> base64 wav of the reference clip, so a scenario export can carry its cloned voices and re-register them with whatever laptop server imports it
       llmProfile: 'gemini',
@@ -3142,16 +3143,19 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     function zfDialogRespond(ok) {
       const modal = document.getElementById('zfDialog');
       const input = document.getElementById('zfDialogInput');
+      const select = document.getElementById('zfDialogSelect');
       const resolver = zfDialogResolver;
       zfDialogResolver = null;
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (!resolver) return;
-      if (!input.classList.contains('hidden')) resolver(ok ? input.value : null);
+      if (!select.classList.contains('hidden')) resolver(ok ? select.value : null);
+      else if (!input.classList.contains('hidden')) resolver(ok ? input.value : null);
       else resolver(ok);
     }
-    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null }) {
+    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null }) {
       const modal = document.getElementById('zfDialog');
       const input = document.getElementById('zfDialogInput');
+      const select = document.getElementById('zfDialogSelect');
       document.getElementById('zfDialogTitle').innerText = title;
       document.getElementById('zfDialogTitle').classList.toggle('hidden', !title);
       document.getElementById('zfDialogMessage').innerText = message;
@@ -3162,6 +3166,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       cancelBtn.classList.toggle('hidden', !showCancel);
       if (inputValue === null) { input.classList.add('hidden'); input.value = ''; }
       else { input.classList.remove('hidden'); input.value = inputValue; }
+      if (!selectOptions) { select.classList.add('hidden'); select.innerHTML = ''; }
+      else {
+        select.innerHTML = selectOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        select.value = (selectValue !== null && selectValue !== undefined) ? selectValue : selectOptions[0].value;
+        select.classList.remove('hidden');
+      }
       modal.classList.remove('hidden'); modal.classList.add('flex');
       if (inputValue !== null) setTimeout(() => { input.focus(); input.select(); }, 30);
       return new Promise(resolve => { zfDialogResolver = resolve; });
@@ -3169,6 +3179,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     function zfAlert(message, title = '') { return zfOpenDialog({ title, message, showCancel: false }); }
     function zfConfirm(message, title = '', okText = 'Confirm') { return zfOpenDialog({ title, message, okText }); }
     function zfPrompt(message, defaultValue = '', title = '') { return zfOpenDialog({ title, message, inputValue: defaultValue ?? '' }); }
+    // Confirm dialog with a dropdown selector (e.g. choosing an image-gen
+    // engine). Resolves to the selected option's value on OK, or null on
+    // Cancel/Escape — never a bare boolean, so callers can tell "cancelled"
+    // apart from "confirmed with the first/default option".
+    function zfConfirmSelect(message, title, okText, selectOptions, selectValue) { return zfOpenDialog({ title, message, okText, selectOptions, selectValue }); }
     window.addEventListener('keydown', (e) => {
       if (!zfDialogResolver) return;
       if (e.key === 'Escape') { e.preventDefault(); zfDialogRespond(false); }
@@ -11357,7 +11372,17 @@ TASK: Return a JSON object with:
         zfAlert("Start a story or send a message before generating a visual.");
         return;
       }
-      if (!await zfConfirm('Generate a scene visual from the recent dialogue? This uses image generation tokens.', 'Generate Scene Visual', 'Generate')) return;
+      const imageEngineChoice = await zfConfirmSelect(
+        'Generate a scene visual from the recent dialogue? This uses image generation tokens.\n\nEngine:',
+        'Generate Scene Visual',
+        'Generate',
+        [
+          { value: 'gemini', label: 'Gemini (default)' },
+          { value: 'meinamix', label: 'MeinaMix (fallback)' }
+        ],
+        'gemini'
+      );
+      if (!imageEngineChoice) return;
 
       showLoading(true, "Analyzing cast appearances and scene layout...");
 
@@ -11446,48 +11471,66 @@ REQUIREMENTS:
         showLoading(true, "Rendering character-consistent visual snapshot...");
 
         let fullDataUrl = null;
-        try {
-          const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-          const imageRefParts = promptParts.filter(p => p.inlineData);
-          const imagePayload = {
-            contents: [{ role: "user", parts: [...imageRefParts, { text: visualPrompt + `, ${artStylePreset} aesthetic, high resolution, detailed character design, masterpiece` }] }],
-            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
-            safetySettings: buildSafetySettings()
-          };
 
-          const imageRes = await fetch(imageEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(imagePayload)
-          });
+        const tryGeminiSceneImage = async () => {
+          try {
+            const imageEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+            const imageRefParts = promptParts.filter(p => p.inlineData);
+            const imagePayload = {
+              contents: [{ role: "user", parts: [...imageRefParts, { text: visualPrompt + `, ${artStylePreset} aesthetic, high resolution, detailed character design, masterpiece` }] }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+              safetySettings: buildSafetySettings()
+            };
 
-          if (imageRes.ok) {
-            const imgData = await imageRes.json();
-            const parts = imgData.candidates?.[0]?.content?.parts || [];
-            for (let p of parts) {
-              if (p.inlineData && p.inlineData.data) {
-                fullDataUrl = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
-                recordImageUsage('1K');
-                break;
+            const imageRes = await fetch(imageEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(imagePayload)
+            });
+
+            if (imageRes.ok) {
+              const imgData = await imageRes.json();
+              const parts = imgData.candidates?.[0]?.content?.parts || [];
+              for (let p of parts) {
+                if (p.inlineData && p.inlineData.data) {
+                  recordImageUsage('1K');
+                  return `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                }
               }
             }
+          } catch (e) {
+            console.warn("Direct model generation bypassed:", e);
           }
-        } catch (e) {
-          console.warn("Direct model generation bypassed:", e);
-        }
+          return null;
+        };
 
-        // Gemini either errored (rate limit, etc.) or returned no image part
-        // (a safety refusal often comes back as a normal 200 with no inline
-        // image data rather than an error) — try the optional local laptop
-        // fallback next, before finally falling back to the anonymous public
-        // renderer below.
-        if (!fullDataUrl && appState.imageFallbackLaptopUrl) {
+        const tryLocalFallbackSceneImage = async () => {
+          if (!appState.imageFallbackLaptopUrl) return null;
           try {
-            showLoading(true, "Gemini unavailable for this scene — rendering via local fallback (this can take a while)...");
-            fullDataUrl = await generateSceneImageViaLocalFallback(visualPrompt + `, ${artStylePreset} aesthetic`);
+            showLoading(true, "Rendering via local MeinaMix fallback (this can take a while)...");
+            return await generateSceneImageViaLocalFallback(visualPrompt + `, ${artStylePreset} aesthetic`);
           } catch (fallbackErr) {
             console.warn("Local image fallback bypassed:", fallbackErr.message);
+            return null;
           }
+        };
+
+        if (imageEngineChoice === 'meinamix') {
+          // User explicitly chose MeinaMix as first choice — try it before
+          // ever touching Gemini's image tokens.
+          fullDataUrl = await tryLocalFallbackSceneImage();
+          if (!fullDataUrl) {
+            showLoading(true, "Local fallback unavailable — trying Gemini instead...");
+            fullDataUrl = await tryGeminiSceneImage();
+          }
+        } else {
+          fullDataUrl = await tryGeminiSceneImage();
+          // Gemini either errored (rate limit, etc.) or returned no image part
+          // (a safety refusal often comes back as a normal 200 with no inline
+          // image data rather than an error) — try the optional local laptop
+          // fallback next, before finally falling back to the anonymous public
+          // renderer below.
+          if (!fullDataUrl) fullDataUrl = await tryLocalFallbackSceneImage();
         }
 
         if (!fullDataUrl) {
