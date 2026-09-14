@@ -11359,7 +11359,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           const parsed=parseJsonLoose(rawOutput,null);
           if(Array.isArray(parsed)&&parsed.length){
-            return resplitBlocksForEmbeddedSpeakers(parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''})));
+            return stripLeadingSystemMeta(resplitBlocksForEmbeddedSpeakers(parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''}))));
           }
           return parsePlainTextIntoBlocks(rawOutput);
         } catch(e) { lastError=e; if(attempt===API_RETRY_LIMIT) throw e; await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250)); }
@@ -11433,6 +11433,12 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           matchedName = genericMatch.trim();
         }
         if (!matchedName) continue;
+        // buildSystemInstructionForLocalLLM's own formatting example uses the
+        // literal placeholder text "Name: " -- a weaker local model can copy
+        // that template verbatim instead of substituting the real speaker,
+        // which would otherwise surface as a bubble literally labeled "Name".
+        // It's always meant as ordinary narration when that happens.
+        if (matchedName.toLowerCase() === 'name') matchedName = 'Narrator';
         const precedingText = text.slice(lastIndex, match.index).trim();
         if (precedingText) pieces.push({ speaker: currentSpeaker, text: precedingText });
         currentSpeaker = matchedName;
@@ -11443,10 +11449,27 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return pieces.length > 0 ? pieces : [{ speaker: initialSpeaker, text }];
     }
 
+    // A weaker local model sometimes restates its own instructions as a
+    // leading meta-comment before actually writing the scene -- e.g.
+    // "[SYSTEM MESSAGE: To begin the scene, introduce...]" -- in its own
+    // paraphrase rather than silently just following the directive. That's
+    // never real narrative content, so strip a leading bracketed system
+    // aside off any block's text, dropping the block entirely if nothing
+    // real is left after stripping. Falls back to the original blocks
+    // (never returns nothing) in the unlikely case every block was purely
+    // meta commentary, so a turn is never silently lost.
+    const LEADING_SYSTEM_META_PATTERN = /^\s*\[\s*system[^\]]*\]\s*/i;
+    function stripLeadingSystemMeta(blocks) {
+      const cleaned = blocks
+        .map(b => ({ ...b, text: (b.text || '').replace(LEADING_SYSTEM_META_PATTERN, '').trim() }))
+        .filter(b => b.text);
+      return cleaned.length ? cleaned : blocks;
+    }
+
     function parsePlainTextIntoBlocks(text) {
       if (!text) return [{ speaker: 'Narrator', text: '' }];
       const active = getActiveScenario();
-      return splitTextBySpeakers(text, getKnownSpeakerNames(active), 'Narrator');
+      return stripLeadingSystemMeta(splitTextBySpeakers(text, getKnownSpeakerNames(active), 'Narrator'));
     }
 
     // Safety net for the Gemini JSON path specifically: the schema asks for
