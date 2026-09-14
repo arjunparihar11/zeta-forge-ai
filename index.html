@@ -777,10 +777,9 @@
               <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
                 <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
               </button>
-              <label class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow cursor-pointer" title="Choose a local VN background">
-                <span>📂</span> <span class="hidden sm:inline">Local BG</span>
-                <input type="file" accept="image/*" class="hidden" onchange="setManualVnBackground(event)" />
-              </label>
+              <button onclick="openBackdropLibraryModal()" id="vnBackdropLibraryBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Manage your backdrop library and keywords">
+                <span>📂</span> <span class="hidden sm:inline">Library</span>
+              </button>
             </div>
           </div>
           <div id="vnProgressTrack" class="vn-progress-track w-full"><div id="vnProgressFill" class="vn-progress-fill" style="width:0%"></div></div>
@@ -834,7 +833,6 @@
         <div class="max-w-4xl mx-auto space-y-1">
           
           <div class="flex items-center justify-start gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <button onclick="toggleMessageSearch(true)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder shrink-0" title="Search message history">🔎 Search</button>
             <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
               <span>📜</span> <span id="narrateToggleText">Narrate</span>
             </button>
@@ -844,9 +842,10 @@
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
             </button>
-            <button onclick="triggerContinue()" id="continueBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+            <button onclick="triggerContinue()" id="continueBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder hidden sm:flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Continue the scene without typing anything (on mobile, just tap Send with an empty message instead)">
               <span>⏩</span> <span>Continue</span>
             </button>
+            <button onclick="toggleMessageSearch(true)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder shrink-0 ml-auto" title="Search message history">🔎 Search</button>
           </div>
 
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
@@ -866,14 +865,16 @@
             <span class="flex items-center gap-1.5" aria-hidden="true"><svg data-llm-icon="gemini" class="w-4 h-4 text-zetaGlow transition-transform duration-150" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c.5 4 1 7.5 4 9-3 1.5-3.5 5-4 9-.5-4-1-7.5-4-9 3-1.5 3.5-5 4-9Z"/><path fill="currentColor" d="M19 3c.28 1.8.6 3.1 2 4-1.4.9-1.72 2.2-2 4-.28-1.8-.6-3.1-2-4 1.4-.9 1.72-2.2 2-4Z"/></svg><span class="text-slate-600">↔</span><svg data-llm-icon="workstation" class="w-4 h-4 text-zetaGlow transition-transform duration-150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="12" y1="16" x2="12" y2="19"/><line x1="8" y1="20.5" x2="16" y2="20.5"/></svg><span class="text-slate-600">↔</span><svg data-llm-icon="deviceIphone" class="w-4 h-4 text-zetaGlow transition-transform duration-150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 16.2 8.1 4.5 4.5 0 0 1 17.5 17H6Z"/></svg><span class="text-slate-600">↔</span><svg data-llm-icon="deviceIpad" class="w-4 h-4 text-zetaGlow transition-transform duration-150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="5.3" r="0.55" fill="currentColor" stroke="none"/></svg></span><span class="flex items-center gap-1 text-[9px] text-slate-400 min-w-0"><span data-llm-status-dot class="inline-block w-2 h-2 rounded-full bg-slate-500"></span><span data-llm-status-label class="truncate">Not verified · Google Gemini</span><span>⚙</span></span>
           </button>
 
+          <div id="mentionAutocomplete" class="hidden fixed z-[75] bg-zetaSidebar border border-zetaBorder rounded-xl shadow-2xl max-h-48 overflow-y-auto scroll-touch py-1"></div>
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
             <textarea
               id="userInput"
               rows="1"
-              placeholder="Describe action, speak, or use @: to narrate..."
+              placeholder="Describe action, speak, or use @: to narrate... (@name to mention a character)"
               class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-zetaAccent resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
-              oninput="autoExpandTextarea(this); scheduleContextEstimate()"
+              oninput="autoExpandTextarea(this); scheduleContextEstimate(); handleMentionInput(this)"
               onkeydown="handleInputKeydown(event)"
+              onblur="scheduleMentionPopupClose()"
             ></textarea>
             <button
               type="submit"
@@ -912,6 +913,37 @@
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
         <button onclick="closeImageLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close Library</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backdrop Library Modal -->
+  <div id="backdropLibraryModal" onclick="closeBackdropLibraryModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📂 Backdrop Library</h2>
+        <button onclick="closeBackdropLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="px-4 sm:px-6 pt-3 pb-3 shrink-0 space-y-2.5 border-b border-zetaBorder bg-zetaCard/40">
+        <p class="text-[10px] text-slate-400 leading-relaxed">Tag each backdrop with a few keywords (places, moods, times of day). While auto-select is on, the VN stage compares those keywords against the recent scene each turn and switches to whichever backdrop matches best — generated and uploaded backdrops both count. Turn it off to keep whatever you pin below instead.</p>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="backdropAutoSelectToggle" onchange="setBackdropAutoSelect(this.checked)" class="w-4 h-4 accent-zetaAccent" />
+            Auto-select backdrop from scene context
+          </label>
+          <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder cursor-pointer shrink-0 transition active:scale-95">
+            + Add Backdrop
+            <input type="file" accept="image/*" multiple class="hidden" onchange="addBackdropsToLibrary(event)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 scroll-touch" id="backdropLibraryContainer">
+      </div>
+
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeBackdropLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
       </div>
     </div>
   </div>
@@ -2103,6 +2135,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         }
         for (const m of (sc.messages || [])) if (m && isInline(m.imageUrl)) return true;
         for (const sh of (sc.spriteSheetLibrary || [])) if (sh && isInline(sh.src)) return true;
+        for (const bg of (sc.backdropLibrary || [])) if (bg && isInline(bg.url)) return true;
       }
       return false;
     }
@@ -2301,6 +2334,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         for (const sheet of (s.spriteSheetLibrary || [])) {
           if (sheet && sheet.src) sheet.src = await transform(sheet.src);
         }
+        for (const bg of (s.backdropLibrary || [])) {
+          if (bg && bg.url) bg.url = await transform(bg.url);
+        }
       }
       return stateObj;
     }
@@ -2382,6 +2418,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         artStyle: 'Anime',
         vnBackground: '',
         manualVnBackground: '',
+        backdropLibrary: [],
+        backdropAutoSelect: true,
         userPersona: {
           name: 'Bob',
           role: 'Middle-aged businessman',
@@ -2675,6 +2713,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!found.artStyle) found.artStyle = 'Anime';
       if (!found.viewMode) found.viewMode = 'chat';
       if (!found.narratorProfile) found.narratorProfile = { name: 'Narrator', ttsVoice: '', voiceLab: null };
+      if (!Array.isArray(found.backdropLibrary)) found.backdropLibrary = [];
+      if (found.backdropAutoSelect === undefined) found.backdropAutoSelect = true;
       return found;
     }
 
@@ -3347,11 +3387,149 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     }
 
     function handleInputKeydown(event) {
+      if (mentionState.active) {
+        if (event.key === 'ArrowDown') { event.preventDefault(); moveMentionSelection(1); return; }
+        if (event.key === 'ArrowUp') { event.preventDefault(); moveMentionSelection(-1); return; }
+        if (event.key === 'Tab' || (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); selectMentionCandidate(); return; }
+        if (event.key === 'Escape') { event.preventDefault(); closeMentionPopup(); return; }
+      }
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         handleUserSubmit(event);
       }
     }
+
+    // --- "@name" mention autocomplete --------------------------------------
+    // Typing @ followed by letters opens a popup of matching characters (main
+    // cast + dynamically-detected side characters + the user persona) so you
+    // can tab/tap/click a name in instead of spelling it out. Deliberately
+    // distinct from the existing "@:" narration prefix (handleUserSubmit) --
+    // the trigger regex requires the text right after @ to be name characters,
+    // so "@:" never matches and narration mode is unaffected.
+    let mentionState = { active: false, query: '', atIndex: -1, candidates: [], selectedIndex: 0 };
+
+    function getMentionCandidateNames() {
+      const active = getActiveScenario();
+      const seen = new Set();
+      const names = [];
+      const push = (n) => {
+        const t = (n || '').trim();
+        if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); names.push(t); }
+      };
+      push(active.userPersona?.name);
+      (active.characters || []).forEach(c => push(c.name));
+      getDynamicSideCharacters().forEach(push);
+      return names;
+    }
+
+    function handleMentionInput(textarea) {
+      const cursor = textarea.selectionStart;
+      const uptoCursor = textarea.value.slice(0, cursor);
+      // An "@" that starts a fresh word (start-of-text or preceded by
+      // whitespace) with only name-safe characters typed after it so far,
+      // reaching all the way to the cursor. "@:" (narration) never matches
+      // since ':' isn't in the allowed character class.
+      const m = /(?:^|[\s\n])@([\p{L}\p{N}_'.-]*)$/u.exec(uptoCursor);
+      if (!m) { closeMentionPopup(); return; }
+      const query = m[1];
+      const atIndex = uptoCursor.length - query.length - 1;
+      const all = getMentionCandidateNames();
+      const q = query.toLowerCase();
+      const starts = [], contains = [];
+      all.forEach(n => {
+        const low = n.toLowerCase();
+        if (!q || low.startsWith(q)) starts.push(n);
+        else if (low.includes(q)) contains.push(n);
+      });
+      const candidates = [...starts, ...contains].slice(0, 30);
+      if (candidates.length === 0) { closeMentionPopup(); return; }
+      const prevActive = mentionState.active;
+      mentionState = { active: true, query, atIndex, candidates, selectedIndex: 0 };
+      renderMentionPopup(textarea);
+      if (!prevActive) textarea.focus();
+    }
+
+    function renderMentionPopup(textarea) {
+      const popup = document.getElementById('mentionAutocomplete');
+      if (!popup) return;
+      if (!mentionState.active) { popup.classList.add('hidden'); return; }
+
+      popup.innerHTML = mentionState.candidates.map((name, i) => `
+        <button type="button"
+          onmousedown="event.preventDefault(); selectMentionCandidate(${i})"
+          ontouchstart="event.preventDefault(); selectMentionCandidate(${i})"
+          data-mention-idx="${i}"
+          class="w-full text-left px-2.5 py-1.5 text-xs flex items-center gap-2 transition ${i === mentionState.selectedIndex ? 'bg-zetaAccent/30 text-white' : 'text-slate-200 hover:bg-zetaBorder'}">
+          <span class="w-5 h-5 rounded-full bg-zetaAccent/40 text-white text-[9px] font-bold flex items-center justify-center shrink-0">${escapeHtml((name || '?')[0].toUpperCase())}</span>
+          <span class="truncate">${escapeHtml(name)}</span>
+        </button>
+      `).join('');
+
+      const rect = textarea.getBoundingClientRect();
+      popup.style.left = Math.round(rect.left) + 'px';
+      popup.style.bottom = Math.round(window.innerHeight - rect.top + 6) + 'px';
+      popup.style.width = Math.round(Math.max(160, Math.min(280, rect.width))) + 'px';
+      popup.classList.remove('hidden');
+
+      const activeBtn = popup.querySelector(`[data-mention-idx="${mentionState.selectedIndex}"]`);
+      if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest' });
+    }
+
+    function closeMentionPopup() {
+      if (!mentionState.active) return;
+      mentionState = { active: false, query: '', atIndex: -1, candidates: [], selectedIndex: 0 };
+      const popup = document.getElementById('mentionAutocomplete');
+      if (popup) popup.classList.add('hidden');
+    }
+
+    // A blur can fire even when the "click" was on a popup candidate (some
+    // mobile browsers blur before the touchstart handler runs); delay the
+    // close just long enough for that handler to have already fired and
+    // refocused the textarea, in which case this becomes a no-op.
+    function scheduleMentionPopupClose() {
+      setTimeout(() => {
+        if (document.activeElement !== document.getElementById('userInput')) closeMentionPopup();
+      }, 150);
+    }
+
+    function moveMentionSelection(delta) {
+      if (!mentionState.active) return;
+      const len = mentionState.candidates.length;
+      mentionState.selectedIndex = (mentionState.selectedIndex + delta + len) % len;
+      renderMentionPopup(document.getElementById('userInput'));
+    }
+
+    function selectMentionCandidate(index) {
+      const textarea = document.getElementById('userInput');
+      if (!textarea || !mentionState.active) return;
+      const name = mentionState.candidates[index ?? mentionState.selectedIndex];
+      if (name === undefined) return;
+      const value = textarea.value;
+      const cursor = textarea.selectionStart;
+      const before = value.slice(0, mentionState.atIndex);
+      const after = value.slice(cursor);
+      const inserted = `@${name} `;
+      textarea.value = before + inserted + after;
+      const newCursor = (before + inserted).length;
+      closeMentionPopup();
+      textarea.focus();
+      textarea.setSelectionRange(newCursor, newCursor);
+      autoExpandTextarea(textarea);
+      scheduleContextEstimate();
+    }
+
+    // Clicking/tapping anywhere outside the popup and the input closes it —
+    // covers taps on Send/Continue/etc. that shouldn't leave it stranded open.
+    document.addEventListener('click', (e) => {
+      if (!mentionState.active) return;
+      const popup = document.getElementById('mentionAutocomplete');
+      const textarea = document.getElementById('userInput');
+      if ((popup && popup.contains(e.target)) || e.target === textarea) return;
+      closeMentionPopup();
+    });
+    window.addEventListener('resize', () => {
+      if (mentionState.active) renderMentionPopup(document.getElementById('userInput'));
+    });
 
     // --- Desktop keyboard navigation -------------------------------------
     // Arrow keys scroll the chat message list (Chat View) or step through
@@ -5260,8 +5438,15 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const turnCounter = document.getElementById('vnTurnCounter');
       capVnDialogueBubbleHeight();
 
-      if (active.vnBackground || active.cover) {
-        const nextBg = active.manualVnBackground || active.vnBackground || active.cover;
+      // Auto-select only overrides the manual pin/generated/cover chain when
+      // it actually finds a keyword match — an empty or all-unkeyworded
+      // library falls straight through to the existing behavior unchanged.
+      const autoBackdropEntry = (active.backdropAutoSelect !== false) ? pickAutoBackdrop(active) : null;
+      const pinnedOrGeneratedBg = active.manualVnBackground || active.vnBackground || active.cover;
+      const candidateBg = (autoBackdropEntry && autoBackdropEntry.url) || pinnedOrGeneratedBg;
+
+      if (candidateBg) {
+        const nextBg = candidateBg;
         if (nextBg !== lastVnBackground) { bgLayer.classList.remove('vn-bg-fade'); void bgLayer.offsetWidth; bgLayer.classList.add('vn-bg-fade'); lastVnBackground = nextBg; }
         bgLayer.style.backgroundImage = `url('${nextBg}')`;
       } else {
@@ -5440,6 +5625,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         if (!fullDataUrl) throw new Error('Gemini could not render the VN backdrop, and no local fallback is configured (or it also failed). Please retry.');
 
         active.vnBackground = fullDataUrl;
+        addGeneratedBackdropToLibrary(fullDataUrl, active.setting || active.title);
         await saveState();
         renderVnTurn(false);
       } catch (err) {
@@ -5944,7 +6130,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         const relBaseline=active.characters.map(c=>`${c.name}: ${c.relationship||'Unspecified'} | ${JSON.stringify(c.relationships||{})}`).join('\\n');
         const loreExisting=(active.lorebook||[]).map(l=>`${l.title}|${l.keywords}|${l.content}`).join('\\n');
         const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?'Extract only durable new facts.':'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
-        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
+        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
         const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)return;const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);let parsed={};try{parsed=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,{})||{}}catch(e){}
         const charMap=parsed.characters||{};for(const c of active.characters){const r=charMap[c.name];if(!r)continue;c.relationships=c.relationships||{};for(const [n,v] of Object.entries(r.relationships||{})){if(n!==c.name&&String(v||'').trim())c.relationships[n]=String(v).trim()}if(String(r.relationship||'').trim())c.relationship=String(r.relationship).trim();}
         for(const e of (Array.isArray(parsed.lorebook)?parsed.lorebook:[]).slice(0,8)){if(!e?.title||!e?.content)continue;const dup=(active.lorebook||[]).some(l=>String(l.title||'').toLowerCase()===String(e.title).toLowerCase());if(!dup)active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:String(e.keywords||e.title).slice(0,240),content:String(e.content).slice(0,900),autoGenerated:true});}
@@ -6938,16 +7124,28 @@ JSON FORMAT:
           body: JSON.stringify(promptPayload)
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
-          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          const parsedArcs = parseJsonLoose(rawJson, null); if (!parsedArcs) throw new Error('Unparseable model response');
-
-          active.activeChapterArcs = parsedArcs;
-          await saveState();
-          renderSelectedChapterSummary('active');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data?.error?.message || `Gemini returned HTTP ${res.status}.`);
         }
+        recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const parsedArcs = parseJsonLoose(rawJson, null);
+        // A response that parses fine but comes back {} (e.g. a safety-filtered
+        // or truncated candidate with no real text) used to get saved as-is,
+        // silently wiping every character tab back to "not yet analyzed" with
+        // no visible error. Treat empty-or-unparseable the same way: as a
+        // failure that's reported, not saved.
+        if (!parsedArcs || Object.keys(parsedArcs).length === 0) {
+          const finishReason = data.candidates?.[0]?.finishReason;
+          throw new Error(finishReason && finishReason !== 'STOP'
+            ? `Gemini returned no usable arc text (finishReason: ${finishReason}).`
+            : 'Unparseable or empty model response.');
+        }
+
+        active.activeChapterArcs = parsedArcs;
+        await saveState();
+        renderSelectedChapterSummary('active');
       } catch (err) {
         console.warn("Arc synthesis error:", err.message);
         if (!silent) zfAlert("Character Arc Analysis Notice: " + err.message);
@@ -9666,7 +9864,190 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const spotlightBtn = document.getElementById('spotlightVoiceLabBtn');
       if (spotlightBtn) { const c = getCurrentSpotlightCharacter(); spotlightBtn.innerText = '🎙️ ' + (getKokoroVoiceList()[c?.obj?.ttsVoice] || 'Voice Off') + ' — Voice Lab'; }
     }
-    function setManualVnBackground(event){const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async e=>{const active=getActiveScenario();markImagesDirty();active.manualVnBackground=e.target.result;await saveState();if(active.viewMode==='vn')renderVnTurn(false);};reader.readAsDataURL(file);}
+    // --- VN Backdrop Library -------------------------------------------------
+    // A per-scenario collection of backdrops (AI-generated and user-uploaded),
+    // each taggable with keywords. When backdropAutoSelect is on, renderVnTurn()
+    // picks whichever library entry's keywords best match the recent scene
+    // context instead of always showing the same pinned/last-generated image.
+
+    function openBackdropLibraryModal() {
+      renderBackdropLibrary();
+      const modal = document.getElementById('backdropLibraryModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeBackdropLibraryModal(event) {
+      if (event && event.target && event.target.id !== 'backdropLibraryModal') return;
+      const modal = document.getElementById('backdropLibraryModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderBackdropLibrary() {
+      const active = getActiveScenario();
+      const container = document.getElementById('backdropLibraryContainer');
+      const toggle = document.getElementById('backdropAutoSelectToggle');
+      if (!container) return;
+      if (toggle) toggle.checked = active.backdropAutoSelect !== false;
+
+      const library = active.backdropLibrary || [];
+      const pinnedUrl = active.manualVnBackground || '';
+
+      if (library.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No backdrops saved yet. Upload one with "+ Add Backdrop" above, or generate one with the 🖼️ Backdrop button on the VN stage — generated backdrops land here too.</div>`;
+        return;
+      }
+
+      container.innerHTML = library.slice().reverse().map(entry => {
+        const isPinned = !!pinnedUrl && pinnedUrl === entry.url;
+        return `
+          <div class="flex gap-3 p-3 bg-zetaCard border ${isPinned ? 'border-zetaAccent' : 'border-slate-800'} rounded-xl mb-3">
+            <button type="button" class="w-20 h-20 rounded-lg overflow-hidden border border-zetaBorder shrink-0 bg-slate-950" onclick="openLightbox('${escapeJsString(entry.url)}','${escapeJsString(entry.label || 'Backdrop')}')">
+              <img src="${entry.url}" class="w-full h-full object-cover" alt="${escapeHtml(entry.label || 'Backdrop')}" />
+            </button>
+            <div class="flex-1 min-w-0 space-y-1.5">
+              <input type="text" value="${escapeHtml(entry.label || '')}" placeholder="Label (optional)" oninput="updateBackdropLibraryField('${entry.id}','label',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+              <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. forest, night, tavern)" oninput="updateBackdropLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+              <div class="flex items-center gap-1.5 pt-0.5">
+                <button type="button" onclick="pinBackdropFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
+                <button type="button" onclick="deleteBackdropFromLibrary('${entry.id}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setBackdropAutoSelect(checked) {
+      const active = getActiveScenario();
+      active.backdropAutoSelect = !!checked;
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    async function addBackdropsToLibrary(event) {
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
+      if (!files.length) return;
+      const active = getActiveScenario();
+      if (!Array.isArray(active.backdropLibrary)) active.backdropLibrary = [];
+
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const keywordsInput = await zfPrompt(`Keywords for this backdrop (comma separated — e.g. "forest, night, campsite"). Leave blank to tag it later from the library.`, '', `Tag: ${file.name}`);
+        active.backdropLibrary.push({
+          id: 'bg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          url: dataUrl,
+          label: file.name.replace(/\.[a-z0-9]+$/i, ''),
+          keywords: (keywordsInput || '').split(',').map(k => k.trim()).filter(Boolean),
+          source: 'uploaded',
+          createdAt: Date.now()
+        });
+      }
+
+      markImagesDirty();
+      await saveState();
+      renderBackdropLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // Every AI-generated backdrop is added to the library automatically (no
+    // extra prompt here — that would interrupt the generate flow) with
+    // keywords auto-seeded from the scenario setting/title text; editable
+    // anytime afterward from the Backdrop Library drawer.
+    function addGeneratedBackdropToLibrary(url, contextText) {
+      const active = getActiveScenario();
+      if (!Array.isArray(active.backdropLibrary)) active.backdropLibrary = [];
+      const STOPWORDS = new Set(['the','a','an','and','or','but','of','in','on','at','to','for','with','is','are','was','were','this','that','it','its','as','by','from']);
+      const keywords = String(contextText || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !STOPWORDS.has(w))
+        .slice(0, 6);
+      active.backdropLibrary.push({
+        id: 'bg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        url,
+        label: (contextText || 'Generated Backdrop').slice(0, 60),
+        keywords: [...new Set(keywords)],
+        source: 'generated',
+        createdAt: Date.now()
+      });
+      markImagesDirty();
+    }
+
+    function updateBackdropLibraryField(id, field, value) {
+      const active = getActiveScenario();
+      const entry = (active.backdropLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      if (field === 'keywords') {
+        entry.keywords = String(value || '').split(',').map(k => k.trim()).filter(Boolean);
+      } else if (field === 'label') {
+        entry.label = value;
+      }
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function pinBackdropFromLibrary(id) {
+      const active = getActiveScenario();
+      const entry = (active.backdropLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      // Pinning the entry already showing un-pins it, falling back to
+      // auto-select (if on) or the last AI-generated backdrop.
+      active.manualVnBackground = (active.manualVnBackground === entry.url) ? '' : entry.url;
+      saveState();
+      renderBackdropLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    async function deleteBackdropFromLibrary(id) {
+      const active = getActiveScenario();
+      const entry = (active.backdropLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      if (!await zfConfirm(`Remove "${entry.label || 'this backdrop'}" from your library?`, 'Delete Backdrop', 'Delete')) return;
+      active.backdropLibrary = (active.backdropLibrary || []).filter(e => e.id !== id);
+      if (active.manualVnBackground === entry.url) active.manualVnBackground = '';
+      await saveState();
+      renderBackdropLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // Builds a lowercase blob of "what's happening right now" text (the
+    // scenario setting plus the last few turns) that keyword matching runs
+    // against.
+    function getVnSceneContextText(active) {
+      const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+      const recent = validTurns.slice(-6).map(m => m.text || '').join(' ');
+      return `${active.setting || ''} ${recent}`.toLowerCase();
+    }
+
+    // Picks the library entry whose keywords best match the current scene.
+    // Returns null (falling back to the existing pinned/generated/cover
+    // chain) when the library is empty or nothing matches.
+    function pickAutoBackdrop(active) {
+      const library = active.backdropLibrary || [];
+      if (!library.length) return null;
+      const context = getVnSceneContextText(active);
+      if (!context.trim()) return null;
+      let best = null, bestScore = 0;
+      for (const entry of library) {
+        const keywords = (entry.keywords || []).map(k => k.toLowerCase()).filter(Boolean);
+        if (!keywords.length) continue;
+        let score = 0;
+        for (const kw of keywords) { if (context.includes(kw)) score++; }
+        if (score > bestScore) { bestScore = score; best = entry; }
+      }
+      return best;
+    }
     function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode!=='text');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
     function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')zfAlert('Choose a Markdown file above.');}
     async function processMarkdownImport(event){const file=event.target.files?.[0];if(!file)return;const raw=await file.text();const active=getActiveScenario();const lines=raw.split(/\r?\n/);const msgs=[];let current=null;for(const line of lines){const m=line.match(/^###\s+(.+?)(?:\s+\([^)]*\))?$/);if(m){if(current&&current.text.trim())msgs.push(current);current={id:'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),role:'model',speakerName:m[1].trim(),text:'',timestamp:'Imported'};}else if(current&&!/^---+$/.test(line.trim())&&!/^#/.test(line))current.text+=(current.text?'\n':'')+line;}if(current&&current.text.trim())msgs.push(current);if(!msgs.length){zfAlert('No speaker entries were found in this Markdown file.');return;}const user=(active.userPersona.name||'User').toLowerCase();msgs.forEach(m=>{if(['me','you',user].includes(m.speakerName.toLowerCase())){m.role='user';m.speakerName=active.userPersona.name||'User';}});active.messages=document.getElementById('appendTranscriptCheck')?.checked?active.messages.concat(msgs):msgs;await saveState();renderAllUi();closeModal('importModal');event.target.value='';}
@@ -11067,7 +11448,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         const batch = recaps.slice(0, RECAP_COMPACTION_BATCH);
         const text = batch.map(r => typeof r === 'string' ? r : `Chapter ${r.chapterNum}: ${r.milestoneSummary || ''}`).join('\n\n');
         const payload = { contents: [{ role:'user', parts:[{ text:`Compress these oldest archived chapter recaps into ONE durable continuity recap. Preserve major plot events, permanent character development, relationship changes, discoveries, secrets, promises, locations and unresolved threads. Omit temporary details. Return only one concise paragraph.\n\n${text}` }]}], generationConfig:{temperature:0.2,maxOutputTokens:450}, safetySettings: buildSafetySettings() };
-        payload.serviceTier = BACKGROUND_SERVICE_TIER;
+        payload.service_tier = BACKGROUND_SERVICE_TIER;
         const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         if (!res.ok) return;
@@ -11089,8 +11470,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         let recap={milestoneSummary:`Chapter ${active.currentChapter||1} concluded.`,characterArcs:active.activeChapterArcs||{}};
         if(shouldGenerate){
           const dialogue=turns.map(m=>`${m.speakerName||'Speaker'}: ${m.text}`).join('\n'); const cast=[active.userPersona.name,...active.characters.map(c=>c.name)];
-          const payload={contents:[{role:'user',parts:[{text:`Summarize Chapter ${active.currentChapter||1}. Return JSON with milestoneSummary (2-3 sentences) and characterArcs mapping each of ${cast.join(', ')} to 3-4 sentences. Preserve only established facts.\n\n${dialogue}`}]}],generationConfig:{temperature:.25,maxOutputTokens:1000,responseMimeType:'application/json'},serviceTier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
-          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,null)||recap}catch(e){}}
+          const payload={contents:[{role:'user',parts:[{text:`Summarize Chapter ${active.currentChapter||1}. Return JSON with milestoneSummary (2-3 sentences) and characterArcs mapping each of ${cast.join(', ')} to 3-4 sentences. Preserve only established facts.\n\n${dialogue}`}]}],generationConfig:{temperature:.25,maxOutputTokens:1000,responseMimeType:'application/json'},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          const data=await res.json().catch(()=>({}));
+          if(res.ok){recordTextUsage(MODEL_ADVANCED,data,dialogue,1000);try{recap=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,null)||recap}catch(e){}}
+          else console.warn('Manual chapter archive summary request failed:',data?.error?.message||res.status);
         }
         // Snapshot everything undoLastChapterArchive() needs to fully reverse
         // this one action — a wrong tap on 📚 Archive otherwise loses the
@@ -11297,18 +11681,20 @@ TASK: Return a JSON object with:
           // gemini-3.6-flash burns its maxOutputTokens budget on hidden reasoning
           // tokens before writing any actual JSON otherwise. Bumped tokens as headroom.
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-          summaryReqPayload.serviceTier = BACKGROUND_SERVICE_TIER;
+          summaryReqPayload.service_tier = BACKGROUND_SERVICE_TIER;
           const summaryRes = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(summaryReqPayload)
           });
 
-          const summaryData = await summaryRes.json();
+          const summaryData = await summaryRes.json().catch(() => ({}));
+          if (!summaryRes.ok) {
+            console.warn("Automatic chapter archival summary request failed:", summaryData?.error?.message || summaryRes.status);
+          }
           recordTextUsage(MODEL_ADVANCED, summaryData, dialogueText, 1200);
-          const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          let parsed = {};
-          parsed = parseJsonLoose(rawJson, parsed);
+          const rawJson = summaryData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          let parsed = parseJsonLoose(rawJson, null) || {};
 
           if (!active.archivedRecaps) active.archivedRecaps = [];
           const completedRecap = {
@@ -11568,11 +11954,23 @@ REQUIREMENTS:
       if (e) e.preventDefault();
       skipTypewriter();
       hideReplySuggestions();
+      closeMentionPopup();
       chatStickToBottom = true;
 
       const inputEl = document.getElementById('userInput');
       let rawText = inputEl.value.trim();
-      if (!rawText) return;
+      if (!rawText) {
+        // Continue is hidden on mobile (see #continueBtn's "hidden sm:flex")
+        // to save bottom-bar space — on that layout, Send doubles as
+        // Continue whenever the box is empty. offsetParent is a cheap
+        // "is this actually visible right now" check that tracks the CSS
+        // breakpoint without hardcoding it a second time here.
+        const continueBtn = document.getElementById('continueBtn');
+        if (continueBtn && continueBtn.offsetParent === null) {
+          await triggerContinue();
+        }
+        return;
+      }
 
       if (isNarrateModeActive) {
         if (!rawText.startsWith('@:')) {
