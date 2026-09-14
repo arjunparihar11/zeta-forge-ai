@@ -11210,8 +11210,24 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     }
 
     async function callLocalRoutineLLM(contentsArray, options, endpointInfo) {
-      const cappedContents = capContentsToTokenBudget(contentsArray, endpointInfo.contextCap || 8192);
+      // endpointInfo.contextCap is the local server's TOTAL context window
+      // (e.g. 8192 for the Oracle Cloud Stheno endpoint), not a dialogue-only
+      // budget -- but the system prompt (character personas, lorebook,
+      // dramatis personae, output rules) and the reserved output tokens both
+      // eat into that same window. Previously the dialogue history alone was
+      // capped to the FULL contextCap, so adding the system message and
+      // generation reserve on top routinely pushed the actual request past
+      // the server's real limit -- surfacing as "request (12129 tokens)
+      // exceeds the available context size (8192 tokens)" from Oracle
+      // Cloud/Stheno. Reserve the system prompt's own token cost plus the
+      // requested output length (with a small safety margin for estimation
+      // error) out of the budget before capping dialogue, so the two pieces
+      // actually fit together under the server's real window.
       const systemText = await buildSystemInstructionForLocalLLM();
+      const contextCap = endpointInfo.contextCap || 8192;
+      const reserveTokens = estimateTokens(systemText) + (options.maxOutputTokens || 850) + 200;
+      const dialogueBudget = Math.max(500, contextCap - reserveTokens);
+      const cappedContents = capContentsToTokenBudget(contentsArray, dialogueBudget);
       const messages = [{ role: 'system', content: systemText }];
       cappedContents.forEach(c => {
         const text = (c.parts || []).map(p => p.text || '').join('\n').trim();
