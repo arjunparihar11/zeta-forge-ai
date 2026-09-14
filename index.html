@@ -6236,16 +6236,18 @@ IMPORTANT RULES:
             temperature: 0.15,
             maxOutputTokens: 1800,
             responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 }
+            thinkingConfig: { thinkingLevel: 'minimal' }
           },
           safetySettings: buildSafetySettings()
         };
 
         // Relationship analysis is a higher-value operation: always use the
         // stronger Flash model regardless of the user's routine model choice.
-        // thinkingConfig off for the same reason as refreshActiveChapterCharacterArcs:
-        // gemini-3.6-flash burns its maxOutputTokens budget on hidden reasoning
-        // tokens before writing any actual JSON otherwise. Bumped tokens as headroom.
+        // thinkingConfig kept minimal for the same reason as
+        // refreshActiveChapterCharacterArcs: gemini-3.6-flash burns its
+        // maxOutputTokens budget on hidden reasoning tokens before writing any
+        // actual JSON otherwise. Bumped tokens as headroom. (thinkingLevel,
+        // not thinkingBudget:0 -- see refreshActiveChapterCharacterArcs for why.)
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -6864,13 +6866,15 @@ Write 2-4 characters and 3-6 lorebook entries. Make the persona and visual profi
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          // thinkingConfig off for the same reason as describeVoiceFromPersona:
-          // gemini-3.6-flash's hidden reasoning pass can consume the whole
-          // maxOutputTokens budget before writing any of the actual JSON,
-          // which is what "did not return a usable scenario" was — the
-          // open-ended "random" mode invites more of that reasoning than the
-          // "described" mode, matching it being the one reported broken.
-          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: mode === 'random' ? 1.1 : 0.9, maxOutputTokens: 2000, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
+          // thinkingConfig kept minimal for the same reason as
+          // describeVoiceFromPersona: gemini-3.6-flash's hidden reasoning pass
+          // can consume the whole maxOutputTokens budget before writing any of
+          // the actual JSON, which is what "did not return a usable scenario"
+          // was — the open-ended "random" mode invites more of that reasoning
+          // than the "described" mode, matching it being the one reported
+          // broken. (thinkingLevel, not thinkingBudget:0, which Gemini 3.x
+          // rejects outright — see refreshActiveChapterCharacterArcs.)
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: mode === 'random' ? 1.1 : 0.9, maxOutputTokens: 2000, responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'minimal' } }, safetySettings: buildSafetySettings() })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error?.message || `Generation failed (${res.status}).`);
@@ -7135,18 +7139,25 @@ JSON FORMAT:
             temperature: 0.35,
             maxOutputTokens: 1800,
             responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 }
+            thinkingConfig: { thinkingLevel: 'minimal' }
           },
           safetySettings: buildSafetySettings()
         };
 
         // Chapter-level analysis is a higher-value operation: always use the
         // stronger Flash model regardless of the user's routine model choice.
-        // thinkingConfig off for the same reason as describeVoiceFromPersona /
-        // the routine-LLM prompt builder: gemini-3.6-flash burns its
-        // maxOutputTokens budget on hidden reasoning tokens before writing any
-        // of the actual JSON, which was producing "Unparseable model response"
-        // here. maxOutputTokens is bumped too, as headroom.
+        // thinkingConfig kept minimal for the same reason as
+        // describeVoiceFromPersona / the routine-LLM prompt builder:
+        // gemini-3.6-flash's hidden reasoning pass can otherwise burn the
+        // whole maxOutputTokens budget before writing any of the actual
+        // JSON, which was producing "Unparseable model response" here.
+        // maxOutputTokens is bumped too, as headroom.
+        // NOTE: thinkingBudget:0 (the old way to fully disable thinking) is
+        // REJECTED outright by Gemini 3.x models with a 400 INVALID_ARGUMENT
+        // ("Request contains an invalid argument") -- Gemini 3 replaced that
+        // knob with thinkingLevel, whose lowest setting is "minimal" rather
+        // than a literal off switch. This was the actual cause of Character
+        // Arc Analysis failing with that exact error.
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -7858,12 +7869,14 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
       const res = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        // thinkingConfig disables gemini-3.6-flash's hidden reasoning pass for
-        // this call — without it, reasoning tokens were eating the whole
-        // maxOutputTokens budget before the model got to the actual
+        // thinkingConfig kept minimal for gemini-3.6-flash's hidden reasoning
+        // pass on this call — without it, reasoning tokens were eating the
+        // whole maxOutputTokens budget before the model got to the actual
         // description, which is exactly why this was coming back as one
         // truncated word. maxOutputTokens is bumped too, as headroom.
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 200, thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
+        // (thinkingLevel, not thinkingBudget:0, which Gemini 3.x rejects
+        // outright — see refreshActiveChapterCharacterArcs.)
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.6, maxOutputTokens: 200, thinkingConfig: { thinkingLevel: 'minimal' } }, safetySettings: buildSafetySettings() })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error?.message || `Voice description failed (${res.status}).`);
@@ -9685,7 +9698,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 900, thinkingConfig: { thinkingBudget: 0 } }, safetySettings: buildSafetySettings() })
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 900, thinkingConfig: { thinkingLevel: 'minimal' } }, safetySettings: buildSafetySettings() })
         });
         if (!res.ok) throw new Error('Voice matching request failed (' + res.status + ')');
         const data = await res.json();
@@ -11763,16 +11776,18 @@ TASK: Return a JSON object with:
               temperature: 0.35,
               maxOutputTokens: 1800,
               responseMimeType: "application/json",
-              thinkingConfig: { thinkingBudget: 0 }
+              thinkingConfig: { thinkingLevel: 'minimal' }
             },
             safetySettings: buildSafetySettings()
           };
 
           // Chapter-level analysis is a higher-value operation: always use the
           // stronger Flash model regardless of the user's routine model choice.
-          // thinkingConfig off for the same reason as refreshActiveChapterCharacterArcs:
-          // gemini-3.6-flash burns its maxOutputTokens budget on hidden reasoning
-          // tokens before writing any actual JSON otherwise. Bumped tokens as headroom.
+          // thinkingConfig kept minimal for the same reason as
+          // refreshActiveChapterCharacterArcs: gemini-3.6-flash burns its
+          // maxOutputTokens budget on hidden reasoning tokens before writing
+          // any actual JSON otherwise. Bumped tokens as headroom. (thinkingLevel,
+          // not thinkingBudget:0 -- see refreshActiveChapterCharacterArcs for why.)
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           summaryReqPayload.service_tier = BACKGROUND_SERVICE_TIER;
           const summaryRes = await fetch(endpoint, {
