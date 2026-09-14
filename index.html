@@ -4307,7 +4307,19 @@ Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
 Preserve the character's described physical identity consistently. Show the full character clearly, with a clean simple background suitable for later sprite-sheet generation. Do not invent contradictory physical traits.`;
     }
 
-    async function generateCharacterImageData(prompt, referenceSrc = '', imageConfig = { aspectRatio: '1:1', imageSize: '1K' }) {
+    // engine: 'gemini' (default) or 'meinamix' — the local start_image_fallback_server.py
+    // configured under Setup's "Local Image-Gen Fallback". MeinaMix is
+    // text-only (no reference-image conditioning, no imageConfig control
+    // over size/aspect — it always renders whatever the local SD pipeline is
+    // set up for), so it trades away face/outfit consistency and exact
+    // resolution for not spending Gemini image tokens.
+    async function generateCharacterImageData(prompt, referenceSrc = '', imageConfig = { aspectRatio: '1:1', imageSize: '1K' }, engine = 'gemini') {
+      if (engine === 'meinamix') {
+        if (!appState.imageFallbackLaptopUrl) throw new Error('No local image-gen server configured — set one in Setup under "Local Image-Gen Fallback", or switch back to Gemini.');
+        const img = await generateSceneImageViaLocalFallback(prompt);
+        if (!img) throw new Error('Local MeinaMix server did not return an image.');
+        return img;
+      }
       if (!appState.apiKey) throw new Error('Add a Google Gemini API key in Setup first.');
       const parts = [];
       const refs = Array.isArray(referenceSrc) ? referenceSrc : [referenceSrc];
@@ -4355,13 +4367,22 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
-      if (!await zfConfirm(`Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`, 'Generate Photo', 'Generate')) return;
+      const engine = await zfConfirmSelect(
+        `Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`,
+        'Generate Photo', 'Generate',
+        [
+          { value: 'gemini', label: 'Gemini (default)' },
+          { value: 'meinamix', label: 'MeinaMix (local)' }
+        ],
+        'gemini'
+      );
+      if (!engine) return;
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       showLoading(true, `Generating ${char.name || 'character'} photo...`);
       try {
-        const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' });
+        const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine);
         const src = await normalizeGeneratedPortrait(generatedSrc);
         if (!Array.isArray(char.photos)) char.photos = [];
         markImagesDirty();
@@ -4380,7 +4401,16 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
-      if (!await zfConfirm(`Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.`, 'Generate Sprite Sheet', 'Generate')) return;
+      const engine = await zfConfirmSelect(
+        `Generate a new sprite sheet for ${char.name || 'this character'}? This produces a 4K image and uses image generation tokens.\n\nNote: MeinaMix generates locally without reference images and isn't guaranteed to hold to a clean 4x4 grid the way Gemini does — you'll still get a chance to preview it before it's sliced.`,
+        'Generate Sprite Sheet', 'Generate',
+        [
+          { value: 'gemini', label: 'Gemini (default)' },
+          { value: 'meinamix', label: 'MeinaMix (local)' }
+        ],
+        'gemini'
+      );
+      if (!engine) return;
       const reference = getCharacterReferencePhotos(char);
       const persona = getCharacterPersona(char);
       const visualProfile = getCharacterVisualProfile(char);
@@ -4405,7 +4435,7 @@ ${variantLines}
 All 16 sprites must be generated on a single clean image with a fully transparent alpha-channel background, consistent lighting, distinct spacing, and no fake white or grey checkerboard. If true transparency cannot be produced, use a single bright, uniform chroma background that can be easily removed. Do not use a fake transparency grid.`;
       showLoading(true, `Generating ${char.name || 'character'} sprite sheet...`);
       try {
-        const src = await generateCharacterImageData(prompt, reference, { aspectRatio: '1:1', imageSize: '4K' });
+        const src = await generateCharacterImageData(prompt, reference, { aspectRatio: '1:1', imageSize: '4K' }, engine);
         markImagesDirty();
         if (!active.spriteSheetLibrary) active.spriteSheetLibrary = [];
         active.spriteSheetLibrary.unshift({
