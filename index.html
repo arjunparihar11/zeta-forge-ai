@@ -11360,7 +11360,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           const parsed=parseJsonLoose(rawOutput,null);
           if(Array.isArray(parsed)&&parsed.length){
             const jsonBlocks = resplitBlocksForEmbeddedSpeakers(parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''})));
-            return stripLeadingSystemMeta(remapUserPersonaBlocksToNarrator(jsonBlocks));
+            return stripLeadingSystemMeta(jsonBlocks);
           }
           return parsePlainTextIntoBlocks(rawOutput);
         } catch(e) { lastError=e; if(attempt===API_RETRY_LIMIT) throw e; await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250)); }
@@ -11479,28 +11479,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return cleaned.length ? cleaned : blocks;
     }
 
-    // buildSystemInstruction's own [CRITICAL OUTPUT RULES] are explicit --
-    // "NEVER speak or act for {{user}}" -- because that's the user's own
-    // role via the input box, not something the AI should ever generate a
-    // turn for. Local models (observed from both Magnum and Stheno) don't
-    // always hold to it: they'll tag a paragraph of plain omniscient
-    // narration with the user persona's own name instead of "Narrator",
-    // most often when the narration happens to be about that character.
-    // Enforced here as a safety net regardless of which model produced the
-    // blocks, since the app's own rule says a block attributed to the user
-    // persona is never actually legitimate.
-    function remapUserPersonaBlocksToNarrator(blocks) {
-      const active = getActiveScenario();
-      const personaName = (active.userPersona?.name || '').trim().toLowerCase();
-      if (!personaName) return blocks;
-      return blocks.map(b => ((b.speaker || '').trim().toLowerCase() === personaName ? { ...b, speaker: 'Narrator' } : b));
-    }
-
     function parsePlainTextIntoBlocks(text) {
       if (!text) return [{ speaker: 'Narrator', text: '' }];
       const active = getActiveScenario();
       const blocks = splitTextBySpeakers(text, getKnownSpeakerNames(active), 'Narrator');
-      return stripLeadingSystemMeta(remapUserPersonaBlocksToNarrator(blocks));
+      return stripLeadingSystemMeta(blocks);
     }
 
     // Safety net for the Gemini JSON path specifically: the schema asks for
