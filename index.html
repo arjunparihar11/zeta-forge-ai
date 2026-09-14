@@ -11380,14 +11380,41 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // generic (unknown-name) speaker-tag match below so headings/asides like
     // "Meanwhile: ..." or "The End: ..." don't get misread as a newly
     // introduced side character. Checked against the tag's first word only.
-    const NON_NAME_LEAD_WORDS = new Set(['the','a','an','note','warning','important','meanwhile','later','suddenly','continued','aside','ooc','author','narrator','scene','system','disclaimer','edit','update','recap','summary','chapter','part','epilogue','prologue','interlude','flashback','earlier','elsewhere','moments','hours','days','weeks','months','years','morning','afternoon','evening','night','meanwhile','ok','okay','yes','no','fine','alright','warning','tip','hint','reminder','caption','title']);
+    const NON_NAME_LEAD_WORDS = new Set(['the','a','an','note','warning','important','meanwhile','later','suddenly','continued','aside','ooc','author','narrator','scene','system','disclaimer','edit','update','recap','summary','chapter','part','epilogue','prologue','interlude','flashback','earlier','elsewhere','moments','hours','days','weeks','months','years','morning','afternoon','evening','night','ok','okay','yes','no','fine','alright','tip','hint','reminder','caption','title','translation','translated','translator','tl','tn']);
     function isGenuineLineStart(text, idx) {
       if (idx <= 0) return true;
       let i = idx - 1;
       while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
       return i < 0 || text[i] === '\n';
     }
+    // A model will sometimes tag a block with a cast member's fuller name
+    // from their own persona sheet (e.g. a character registered under the
+    // short name "Kokoa" whose persona text reads "Full Name: Kokoa Amari")
+    // instead of the shorter name ZetaForge actually has them registered
+    // under. Left alone, "Kokoa Amari" doesn't match any known name, so it
+    // gets treated as a brand-new side character with none of the real
+    // character's avatar, mood, or relationship data. Originally only
+    // patched inside splitTextBySpeakers' own regex-match path (which
+    // covers local models writing plain "Name: ..." text), but Gemini's
+    // structured JSON path hands a speaker name straight through via a
+    // dedicated field rather than an embedded text tag, so the same
+    // canonicalization is pulled out here and applied to any speaker name
+    // regardless of which path -- or which model -- produced it. Also
+    // catches buildSystemInstructionForLocalLLM's own literal "Name: "
+    // placeholder text, which a weaker model can copy verbatim instead of
+    // substituting the real speaker -- always meant as plain narration.
+    function canonicalizeSpeakerName(name, knownNames) {
+      if (!name) return name;
+      const trimmed = String(name).trim();
+      if (!trimmed) return name;
+      const firstWord = trimmed.split(/\s+/)[0].toLowerCase();
+      const canonicalMatch = knownNames.find(n => !n.includes(' ') && n.toLowerCase() === firstWord);
+      let result = (canonicalMatch && canonicalMatch.toLowerCase() !== trimmed.toLowerCase()) ? canonicalMatch : trimmed;
+      if (result.toLowerCase() === 'name') result = 'Narrator';
+      return result;
+    }
     function splitTextBySpeakers(text, knownNames, initialSpeaker) {
+      initialSpeaker = canonicalizeSpeakerName(initialSpeaker, knownNames);
       if (!text) return [{ speaker: initialSpeaker, text: '' }];
       const namesPattern = knownNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
       // Some local LLMs (e.g. Magnum) wrap the speaker tag in brackets --
@@ -11434,24 +11461,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           matchedName = genericMatch.trim();
         }
         if (!matchedName) continue;
-        // A model will sometimes tag a block with a cast member's fuller
-        // name from their own persona sheet (e.g. a character registered
-        // under the short name "Kokoa" whose persona text reads "Full Name:
-        // Kokoa Amari") instead of the shorter name ZetaForge actually has
-        // them registered under. Left alone, "Kokoa Amari" doesn't match
-        // any known name, so it falls through the generic side-character
-        // path and spawns a lookalike with none of the real character's
-        // avatar, mood, or relationship data. Treat a tag whose first word
-        // exactly matches a known single-word name as that same character.
-        const firstTagWord = matchedName.split(/\s+/)[0].toLowerCase();
-        const canonicalMatch = knownNames.find(n => !n.includes(' ') && n.toLowerCase() === firstTagWord);
-        if (canonicalMatch && canonicalMatch.toLowerCase() !== matchedName.toLowerCase()) matchedName = canonicalMatch;
-        // buildSystemInstructionForLocalLLM's own formatting example uses the
-        // literal placeholder text "Name: " -- a weaker local model can copy
-        // that template verbatim instead of substituting the real speaker,
-        // which would otherwise surface as a bubble literally labeled "Name".
-        // It's always meant as ordinary narration when that happens.
-        if (matchedName.toLowerCase() === 'name') matchedName = 'Narrator';
+        matchedName = canonicalizeSpeakerName(matchedName, knownNames);
         const precedingText = text.slice(lastIndex, match.index).trim();
         if (precedingText) pieces.push({ speaker: currentSpeaker, text: precedingText });
         currentSpeaker = matchedName;
