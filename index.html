@@ -895,7 +895,7 @@
     <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
       <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><label class="block text-[10px] font-bold text-zetaLight uppercase">Active routine LLM</label><select id="llmDrawerProfileSelect" onchange="onLlmDrawerProfileChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs"><option value="gemini">☁️ Google Gemini</option><option value="workstation">💻 Laptop / Workstation</option><option value="deviceIphone">☁️ Oracle Cloud — Stheno 8B Q4_K_M</option><option value="deviceIpad">📱 iPad — On-Device Stheno</option><option value="auto">⚡ Smart Auto-Routing</option></select><p id="llmDrawerProfileHint" class="text-[10px] text-slate-500"></p></div>
       <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><b class="text-[10px] text-zetaLight uppercase">☁️ Google Gemini</b><input id="llmDrawerApiKey" type="password" autocomplete="off" placeholder="Gemini API key" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><select id="llmDrawerModel" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option><option value="gemini-3.6-flash">gemini-3.6-flash</option><option value="gemini-3.7-flash">gemini-3.7-flash</option><option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option></select></div>
-      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="12" y1="16" x2="12" y2="19"/><line x1="8" y1="20.5" x2="16" y2="20.5"/></svg>Laptop / Workstation</b><span id="llmDrawerTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_workstation" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_workstation" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_workstation" type="password" autocomplete="off" placeholder="API key (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_workstation" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_workstation" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('workstation')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 16.2 8.1 4.5 4.5 0 0 1 17.5 17H6Z"/></svg>Oracle Cloud</b><span id="llmDrawerTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIphone" placeholder="https://your-instance.sslip.io/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIphone" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_deviceIphone" type="password" autocomplete="off" placeholder="API key (llama-server --api-key)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIphone" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIphone" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIphone')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="5.3" r="0.55" fill="currentColor" stroke="none"/></svg>iPad</b><span id="llmDrawerTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIpad" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIpad" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_deviceIpad" type="password" autocomplete="off" placeholder="API key (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIpad" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIpad" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIpad')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div>
+      <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="12" y1="16" x2="12" y2="19"/><line x1="8" y1="20.5" x2="16" y2="20.5"/></svg>Laptop / Workstation</b><span id="llmDrawerTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_workstation" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerFallbackUrl_workstation" placeholder="Fallback URL (e.g. ngrok) — optional" title="Tried only if the LAN address above doesn't answer, so this still works when your phone is off the laptop's WiFi." class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_workstation" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_workstation" type="password" autocomplete="off" placeholder="API key (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_workstation" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_workstation" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('workstation')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 16.2 8.1 4.5 4.5 0 0 1 17.5 17H6Z"/></svg>Oracle Cloud</b><span id="llmDrawerTestStatus_deviceIphone" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIphone" placeholder="https://your-instance.sslip.io/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIphone" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_deviceIphone" type="password" autocomplete="off" placeholder="API key (llama-server --api-key)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIphone" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIphone" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIphone')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div><div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><div class="flex items-center justify-between"><b class="text-[10px] text-zetaLight uppercase flex items-center gap-1"><svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="5.3" r="0.55" fill="currentColor" stroke="none"/></svg>iPad</b><span id="llmDrawerTestStatus_deviceIpad" class="text-[9px] text-slate-500">Not tested</span></div><input id="llmDrawerUrl_deviceIpad" placeholder="Endpoint URL" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerModel_deviceIpad" placeholder="Model ID" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerKey_deviceIpad" type="password" autocomplete="off" placeholder="API key (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><div class="grid grid-cols-2 gap-2"><input id="llmDrawerContext_deviceIpad" type="number" placeholder="Context" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"><input id="llmDrawerPing_deviceIpad" type="number" placeholder="Ping ms" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-[11px] text-white"></div><button type="button" onclick="testLlmDrawerEndpoint('deviceIpad')" class="w-full bg-zetaInput hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">🔌 Test Connection</button></div>
       <div class="text-[10px] text-slate-500 leading-relaxed"><b class="text-slate-300">Fallback:</b> Laptop, Oracle Cloud, and iPad profiles do not fall back to Gemini. Only Smart Auto-Routing can.</div>
     </div><div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex gap-2"><button onclick="verifyActiveLlmFromDrawer()" class="flex-1 bg-zetaInput border border-zetaBorder text-slate-200 py-2 rounded-xl text-xs">🧪 Verify Active</button><button onclick="saveLlmDrawer()" class="flex-1 bg-zetaAccent text-white py-2 rounded-xl text-xs font-semibold">Save & Apply</button></div>
   </div>
@@ -1291,6 +1291,7 @@
                 <span id="llmTestStatus_workstation" class="text-[9px] text-slate-500">Not tested</span>
               </div>
               <input type="text" id="llmUrl_workstation" placeholder="http://192.168.1.45:1234/v1" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
+              <input type="text" id="llmFallbackUrl_workstation" placeholder="Fallback URL (e.g. ngrok) — optional" title="Tried only if the LAN address above doesn't answer, so this still works when your phone is off the laptop's WiFi." class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <input type="text" id="llmModel_workstation" placeholder="magnum-v2-12b" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <input type="password" autocomplete="off" id="llmApiKey_workstation" placeholder="API key (optional)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent" />
               <div class="flex items-center gap-1.5">
@@ -2523,7 +2524,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // MODEL_ROUTINE_DEFAULT regardless of this setting — see callGeminiApi().
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
     const LLM_PROFILE_DEFAULTS = {
-      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
+      // fallbackUrl is Workstation-only: a public tunnel address (e.g. an
+      // ngrok URL, per ZetaForge's own ngrok_tunnel_core.bat) for the SAME
+      // physical laptop, used only when the LAN address doesn't answer --
+      // see resolveWorkstationUrl(). Left blank by default/opt-in.
+      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', fallbackUrl: '', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
       deviceIphone: { label: 'Oracle Cloud (Stheno 8B)', url: 'https://147-224-186-96.sslip.io/v1', model: 'stheno-v3.2', contextCap: 8192, pingMs: 4000, apiKey: 'zf-oracle-9f83ke2mdx' },
       deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600, apiKey: '' }
     };
@@ -3654,9 +3659,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     }
 
     function toggleLlmConnectionDrawer(force){const d=document.getElementById('llmConnectionDrawer');if(!d)return;const closed=d.classList.contains('translate-x-full'),open=force!==undefined?force:closed;if(open){toggleMobileSidebar(false);toggleChapterDrawer(false);toggleMenuDrawer(false);syncLlmDrawer();d.classList.remove('translate-x-full');document.getElementById('mobileBackdrop')?.classList.remove('hidden');}else{d.classList.add('translate-x-full');checkBackdrop();}}
-    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs],['Key',c.apiKey]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
-    function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop. No Gemini fallback.',deviceIphone:'Routine turns use Oracle Cloud Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
-    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10),k=(document.getElementById(`llmDrawerKey_${x}`)?.value||'').trim();appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs,apiKey:k};});autoRouteCache={result:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
+    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs],['Key',c.apiKey]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});if(x==='workstation'){const fb=document.getElementById('llmDrawerFallbackUrl_workstation');if(fb)fb.value=c.fallbackUrl||'';}});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
+    function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop — LAN first, then the fallback URL if set. No Gemini fallback.',deviceIphone:'Routine turns use Oracle Cloud Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
+    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10),k=(document.getElementById(`llmDrawerKey_${x}`)?.value||'').trim();appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs,apiKey:k};if(x==='workstation')appState.llmProfiles[x].fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||'').trim();});autoRouteCache={result:null,expiresAt:0};workstationUrlCache={url:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
     async function verifyActiveLlmFromDrawer(silent=false){const p=document.getElementById('llmDrawerProfileSelect')?.value||appState.llmProfile||'gemini';if(p==='gemini'){const has=!!((document.getElementById('llmDrawerApiKey')?.value||appState.apiKey||'').trim());setCurrentLlmConnection(has?'connected':'offline','gemini',{label:'Google Gemini',model:document.getElementById('llmDrawerModel')?.value||appState.model});if(!silent&&!has)zfAlert('Google Gemini is selected, but no API key is configured.','LLM Verification');return has;}let targetProfile=p,url,model,apiKey;
     if(p==='auto'){
       // 'auto' isn't a real endpoint — it's a meta-selector, so there's no
@@ -3677,6 +3682,13 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       url=(document.getElementById(`llmDrawerUrl_${p}`)?.value||appState.llmProfiles?.[p]?.url||'').trim();
       model=(document.getElementById(`llmDrawerModel_${p}`)?.value||appState.llmProfiles?.[p]?.model||'').trim();
       apiKey=(document.getElementById(`llmDrawerKey_${p}`)?.value||appState.llmProfiles?.[p]?.apiKey||'').trim();
+      if(p==='workstation'){
+        // Otherwise this would test only the LAN address and report "offline"
+        // even when the fallback URL is what's actually going to answer.
+        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||appState.llmProfiles?.workstation?.fallbackUrl||'').trim();
+        const resolvedWsUrl=await resolveWorkstationUrl({url,fallbackUrl,apiKey});
+        if(resolvedWsUrl)url=resolvedWsUrl;
+      }
     }
     setCurrentLlmConnection('checking',targetProfile,{label:llmProfileLabel(targetProfile),model});const r=await verifyLocalEndpoint(url,model,targetProfile==='deviceIphone'?20000:12000,apiKey);setCurrentLlmConnection(r.ok?'connected':'offline',targetProfile,{label:llmProfileLabel(targetProfile),model:r.model||model});if(!silent)zfAlert(r.ok?`${llmProfileLabel(targetProfile)} is connected and returned a real inference response.${p==='auto'?` (Smart Auto-Routing currently resolves to ${llmProfileLabel(targetProfile)}.)`:''}`:`${llmProfileLabel(targetProfile)} is NOT connected.
 
@@ -3689,9 +3701,19 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       const apiKey=(document.getElementById(`llmDrawerKey_${profileKey}`)?.value||cfg.apiKey||'').trim();
       const statusEl=document.getElementById(`llmDrawerTestStatus_${profileKey}`);
       if(statusEl){statusEl.innerText='Verifying…';statusEl.className='text-[9px] text-amber-400';}
-      const result=await verifyLocalEndpoint(url,model,profileKey==='deviceIphone'?20000:10000,apiKey);
+      let result=await verifyLocalEndpoint(url,model,profileKey==='deviceIphone'?20000:10000,apiKey);
+      let usedFallback=false;
+      // Same LAN-then-tunnel-fallback story as testLocalEndpoint (the Setup
+      // modal's twin of this button) -- only relevant for Workstation.
+      if(!result.ok && profileKey==='workstation'){
+        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||cfg.fallbackUrl||'').trim();
+        if(fallbackUrl){
+          const fallbackResult=await verifyLocalEndpoint(fallbackUrl,model,15000,apiKey);
+          if(fallbackResult.ok){result=fallbackResult;usedFallback=true;}
+        }
+      }
       if(statusEl){
-        statusEl.innerText=result.ok?`✅ Verified${result.model?' · '+result.model.slice(0,24):''}`:`❌ ${result.stage||'Failed'}`;
+        statusEl.innerText=result.ok?`✅ Verified${usedFallback?' (fallback)':''}${result.model?' · '+result.model.slice(0,24):''}`:`❌ ${result.stage||'Failed'}`;
         statusEl.className=result.ok?'text-[9px] text-emerald-400 font-semibold':'text-[9px] text-rose-400 font-semibold';
         statusEl.title=result.ok?(result.output||'OpenAI-compatible inference verified.'):(result.error||'Verification failed.');
       }
@@ -10203,6 +10225,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
         const cfg = appState.llmProfiles?.[key] || LLM_PROFILE_DEFAULTS[key];
         const urlEl = document.getElementById(`llmUrl_${key}`); if (urlEl) urlEl.value = cfg.url || '';
+        if (key === 'workstation') { const fbEl = document.getElementById('llmFallbackUrl_workstation'); if (fbEl) fbEl.value = cfg.fallbackUrl || ''; }
         const modelEl = document.getElementById(`llmModel_${key}`); if (modelEl) modelEl.value = cfg.model || '';
         const keyEl = document.getElementById(`llmApiKey_${key}`); if (keyEl) keyEl.value = cfg.apiKey || '';
         const capEl = document.getElementById(`llmContextCap_${key}`); if (capEl) capEl.value = cfg.contextCap || LLM_PROFILE_DEFAULTS[key].contextCap;
@@ -10401,8 +10424,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           contextCap: Number.isFinite(capVal) && capVal > 0 ? capVal : def.contextCap,
           pingMs: Number.isFinite(pingVal) && pingVal > 0 ? pingVal : def.pingMs
         };
+        if (key === 'workstation') appState.llmProfiles[key].fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || '').trim();
       });
       autoRouteCache = { result: null, expiresAt: 0 }; // config changed — re-ping next turn instead of using a stale auto-route
+      workstationUrlCache = { url: null, expiresAt: 0 };
 
       active.viewMode = document.getElementById('viewModeSelect').value || 'chat';
       active.artStyle = document.getElementById('artStyleSelect').value || 'Anime';
@@ -11035,6 +11060,30 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       } catch (e) { return false; }
     }
 
+    // The Workstation profile is the one endpoint with two addresses for the
+    // same physical machine: a fast/free LAN address (only reachable when
+    // the phone is on the same WiFi as the laptop) and an optional public
+    // tunnel URL -- e.g. the ngrok tunnel from ngrok_tunnel_core.bat --
+    // reachable from anywhere as long as the laptop and the tunnel are both
+    // running. Ping the LAN address first since it's free and near-instant
+    // when reachable, and only try the tunnel URL if that fails, so being on
+    // the home network never pays the extra network hop through a tunnel.
+    // Cached briefly (same TTL as Smart Auto-Routing) so this doesn't re-ping
+    // on every single turn -- invalidated wherever the LLM settings are saved.
+    let workstationUrlCache = { url: null, expiresAt: 0 };
+    async function resolveWorkstationUrl(ws) {
+      if (workstationUrlCache.url && Date.now() < workstationUrlCache.expiresAt) return workstationUrlCache.url;
+      const pingMs = profilePingMs('workstation');
+      let resolved = null;
+      if (ws.url && await pingLocalEndpoint(ws.url, pingMs, ws.apiKey)) {
+        resolved = ws.url;
+      } else if (ws.fallbackUrl && await pingLocalEndpoint(ws.fallbackUrl, pingMs, ws.apiKey)) {
+        resolved = ws.fallbackUrl;
+      }
+      if (resolved) workstationUrlCache = { url: resolved, expiresAt: Date.now() + AUTO_ROUTE_CACHE_TTL_MS };
+      return resolved;
+    }
+
     // Strong verification: /models proves the tunnel is reachable; a tiny
     // non-streaming completion proves that the OpenAI-compatible inference
     // route is actually usable by ZetaForge. The test uses the model ID
@@ -11074,8 +11123,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         if (autoRouteCache.result && Date.now() < autoRouteCache.expiresAt) return autoRouteCache.result;
         let result;
         const ws = appState.llmProfiles.workstation;
-        if (await pingLocalEndpoint(ws.url, profilePingMs('workstation'), ws.apiKey)) {
-          result = { type: 'local', profileKey: 'workstation', url: ws.url, model: ws.model, contextCap: ws.contextCap || 8192, label: ws.label, apiKey: ws.apiKey, autoFallbackAllowed: true };
+        const wsUrl = await resolveWorkstationUrl(ws);
+        if (wsUrl) {
+          result = { type: 'local', profileKey: 'workstation', url: wsUrl, model: ws.model, contextCap: ws.contextCap || 8192, label: ws.label, apiKey: ws.apiKey, autoFallbackAllowed: true };
         } else {
           // navigator.maxTouchPoints + screen width distinguishes a touch
           // tablet (iPad-class) from a touch phone (iPhone-class) so the
@@ -11097,7 +11147,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
       const cfg = appState.llmProfiles[profile];
       if (!cfg || !cfg.url) return { type: 'gemini', contextCap: CONTEXT_TOKEN_CAP };
-      return { type: 'local', profileKey: profile, url: cfg.url, model: cfg.model, contextCap: cfg.contextCap || 8192, label: cfg.label, apiKey: cfg.apiKey, autoFallbackAllowed: false };
+      // Directly-selected Workstation (not just Smart Auto-Routing) also
+      // gets the LAN-first/tunnel-fallback treatment -- otherwise picking
+      // "Workstation" specifically in Setup would only ever work on the
+      // laptop's own WiFi, defeating the point of configuring a fallback URL
+      // at all. Falls back to the configured LAN url itself (today's
+      // behavior) if neither address answers, so the resulting error still
+      // names the real endpoint instead of an empty string.
+      const resolvedUrl = profile === 'workstation' ? ((await resolveWorkstationUrl(cfg)) || cfg.url) : cfg.url;
+      return { type: 'local', profileKey: profile, url: resolvedUrl, model: cfg.model, contextCap: cfg.contextCap || 8192, label: cfg.label, apiKey: cfg.apiKey, autoFallbackAllowed: false };
     }
 
     // Re-slices an already-built Gemini-shaped contents array (role/parts) down
@@ -11283,6 +11341,27 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           // to get around to it), just not overlapping the two GPU workloads.
           const ttsSharesGpuWithThisLlm = getActiveTtsEngine() === 'chatterbox-laptop' && endpointInfo.profileKey === 'workstation';
           const rawOutput = await consumeLocalLLMStream(response, ttsSharesGpuWithThisLlm ? null : (bufferSoFar => prewarmer.feed(bufferSoFar)));
+          if (!rawOutput || !rawOutput.trim()) {
+            // A local endpoint can accept the request and then stream back
+            // literally nothing. The most likely cause on a CPU-only box like
+            // the Oracle Cloud ARM instance: prompt processing for a long
+            // context can peg the CPU for minutes (observed directly on
+            // Oracle's own CPU/load graphs), and an intermediate proxy/tunnel
+            // (the sslip.io tunnel in front of it) can have a shorter
+            // idle-read timeout than that -- so the connection gets cut
+            // cleanly, a normal stream "done", before the model emits a
+            // single token. This used to silently become a real,
+            // permanently-saved turn: an empty bubble literally labeled
+            // "Narrator" that looks like the story continuing with nothing
+            // happening, hiding the actual failure entirely. Retrying against
+            // the same endpoint would most likely just repeat the same
+            // multi-minute stall, so this is marked to skip the normal
+            // retry-with-backoff loop below and go straight to the Gemini
+            // fallback (if available) or a clear, visible error instead.
+            const emptyErr = new Error(`${endpointInfo.label || 'Local endpoint'} returned an empty response -- likely a connection timeout while still processing a long prompt on a CPU-only server.`);
+            emptyErr.skipRetry = true;
+            throw emptyErr;
+          }
           prewarmer.finish(rawOutput);
           appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
           appState.lastLocalProvider = endpointInfo.label || '';
@@ -11292,7 +11371,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           return parsePlainTextIntoBlocks(rawOutput);
         } catch (e) {
           lastError = e;
-          if (attempt === API_RETRY_LIMIT) {
+          if (attempt === API_RETRY_LIMIT || e.skipRetry) {
             // In Smart Auto-Routing, a profile that answered the /models ping
             // but then failed mid-call still degrades gracefully to Gemini
             // rather than dropping the user's turn entirely.
@@ -11319,9 +11398,21 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const apiKey = (keyInput?.value || cfg.apiKey || '').trim();
       const statusEl = document.getElementById(`llmTestStatus_${profileKey}`);
       if (statusEl) { statusEl.innerText = 'Verifying…'; statusEl.className = 'text-[9px] text-amber-400'; }
-      const result = await verifyLocalEndpoint(url, model, profileKey === 'deviceIphone' ? 20000 : 10000, apiKey);
+      let result = await verifyLocalEndpoint(url, model, profileKey === 'deviceIphone' ? 20000 : 10000, apiKey);
+      let usedFallback = false;
+      // Workstation is the one profile with a second address (a public
+      // tunnel, e.g. ngrok) for when the phone isn't on the laptop's WiFi --
+      // if the LAN address didn't answer, test the fallback too so "Test
+      // Connection" reports the real story instead of just failing.
+      if (!result.ok && profileKey === 'workstation') {
+        const fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || cfg.fallbackUrl || '').trim();
+        if (fallbackUrl) {
+          const fallbackResult = await verifyLocalEndpoint(fallbackUrl, model, 15000, apiKey);
+          if (fallbackResult.ok) { result = fallbackResult; usedFallback = true; }
+        }
+      }
       if (statusEl) {
-        statusEl.innerText = result.ok ? `✅ Verified${result.model ? ' · ' + result.model.slice(0, 24) : ''}` : `❌ ${result.stage || 'Failed'}`;
+        statusEl.innerText = result.ok ? `✅ Verified${usedFallback ? ' (fallback)' : ''}${result.model ? ' · ' + result.model.slice(0, 24) : ''}` : `❌ ${result.stage || 'Failed'}`;
         statusEl.className = result.ok ? 'text-[9px] text-emerald-400 font-semibold' : 'text-[9px] text-rose-400 font-semibold';
         statusEl.title = result.ok ? (result.output || 'OpenAI-compatible inference verified.') : (result.error || 'Verification failed.');
       }
@@ -11335,7 +11426,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!hint) return;
       const map = {
         gemini: 'Routine story turns use the Gemini API (default).',
-        workstation: 'Routine turns are sent to the Workstation (Laptop) endpoint below.',
+        workstation: 'Routine turns are sent to the Workstation (Laptop) endpoint below — tries the LAN address first, then the fallback URL if set.',
         deviceIphone: 'Routine turns are sent to the Oracle Cloud endpoint below.',
         deviceIpad: 'Routine turns are sent to the On-Device (iPad Air) endpoint below.',
         auto: '⚡ Smart Auto-Routing: pings Workstation first, then Oracle Cloud/iPad, then falls back to Gemini if both are offline. Re-checked every ~20s.'
