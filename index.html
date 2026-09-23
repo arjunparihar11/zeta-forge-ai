@@ -572,7 +572,10 @@
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Dramatis Personae</h2>
           <span class="text-[10px] bg-[#2a223c] text-zetaLight px-2 py-0.5 rounded-full border border-zetaAccent/40" id="charCount">0 active</span>
         </div>
-        <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
+        <div class="flex items-center gap-1">
+          <button onclick="openModal('relationshipGraphModal')" title="Relationship Graph" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-zetaBorder transition"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="8.2" y1="6.9" x2="15.8" y2="6.9"/><line x1="7" y1="8.2" x2="10.7" y2="16"/><line x1="17" y1="8.2" x2="13.3" y2="16"/></svg></button>
+          <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
+        </div>
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 space-y-4 scroll-touch" id="sidebarCharacterList">
@@ -877,6 +880,15 @@
               onblur="scheduleMentionPopupClose()"
             ></textarea>
             <button
+              type="button"
+              id="micBtn"
+              onclick="toggleSpeechToText()"
+              title="Dictate with your microphone"
+              class="bg-zetaCard hover:bg-zetaBorder text-slate-300 border border-zetaBorder px-3 py-2.5 rounded-xl text-sm flex items-center justify-center transition shrink-0 h-[42px] w-[42px]"
+            >
+              🎤
+            </button>
+            <button
               type="submit"
               id="sendBtn"
               class="bg-zetaAccent hover:bg-zetaAccentHover text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center transition shadow-lg shadow-zetaAccent/30 disabled:opacity-50 shrink-0 h-[42px] min-w-[64px]"
@@ -913,6 +925,36 @@
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
         <button onclick="closeImageLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close Library</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relationship Graph Modal -->
+  <div id="relationshipGraphModal" onclick="if(event.target===this)closeModal('relationshipGraphModal')" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🕸️ Relationship Graph</h2>
+        <button onclick="closeModal('relationshipGraphModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-auto space-y-3 flex-1 scroll-touch" id="relationshipGraphContainer">
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeModal('relationshipGraphModal')" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Version History Modal -->
+  <div id="messageHistoryModal" onclick="if(event.target===this)closeModal('messageHistoryModal')" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🕘 Message History</h2>
+        <button onclick="closeModal('messageHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto space-y-2 flex-1 scroll-touch" id="messageHistoryContainer">
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeModal('messageHistoryModal')" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
       </div>
     </div>
   </div>
@@ -1401,6 +1443,27 @@
                 <option value="kitten">🐱 Kitten TTS — ~25-80MB, in-browser, lightest weight and most conservative on memory</option>
               </select>
               <p id="ttsEngineHint" class="text-[10px] text-slate-500 mt-1 leading-snug"></p>
+              <div id="ttsAutoPriorityField" class="hidden mt-2 space-y-1">
+                <label class="block text-slate-300 font-semibold text-xs">Auto Priority Order</label>
+                <p class="text-[10px] text-slate-500 leading-snug">Auto tries these in order and uses the first one actually available. Defaults to Chatterbox (Laptop) first for quality, Kokoro second, Kitten last.</p>
+                <div class="grid grid-cols-3 gap-1.5">
+                  <select id="ttsAutoPriority0" onchange="updateTtsAutoPriority()" class="bg-zetaInput border border-zetaBorder rounded-lg px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent">
+                    <option value="chatterbox-laptop">1st: Chatterbox</option>
+                    <option value="kokoro">1st: Kokoro</option>
+                    <option value="kitten">1st: Kitten</option>
+                  </select>
+                  <select id="ttsAutoPriority1" onchange="updateTtsAutoPriority()" class="bg-zetaInput border border-zetaBorder rounded-lg px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent">
+                    <option value="chatterbox-laptop">2nd: Chatterbox</option>
+                    <option value="kokoro">2nd: Kokoro</option>
+                    <option value="kitten">2nd: Kitten</option>
+                  </select>
+                  <select id="ttsAutoPriority2" onchange="updateTtsAutoPriority()" class="bg-zetaInput border border-zetaBorder rounded-lg px-2 py-1.5 text-[11px] text-white focus:border-zetaAccent">
+                    <option value="chatterbox-laptop">3rd: Chatterbox</option>
+                    <option value="kokoro">3rd: Kokoro</option>
+                    <option value="kitten">3rd: Kitten</option>
+                  </select>
+                </div>
+              </div>
               <div id="chatterboxLaptopUrlField" class="hidden mt-2 space-y-1">
                 <label class="block text-slate-300 font-semibold text-xs">Laptop Server URL</label>
                 <div class="flex gap-1.5">
@@ -1621,6 +1684,8 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         <button onclick="performExport('all-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📦 All Scenarios — JSON</div><div class="text-[10px] text-slate-500 mt-1">Complete app backup including every scenario.</div></button>
         <button onclick="performExport('scenario-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">🧩 Current Scenario — JSON</div><div class="text-[10px] text-slate-500 mt-1">Portable single-scenario backup.</div></button>
         <button onclick="performExport('scenario-md')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📝 Current Scenario — Markdown</div><div class="text-[10px] text-slate-500 mt-1">Human-readable transcript.</div></button>
+        <button onclick="performExport('scenario-pdf')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📕 Current Scenario — Illustrated PDF</div><div class="text-[10px] text-slate-500 mt-1">Paginated story with embedded scene images, ready to print or read on any device.</div></button>
+        <button onclick="performExport('scenario-epub')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📗 Current Scenario — EPUB</div><div class="text-[10px] text-slate-500 mt-1">Illustrated e-book, one chapter per Chapter Chronicle entry, for Kindle/Apple Books/etc.</div></button>
       </div>
     </div>
   </div>
@@ -2622,6 +2687,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop' | 'auto'
+      ttsAutoPriority: ['chatterbox-laptop', 'kokoro', 'kitten'],   // order Auto tries engines in — see resolveAutoTtsEngine
       chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
       imageFallbackLaptopUrl: 'https://paralegal-pampers-chevron.ngrok-free.dev/image',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
@@ -2832,6 +2898,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       flushUiRender(); // paint immediately on boot rather than a frame later
       setCurrentLlmConnection('unknown',appState.llmProfile||'gemini',{label:llmProfileLabel(appState.llmProfile||'gemini'),model:appState.model||''});
       bindDefensiveClickListeners();
+      initSpeechToTextUi();
       // Give the browser a paint opportunity before heavy model work.
       await new Promise(requestAnimationFrame);
       // If the database couldn't be opened, say so rather than silently
@@ -3440,6 +3507,58 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     function autoExpandTextarea(el) {
       el.style.height = '42px';
       el.style.height = Math.max(42, Math.min(el.scrollHeight, 144)) + 'px';
+    }
+
+    // --- Speech-to-text input (Web Speech API) ------------------------------
+    // Chrome/Edge/Safari expose this as webkitSpeechRecognition; Firefox has
+    // no implementation at all as of this writing, so the mic button is
+    // hidden entirely rather than shown-then-failing on unsupported browsers.
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    let activeSpeechRecognition = null;
+    function initSpeechToTextUi() {
+      const micBtn = document.getElementById('micBtn');
+      if (!micBtn) return;
+      if (!SpeechRecognitionCtor) { micBtn.classList.add('hidden'); return; }
+    }
+    function toggleSpeechToText() {
+      if (activeSpeechRecognition) { activeSpeechRecognition.stop(); return; }
+      if (!SpeechRecognitionCtor) return;
+      const micBtn = document.getElementById('micBtn');
+      const inputEl = document.getElementById('userInput');
+      if (!inputEl) return;
+      const recognition = new SpeechRecognitionCtor();
+      activeSpeechRecognition = recognition;
+      recognition.lang = (navigator.language || 'en-US');
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      // Text already in the box when dictation starts is kept and appended
+      // to, rather than overwritten, so tapping the mic mid-sentence to add
+      // a spoken clause to something already typed works as expected.
+      const baseText = inputEl.value ? inputEl.value.replace(/\s+$/, '') + ' ' : '';
+      let finalTranscript = '';
+      if (micBtn) { micBtn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white', 'border-rose-500'); micBtn.classList.remove('bg-zetaCard', 'hover:bg-zetaBorder', 'text-slate-300'); micBtn.innerText = '⏹️'; }
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalTranscript += transcript + ' ';
+          else interim += transcript;
+        }
+        inputEl.value = baseText + finalTranscript + interim;
+        autoExpandTextarea(inputEl);
+        scheduleContextEstimate();
+      };
+      recognition.onerror = (event) => {
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          showTransientToast(`🎤 Speech recognition error: ${event.error}`);
+        }
+      };
+      const resetMicBtn = () => {
+        activeSpeechRecognition = null;
+        if (micBtn) { micBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500', 'text-white', 'border-rose-500'); micBtn.classList.add('bg-zetaCard', 'hover:bg-zetaBorder', 'text-slate-300'); micBtn.innerText = '🎤'; }
+      };
+      recognition.onend = resetMicBtn;
+      try { recognition.start(); } catch (e) { resetMicBtn(); }
     }
 
     function handleInputKeydown(event) {
@@ -4491,7 +4610,20 @@ Preserve the character's described physical identity consistently. Show the full
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       showLoading(true, `Generating ${char.name || 'character'} photo...`);
       try {
-        const meinamixPortraitOpts = { width: 512, height: 768, negativePrompt: 'reference sheet, character sheet, turnaround, multiple views, multiple poses, split screen, comparison, collage, grid, 2koma, multiple panels, inset, multiple characters, duplicate, side by side' };
+        // MeinaMix has no reference-photo input the way Gemini does, so
+        // there's nothing else keeping a character's face/outfit consistent
+        // across separate generations -- every click was effectively a new
+        // random person. Locking a seed per character (generated once,
+        // reused on every later MeinaMix portrait for that same character)
+        // gives repeat generations a real shot at looking like the same
+        // person, the same way an img2img reference would, without needing
+        // one. A fresh seed is deliberately NOT rerolled here on every
+        // generation; see regenerateCharacterMeinamixSeed for the explicit
+        // "give me someone new" escape hatch.
+        if (engine === 'meinamix' && !Number.isInteger(char.meinamixSeed)) {
+          char.meinamixSeed = Math.floor(Math.random() * 2147483647);
+        }
+        const meinamixPortraitOpts = { width: 512, height: 768, negativePrompt: 'reference sheet, character sheet, turnaround, multiple views, multiple poses, split screen, comparison, collage, grid, 2koma, multiple panels, inset, multiple characters, duplicate, side by side', seed: char.meinamixSeed };
         const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
         const src = await normalizeGeneratedPortrait(generatedSrc);
         if (!Array.isArray(char.photos)) char.photos = [];
@@ -4505,6 +4637,21 @@ Preserve the character's described physical identity consistently. Show the full
         if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (char.name || '').toLowerCase()) openCharacterSpotlight(char.name);
       } catch (err) { zfAlert('Character photo error: ' + err.message); }
       finally { showLoading(false); }
+    }
+
+    // Explicit escape hatch for the seed lock above: clears the character's
+    // stored MeinaMix seed so the NEXT MeinaMix portrait generation picks a
+    // fresh one (and locks onto that instead). Only affects the local
+    // MeinaMix path -- Gemini portraits are unaffected since they don't use
+    // this seed at all.
+    async function regenerateCharacterMeinamixSeed(target) {
+      const active = getActiveScenario();
+      const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
+      if (!char) return;
+      if (!Number.isInteger(char.meinamixSeed)) { await zfAlert('This character has not generated a MeinaMix portrait yet, so there is no locked seed to reroll. It will get one automatically the first time you generate a photo with MeinaMix.', 'Nothing to Reroll'); return; }
+      char.meinamixSeed = null;
+      await saveState();
+      await zfAlert(`${char.name || 'This character'}'s locked MeinaMix appearance has been cleared. The next MeinaMix portrait for them will start a new one.`, 'Seed Cleared');
     }
 
     async function generateCharacterSpriteSheet(target) {
@@ -6112,6 +6259,16 @@ CRITICAL RULES:
       // undoBranch() below already deep-clones on the way back out.
       messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
 
+      // Full per-message version history (separate from the branch-undo
+      // snapshot above, which only ever remembers the single most recent
+      // edit and is discarded once used). Every version this message has
+      // ever held -- including the very first, pre-edit wording -- is kept
+      // here so any of them can be browsed and restored later, not just the
+      // last one stepped back from. Persisted normally with the rest of the
+      // message object since it's plain text, no image/asset handling needed.
+      if (!Array.isArray(active.messages[idx].editHistory)) active.messages[idx].editHistory = [];
+      active.messages[idx].editHistory.push({ text: active.messages[idx].text, at: Date.now() });
+
       active.messages[idx].text = formatDialogueSpacing(newText);
       active.messages = active.messages.slice(0, idx + 1);
 
@@ -6133,6 +6290,52 @@ CRITICAL RULES:
         await saveState();
         renderAllUi();
       }
+    }
+
+    // --- Full message version history (browse/restore any prior edit) ------
+    function openMessageHistory(id) {
+      const active = getActiveScenario();
+      const msg = (active.messages || []).find(m => m.id === id);
+      if (!msg) return;
+      const history = Array.isArray(msg.editHistory) ? msg.editHistory : [];
+      const versions = [...history, { text: msg.text, at: msg.editedAt || Date.now(), current: true }];
+      const rows = versions.slice().reverse().map((v, revIdx) => {
+        const realIdx = versions.length - 1 - revIdx;
+        const when = v.current ? 'Current version' : new Date(v.at).toLocaleString();
+        const restoreBtn = v.current ? '' : `<button onclick="restoreMessageVersion('${escapeJsString(id)}', ${realIdx})" class="text-[10px] bg-zetaAccent hover:bg-indigo-500 text-white px-2 py-1 rounded-lg shrink-0">Restore</button>`;
+        return `<div class="p-2.5 rounded-xl border ${v.current ? 'border-zetaAccent/60 bg-zetaAccent/10' : 'border-zetaBorder bg-zetaCard'} flex items-start gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="text-[9px] uppercase tracking-wide text-slate-500 mb-1">${escapeHtml(when)}</div>
+            <div class="text-xs text-slate-200 whitespace-pre-wrap break-words">${escapeHtml(v.text || '')}</div>
+          </div>
+          ${restoreBtn}
+        </div>`;
+      }).join('');
+      const container = document.getElementById('messageHistoryContainer');
+      if (container) container.innerHTML = rows || `<p class="text-xs text-slate-500 text-center py-6">No edit history for this message yet.</p>`;
+      openModal('messageHistoryModal');
+    }
+
+    async function restoreMessageVersion(id, versionIndex) {
+      const active = getActiveScenario();
+      const idx = active.messages.findIndex(m => m.id === id);
+      if (idx === -1) return;
+      const msg = active.messages[idx];
+      const history = Array.isArray(msg.editHistory) ? msg.editHistory : [];
+      const versions = [...history, { text: msg.text, at: msg.editedAt || Date.now() }];
+      const target = versions[versionIndex];
+      if (!target) return;
+      // Keep the version being replaced in history too (pushed as the
+      // current text, timestamped now) so restoring an older version never
+      // loses whatever was showing right before -- it's just one more entry
+      // to step back to later, not a destructive overwrite.
+      if (!Array.isArray(msg.editHistory)) msg.editHistory = [];
+      msg.editHistory.push({ text: msg.text, at: Date.now() });
+      msg.text = target.text;
+      msg.editedAt = Date.now();
+      closeModal('messageHistoryModal');
+      await saveState();
+      renderAllUi();
     }
 
     async function retryLastTurn() {
@@ -6333,20 +6536,28 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
     }
 
     async function runBatchedBackgroundMaintenance(force=false){
-      if(backgroundMaintenanceBusy||!appState.apiKey)return;
+      if(backgroundMaintenanceBusy)return;
       const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(turns.length<3)return;
+      // Local-first: try whichever LLM is actively configured before ever
+      // requiring a Gemini key, same priority order as reply suggestions,
+      // the scene-prompt writer, and (per-character) relationship analysis.
+      // Only bails out here if neither a usable local endpoint nor a Gemini
+      // key exists at all.
+      const maintEndpointInfo = await resolveActiveEndpoint();
+      if(maintEndpointInfo.type!=='local' && !appState.apiKey) return;
       const event=force?{type:'forced',fingerprint:turns.slice(-6).map(m=>m.id||m.text).join('|')} : detectSignificantRelationshipEvent(active.messages);
-      // Previously this only re-checked lore on an exact multiple of
-      // LOREBOOK_ANALYSIS_INTERVAL (turn 12, 24, 36...) -- if that one turn
-      // happened to have no new named entity (hasNewLoreCandidates false),
-      // the next check didn't happen until the NEXT multiple of 12, silently
-      // losing up to a full interval's worth of story. Tracking a rolling
-      // "turns since last actual analysis" instead means a miss at turn 12
-      // just gets retried at 13, 14, ... every turn until something new
-      // shows up, rather than being locked out until turn 24.
+      // The fixed interval is now only a backstop for a quiet stretch with no
+      // obvious new entity. A strong signal (an actual new named entity
+      // appearing in recent dialogue) can trigger an extraction pass well
+      // before the full interval elapses, throttled only by a small minimum
+      // gap so a burst of dialogue doesn't spend a call on every single turn.
       const lastLoreTurn = (active.localMemoryIndex && active.localMemoryIndex.lastLorebookAnalysisTurn) || 0;
-      const loreIntervalReached = turns.length>=6 && (turns.length-lastLoreTurn)>=LOREBOOK_ANALYSIS_INTERVAL;
-      const dueLore = loreIntervalReached && (force || hasNewLoreCandidates(active, turns.slice(-LOREBOOK_ANALYSIS_INTERVAL)));
+      const turnsSinceLore = turns.length - lastLoreTurn;
+      const MIN_LOREBOOK_CHECK_GAP = 3;
+      const loreIntervalReached = turns.length>=6 && turnsSinceLore>=LOREBOOK_ANALYSIS_INTERVAL;
+      const loreGapOk = turns.length>=6 && turnsSinceLore>=MIN_LOREBOOK_CHECK_GAP;
+      const loreCandidateWindow = turns.slice(-Math.min(turnsSinceLore, LOREBOOK_ANALYSIS_INTERVAL));
+      const dueLore = loreGapOk && (force || loreIntervalReached || hasNewLoreCandidates(active, loreCandidateWindow));
       if(!event&&!dueLore)return;
       backgroundMaintenanceBusy=true;
       try{
@@ -6364,7 +6575,26 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         // names and format from the bare {"lorebook":[]} shape alone.
         const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?`Extract only durable new facts introduced in RECENT STORY that are NOT already covered in EXISTING LORE -- new locations, factions, items/artifacts, secrets/revelations, backstory, rules of the world, or significant plot developments (a decision made, a promise, a discovery, a status change) even if no new proper noun is involved. Do NOT restate existing lore. Do NOT log routine dialogue or transient mood/scenery. For each entry return exactly {"title":"short name","keywords":"comma,separated,list,of,searchable,terms","content":"1-3 sentence factual summary"}. "keywords" MUST be a comma-separated list of 3-8 distinct short terms someone would plausibly mention later (the entity's name, aliases/nicknames, related place/item/character names, and the core topic) -- NOT a restated sentence or the title alone. Return at most 4 entries; omit anything not clearly durable.`:'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[{"title":"","keywords":"","content":""}]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
         const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
-        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)return;const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);let parsed={};try{parsed=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,{})||{}}catch(e){}
+        let parsed=null;
+        if(maintEndpointInfo.type==='local'){
+          try{
+            const localRes=await fetch(`${maintEndpointInfo.url.replace(/\/+$/,'')}/chat/completions`,{
+              method:'POST',
+              headers: localRequestHeaders({'Content-Type':'application/json'}, maintEndpointInfo.apiKey),
+              body: JSON.stringify({ model: maintEndpointInfo.model || 'local-model', messages:[{role:'user',content: prompt + '\\n\\nRespond with ONLY the JSON object described above. No prose, no code fences.'}], temperature:.18, max_tokens:1400, stream:false })
+            });
+            if(localRes.ok){
+              const localData=await localRes.json();
+              const localParsed=parseJsonLoose(localData.choices?.[0]?.message?.content,null);
+              if(localParsed){ parsed=localParsed; appState.localTurnsServed=(appState.localTurnsServed||0)+1; }
+            }
+          }catch(e){ console.warn('Local background maintenance failed, falling back to Gemini:', e?.message||e); }
+        }
+        if(!parsed && appState.apiKey){
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          if(res.ok){const data=await res.json();recordTextUsage(MODEL_ADVANCED,data,prompt,1400);try{parsed=parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text,{})||{}}catch(e){parsed={}}}
+        }
+        if(!parsed) return;
         const charMap=parsed.characters||{};for(const c of active.characters){const r=charMap[c.name];if(!r)continue;c.relationships=c.relationships||{};for(const [n,v] of Object.entries(r.relationships||{})){if(n!==c.name&&String(v||'').trim())c.relationships[n]=String(v).trim()}if(String(r.relationship||'').trim())c.relationship=String(r.relationship).trim();}
         for(const e of (Array.isArray(parsed.lorebook)?parsed.lorebook:[]).slice(0,8)){
           if(!e?.title||!e?.content)continue;
@@ -6387,7 +6617,14 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
     async function updateInterCharacterRelationships(force = false) {
       const active = getActiveScenario();
-      if (!appState.apiKey || active.characters.length === 0) return;
+      if (active.characters.length === 0) return;
+      // Local-first, same as reply suggestions and the scene-prompt writer:
+      // this used to hard-require a Gemini key and silently never run for a
+      // local-only setup. Now it only bails out here if NEITHER a usable
+      // local endpoint NOR a Gemini key is available; the actual choice of
+      // which one to call happens below via resolveActiveEndpoint().
+      const relEndpointInfo = await resolveActiveEndpoint();
+      if (relEndpointInfo.type !== 'local' && !appState.apiKey) return;
 
       const activeTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
       if (activeTurns.length < 3) return;
@@ -6458,25 +6695,57 @@ IMPORTANT RULES:
           safetySettings: buildSafetySettings()
         };
 
-        // Relationship analysis is a higher-value operation: always use the
-        // stronger Flash model regardless of the user's routine model choice.
-        // thinkingConfig kept minimal for the same reason as
-        // refreshActiveChapterCharacterArcs: gemini-3.6-flash burns its
-        // maxOutputTokens budget on hidden reasoning tokens before writing any
-        // actual JSON otherwise. Bumped tokens as headroom. (thinkingLevel,
-        // not thinkingBudget:0 -- see refreshActiveChapterCharacterArcs for why.)
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptPayload)
-        });
+        // Relationship analysis is a higher-value operation, so on Gemini it
+        // always uses the stronger Flash model regardless of the user's
+        // routine model choice. thinkingConfig kept minimal for the same
+        // reason as refreshActiveChapterCharacterArcs: gemini-3.6-flash burns
+        // its maxOutputTokens budget on hidden reasoning tokens before
+        // writing any actual JSON otherwise. Bumped tokens as headroom.
+        // (thinkingLevel, not thinkingBudget:0 -- see
+        // refreshActiveChapterCharacterArcs for why.) When a local endpoint
+        // is active it's tried first, same priority order as reply
+        // suggestions and the scene-prompt writer -- Gemini is only reached
+        // here if there's no local endpoint, or the local call didn't
+        // produce usable JSON.
+        let parsedData = null;
+        if (relEndpointInfo.type === 'local') {
+          try {
+            const localRes = await fetch(`${relEndpointInfo.url.replace(/\/+$/, '')}/chat/completions`, {
+              method: 'POST',
+              headers: localRequestHeaders({ 'Content-Type': 'application/json' }, relEndpointInfo.apiKey),
+              body: JSON.stringify({
+                model: relEndpointInfo.model || 'local-model',
+                messages: [{ role: 'user', content: promptPayload.contents[0].parts[0].text + '\n\nRespond with ONLY the JSON object described above. No prose, no code fences.' }],
+                temperature: 0.15, max_tokens: 1800, stream: false
+              })
+            });
+            if (localRes.ok) {
+              const localData = await localRes.json();
+              const localParsed = parseJsonLoose(localData.choices?.[0]?.message?.content || '', null);
+              if (localParsed) {
+                parsedData = localParsed;
+                appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
+              }
+            }
+          } catch (e) { console.warn('Local relationship analysis failed, falling back to Gemini:', e?.message || e); }
+        }
 
-        if (res.ok) {
-          const data = await res.json();
-          recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
-          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          const parsedData = parseJsonLoose(rawJson, null); if (!parsedData) throw new Error('Unparseable model response');
+        if (!parsedData && appState.apiKey) {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promptPayload)
+          });
+          if (res.ok) {
+            const data = await res.json();
+            recordTextUsage(MODEL_ADVANCED, data, dialogueText, 1200);
+            const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            parsedData = parseJsonLoose(rawJson, null);
+          }
+        }
+
+        if (parsedData) {
           const charMap = parsedData.characters || parsedData;
 
           for (let c of active.characters) {
@@ -8739,16 +9008,33 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         applyResolvedTtsEngine(autoTtsEngineCache.result);
         return resolvedAutoTtsEngine;
       }
-      let result = 'kokoro';
-      const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
-      if (base) {
-        try {
-          const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(4000) });
-          if (res.ok) result = 'chatterbox-laptop';
-        } catch (e) { /* laptop server unreachable right now — fall through to an on-device engine */ }
+      // Walks appState.ttsAutoPriority (Setup -> Voice Engine -> Auto
+      // Priority Order) in order and uses the first engine that's actually
+      // available, instead of the old fixed Chatterbox -> Kokoro -> Kitten
+      // chain. Falls back to that same default chain when no custom order
+      // has been set (see TTS_AUTO_DEFAULT_PRIORITY).
+      const order = (Array.isArray(appState.ttsAutoPriority) && appState.ttsAutoPriority.length === 3)
+        ? appState.ttsAutoPriority : TTS_AUTO_DEFAULT_PRIORITY;
+      let result = null;
+      for (const candidate of order) {
+        if (candidate === 'chatterbox-laptop') {
+          const base = (appState.chatterboxLaptopUrl || '').trim().replace(/\/+$/, '');
+          if (!base) continue;
+          try {
+            const res = await fetch(`${base}/health`, { headers: localRequestHeaders(), signal: AbortSignal.timeout(4000) });
+            if (res.ok) { result = 'chatterbox-laptop'; break; }
+          } catch (e) { /* laptop server unreachable right now — try the next engine in priority order */ }
+        } else if (candidate === 'kokoro') {
+          if (!kokoroLoadError) { result = 'kokoro'; break; }
+        } else if (candidate === 'kitten') {
+          // Kitten has no separate load-error tracking of its own — treated
+          // as always available, so it's a safe engine to land on no matter
+          // where it sits in the priority order.
+          result = 'kitten'; break;
+        }
       }
+      if (!result) result = kokoroLoadError ? 'kitten' : 'kokoro'; // priority list exhausted with nothing reachable — same guaranteed fallback as before
       chatterboxLaptopReady = result === 'chatterbox-laptop';
-      if (result !== 'chatterbox-laptop') result = kokoroLoadError ? 'kitten' : 'kokoro';
       autoTtsEngineCache = { result, expiresAt: Date.now() + AUTO_ROUTE_CACHE_TTL_MS };
       applyResolvedTtsEngine(result);
       return resolvedAutoTtsEngine;
@@ -8964,6 +9250,12 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (opts.width) body.width = opts.width;
       if (opts.height) body.height = opts.height;
       if (opts.negativePrompt) body.negative_prompt = opts.negativePrompt;
+      // A locked per-character seed (see generateCharacterPhoto) gives
+      // repeat MeinaMix portraits of the same character a real shot at
+      // looking like the same person, the way Gemini's reference-photo
+      // input already does. Omitted entirely for scene visuals, which have
+      // no per-character identity to keep consistent.
+      if (Number.isInteger(opts.seed)) body.seed = opts.seed;
       const res = await fetch(`${base}/generate-image`, {
         method: 'POST',
         headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
@@ -10097,9 +10389,48 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       }
     }
 
+    // The three engines Auto can pick between, in the order tried when no
+    // custom priority has been set. appState.ttsAutoPriority overrides this
+    // (see resolveAutoTtsEngine) so a user who prefers Kitten's speed over
+    // Chatterbox's quality, or whose laptop server is flaky, can reorder
+    // without leaving Auto mode entirely.
+    const TTS_AUTO_DEFAULT_PRIORITY = ['chatterbox-laptop', 'kokoro', 'kitten'];
+
+    function syncTtsAutoPriorityUi() {
+      const field = document.getElementById('ttsAutoPriorityField');
+      const select = document.getElementById('ttsEngineSelect');
+      const selected = select ? select.value : getActiveTtsEngine();
+      if (field) field.classList.toggle('hidden', selected !== 'auto');
+      const order = (Array.isArray(appState.ttsAutoPriority) && appState.ttsAutoPriority.length === 3)
+        ? appState.ttsAutoPriority : TTS_AUTO_DEFAULT_PRIORITY;
+      order.forEach((engine, i) => {
+        const sel = document.getElementById(`ttsAutoPriority${i}`);
+        if (sel) sel.value = engine;
+      });
+    }
+
+    // Reads the three priority dropdowns back out. If the user's picks
+    // aren't a clean permutation of all three engines (e.g. they set two
+    // slots to the same engine), the missing engine is appended in its
+    // default relative order rather than silently dropping it from Auto's
+    // consideration entirely.
+    function updateTtsAutoPriority() {
+      const picked = [0, 1, 2].map(i => document.getElementById(`ttsAutoPriority${i}`)?.value).filter(Boolean);
+      const seen = new Set();
+      const order = [];
+      picked.forEach(e => { if (!seen.has(e)) { seen.add(e); order.push(e); } });
+      TTS_AUTO_DEFAULT_PRIORITY.forEach(e => { if (!seen.has(e)) { seen.add(e); order.push(e); } });
+      appState.ttsAutoPriority = order;
+      syncTtsAutoPriorityUi();
+      saveState();
+      autoTtsEngineCache = { result: null, expiresAt: 0 }; // priority changed — re-probe next resolution instead of using a stale pick
+      if (appState.ttsEngine === 'auto') resolveAutoTtsEngine(true);
+    }
+
     async function changeTtsEngine(value) {
       const next = ['chatterbox-laptop', 'kokoro', 'kitten', 'auto'].includes(value) ? value : 'kokoro';
       syncChatterboxLaptopFieldVisibility();
+      syncTtsAutoPriorityUi();
       if (appState.ttsEngine === next) { updateTtsEngineHint(); return; }
 
       appState.ttsEngine = next;
@@ -10350,6 +10681,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           });
         }
         if (id === 'usageCostModal') renderUsageCostModal();
+        if (id === 'relationshipGraphModal') renderRelationshipGraphModal();
       } catch (e) {
         console.error('openModal sync error (modal will still open):', e);
         const indicator = document.getElementById('setupLoadingIndicator');
@@ -10430,6 +10762,75 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       modal.classList.remove('flex');
     }
 
+    // Renders the cast (+ user persona) as nodes on a circle with an edge
+    // for every pair that actually has a recorded relationship label --
+    // user<->character from char.relationship, character<->character from
+    // char.relationships[otherName] (checked on either side, since only one
+    // of the pair may have been the one the AI/user set it on).
+    function renderRelationshipGraphModal() {
+      const container = document.getElementById('relationshipGraphContainer');
+      if (!container) return;
+      const active = getActiveScenario();
+      const user = active.userPersona || {};
+      const chars = active.characters || [];
+      if (!chars.length) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-10">Add at least one character to Main Cast to see a relationship graph.</p>`;
+        return;
+      }
+      const nodes = [
+        { name: user.name || 'You', isUser: true, avatar: user.avatar || '' },
+        ...chars.map(c => ({ name: c.name, isUser: false, avatar: c.avatar || '' }))
+      ];
+      const n = nodes.length;
+      const size = 520, cx = size / 2, cy = size / 2, radius = Math.min(cx, cy) - 74;
+      nodes.forEach((node, i) => {
+        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+        node.x = cx + radius * Math.cos(angle);
+        node.y = cy + radius * Math.sin(angle);
+      });
+      const edges = [];
+      chars.forEach(c => {
+        const label = String(c.relationship || '').trim();
+        if (label) edges.push({ a: 0, b: nodes.findIndex(nd => !nd.isUser && nd.name === c.name), label });
+      });
+      for (let i = 0; i < chars.length; i++) {
+        for (let j = i + 1; j < chars.length; j++) {
+          const ci = chars[i], cj = chars[j];
+          const label = String((ci.relationships && ci.relationships[cj.name]) || (cj.relationships && cj.relationships[ci.name]) || '').trim();
+          if (label) edges.push({ a: nodes.findIndex(nd => !nd.isUser && nd.name === ci.name), b: nodes.findIndex(nd => !nd.isUser && nd.name === cj.name), label });
+        }
+      }
+      let svg = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-auto" style="min-height:340px">`;
+      edges.forEach(e => {
+        const A = nodes[e.a], B = nodes[e.b];
+        if (!A || !B) return;
+        const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+        const shortLabel = e.label.length > 16 ? e.label.slice(0, 15) + '…' : e.label;
+        svg += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}" stroke="#493a72" stroke-width="1.5"/>`;
+        svg += `<rect x="${(mx - 40).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="80" height="16" rx="4" fill="#1a1626" stroke="#3d3159" stroke-width="1"/>`;
+        svg += `<text x="${mx.toFixed(1)}" y="${(my + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#c9bdf0">${escapeHtml(shortLabel)}</text>`;
+      });
+      nodes.forEach((node, i) => {
+        const r = node.isUser ? 27 : 22;
+        const safeName = escapeJsString(node.name || '');
+        svg += `<g style="cursor:pointer" onclick="closeModal('relationshipGraphModal');openCharacterSpotlight('${safeName}')">`;
+        if (node.avatar) {
+          svg += `<clipPath id="rgClip${i}"><circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}"/></clipPath><image href="${escapeHtml(node.avatar)}" x="${(node.x - r).toFixed(1)}" y="${(node.y - r).toFixed(1)}" width="${r * 2}" height="${r * 2}" clip-path="url(#rgClip${i})" preserveAspectRatio="xMidYMid slice"/>`;
+        } else {
+          svg += `<circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}" fill="${node.isUser ? '#7c65e8' : '#332a4d'}"/>`;
+          svg += `<text x="${node.x.toFixed(1)}" y="${(node.y + 4).toFixed(1)}" text-anchor="middle" font-size="14" fill="white" font-weight="bold">${escapeHtml((node.name || '?').slice(0, 1).toUpperCase())}</text>`;
+        }
+        svg += `<circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}" fill="none" stroke="${node.isUser ? '#a996f5' : '#5a4a85'}" stroke-width="2"/>`;
+        svg += `<text x="${node.x.toFixed(1)}" y="${(node.y + r + 13).toFixed(1)}" text-anchor="middle" font-size="10" fill="#e5e0ff" font-weight="600">${escapeHtml((node.name || '').slice(0, 14))}</text>`;
+        svg += `</g>`;
+      });
+      svg += `</svg>`;
+      const note = edges.length
+        ? `<div class="text-[10px] text-slate-500 text-center mb-1">Tap any character to open their spotlight. Only pairs with a recorded relationship label are connected.</div>`
+        : `<div class="text-[10px] text-slate-500 text-center mb-1">No relationship labels recorded yet -- they fill in as the story plays out (or edit them directly from a character's spotlight).</div>`;
+      container.innerHTML = note + svg;
+    }
+
     function syncModalForm() {
       const active = getActiveScenario();
       document.getElementById('apiKeyInput').value = appState.apiKey || '';
@@ -10456,6 +10857,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const engSel = document.getElementById('ttsEngineSelect');
       if (engSel) engSel.value = appState.ttsEngine === 'auto' ? 'auto' : getActiveTtsEngine();
       syncChatterboxLaptopFieldVisibility();
+      syncTtsAutoPriorityUi();
       updateTtsEngineHint();
       const imgFallbackEl = document.getElementById('imageFallbackLaptopUrl'); if (imgFallbackEl) imgFallbackEl.value = appState.imageFallbackLaptopUrl || '';
       const imgFallbackStatusEl = document.getElementById('imageFallbackLaptopStatus'); if (imgFallbackStatusEl) imgFallbackStatusEl.innerText = '';
@@ -10538,6 +10940,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
               </button>
               <button type="button" onclick="generateCharacterPhoto(${index})" class="bg-slate-800 hover:bg-emerald-700 text-emerald-300 border border-slate-700 text-[10px] px-2 py-1 rounded-lg">✨ Photo</button>
               <button type="button" onclick="generateCharacterSpriteSheet(${index})" class="bg-slate-800 hover:bg-amber-700 text-amber-300 border border-slate-700 text-[10px] px-2 py-1 rounded-lg">🎞️ Sheet</button>
+              <button type="button" onclick="regenerateCharacterMeinamixSeed(${index})" title="Reroll the locked MeinaMix appearance seed for this character (only affects future MeinaMix portraits, not Gemini)" class="bg-slate-800 hover:bg-purple-700 text-purple-300 border border-slate-700 text-[10px] px-2 py-1 rounded-lg">🎲</button>
               <button type="button" onclick="removeCharacterRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
             </div>
           </div>
@@ -11045,6 +11448,31 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return out;
     }
 
+    // Small, non-blocking toast for a notice that's worth surfacing but
+    // doesn't deserve interrupting the story with a modal (zfAlert). Auto-
+    // dismisses itself; multiple calls stack briefly rather than clobbering
+    // each other. Kept dependency-free (inline styles) since it needs to
+    // work regardless of whichever modal/panel is open at the time.
+    let transientToastCount = 0;
+    function showTransientToast(message) {
+      const el = document.createElement('div');
+      const offset = 16 + (transientToastCount * 52);
+      transientToastCount++;
+      el.textContent = message;
+      el.style.cssText = `position:fixed;left:50%;transform:translateX(-50%);bottom:${offset}px;z-index:9999;background:#1e1b2e;border:1px solid #4c3d78;color:#e5e0ff;padding:8px 14px;border-radius:12px;font-size:12px;max-width:88vw;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .4s;`;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => { el.remove(); transientToastCount = Math.max(0, transientToastCount - 1); }, 450);
+      }, 4000);
+    }
+
+    // Set once per page session the first time playSequentialTypewriter
+    // actually drops a user-persona-voiced block (see below) -- deliberately
+    // NOT persisted to appState, so it surfaces again after a reload rather
+    // than going quiet forever after the first time it ever happened.
+    let userPersonaSpeechWarnedThisSession = false;
+
     async function playSequentialTypewriter(replyBlocks, allowUserPersonaSpeech = false) {
       activeTypewriter.isTyping = true;
       activeTypewriter.skipFlag = false;
@@ -11064,9 +11492,22 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // opening scene, which has no prior user turn to override) pass
       // allowUserPersonaSpeech=true and skip this filter.
       const userPersonaName = (active.userPersona?.name || '').trim().toLowerCase();
-      const sourceBlocks = (!allowUserPersonaSpeech && userPersonaName)
-        ? replyBlocks.filter(b => (b.speaker || '').trim().toLowerCase() !== userPersonaName)
-        : replyBlocks;
+      let sourceBlocks = replyBlocks;
+      if (!allowUserPersonaSpeech && userPersonaName) {
+        const droppedCount = replyBlocks.filter(b => (b.speaker || '').trim().toLowerCase() === userPersonaName).length;
+        sourceBlocks = replyBlocks.filter(b => (b.speaker || '').trim().toLowerCase() !== userPersonaName);
+        // This used to fail silently -- a misbehaving local model could keep
+        // voicing the user's own persona every single turn with no visible
+        // sign anything was being suppressed. Surface it (once per session,
+        // so it doesn't nag on a model that does this occasionally) so it's
+        // actually noticeable that a local model needs a stronger system
+        // prompt, rather than just quietly getting shorter replies.
+        if (droppedCount > 0 && !userPersonaSpeechWarnedThisSession) {
+          userPersonaSpeechWarnedThisSession = true;
+          console.warn(`Dropped ${droppedCount} AI-generated block(s) voiced as ${active.userPersona.name} (the user's own persona) on a turn the user just typed.`);
+          showTransientToast(`⚠️ The AI tried to speak as ${active.userPersona.name} and was blocked. This won't be shown again this session.`);
+        }
+      }
       if (!sourceBlocks.length) { activeTypewriter.isTyping = false; return; }
 
       const blocksToPlay = active.viewMode === 'vn' ? splitOverlongBlocks(sourceBlocks) : mergeConsecutiveSameSpeakerBlocks(sourceBlocks);
@@ -11713,6 +12154,104 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // the resolved endpoint isn't actually Gemini. Returns an array of
     // {speaker, mood, text} blocks either way, from whichever response-parsing
     // path was used (Gemini JSON vs local plain-text).
+    // Scans a growing "[{...},{...}" buffer (the array's closing "]" hasn't
+    // arrived yet) for top-level {...} objects that are already fully closed,
+    // tracking brace depth outside of string literals so a "}" inside a
+    // dialogue line doesn't get mistaken for the object's real close. Once an
+    // object's closing brace is seen its contents can never change (the model
+    // only appends), so every object this returns is safe to act on early.
+    function extractCompleteJsonObjects(bufferText) {
+      const results = [];
+      let depth = 0, inStr = false, esc = false, start = -1;
+      for (let i = 0; i < bufferText.length; i++) {
+        const ch = bufferText[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (ch === '\\') esc = true;
+          else if (ch === '"') inStr = false;
+          continue;
+        }
+        if (ch === '"') { inStr = true; continue; }
+        if (ch === '{') { if (depth === 0) start = i; depth++; }
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0 && start !== -1) {
+            try { results.push(JSON.parse(bufferText.slice(start, i + 1))); } catch (e) { /* still malformed mid-token, skip */ }
+            start = -1;
+          }
+        }
+      }
+      return results;
+    }
+    // Same early-TTS-prewarm idea as makeIncrementalVnPrewarmer, but for the
+    // structured {s,m,t} JSON blocks Gemini streams back for story turns
+    // instead of the "Name: text" plain-text shape local models produce.
+    function makeIncrementalJsonPrewarmer() {
+      let prewarmedCount = 0;
+      return {
+        feed(bufferText) {
+          const objs = extractCompleteJsonObjects(bufferText);
+          for (let i = prewarmedCount; i < objs.length; i++) {
+            const o = objs[i];
+            if (o && o.t && o.t.trim()) prewarmVnLineAudio(o.s || 'Narrator', o.t);
+          }
+          prewarmedCount = objs.length;
+        }
+      };
+    }
+    // Consumes a Gemini streamGenerateContent SSE response, concatenating the
+    // incremental `candidates[0].content.parts[0].text` deltas into the same
+    // full JSON text a non-streaming generateContent call would have returned
+    // in one shot -- so callers downstream (parseJsonLoose, etc.) don't need
+    // to change at all. onChunk(bufferSoFar) fires after every delta so the
+    // caller can react as blocks complete (see makeIncrementalJsonPrewarmer)
+    // instead of waiting for the whole reply to finish generating first,
+    // mirroring what consumeLocalLLMStream already does for local models.
+    async function consumeGeminiStream(response, onChunk) {
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.body || !response.body.getReader || contentType.includes('application/json')) {
+        // Non-streaming fallback -- some proxies collapse SSE into one blob.
+        const data = await response.json();
+        const single = Array.isArray(data) ? data[data.length - 1] : data;
+        const text = Array.isArray(data)
+          ? data.map(d => d.candidates?.[0]?.content?.parts?.[0]?.text || '').join('')
+          : (data.candidates?.[0]?.content?.parts?.[0]?.text || '');
+        if (onChunk && text) onChunk(text);
+        return { rawOutput: text, usageMeta: single?.usageMetadata ? { usageMetadata: single.usageMetadata } : {} };
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lineTail = '';
+      let usageMetadata = null;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          lineTail += decoder.decode(value, { stream: true });
+          const lines = lineTail.split('\n');
+          lineTail = lines.pop() || '';
+          let grew = false;
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            try {
+              const json = JSON.parse(payload);
+              const delta = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              if (delta) { buffer += delta; grew = true; }
+              if (json.usageMetadata) usageMetadata = json.usageMetadata;
+            } catch (e) { /* partial SSE line -- the next chunk usually completes it */ }
+          }
+          if (grew && onChunk) onChunk(buffer);
+        }
+      } finally {
+        try { reader.cancel(); } catch (e) {}
+      }
+      return { rawOutput: buffer, usageMeta: usageMetadata ? { usageMetadata } : {} };
+    }
+
     async function callGeminiApi(contentsArray, options = {}) {
       const endpointInfo = await resolveActiveEndpoint(options);
       if (endpointInfo.type === 'local') {
@@ -11721,7 +12260,13 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!appState.apiKey) { openModal('setupModal'); throw new Error('Enter your Gemini API key in setup.'); }
       lastTurnEngine = { kind: 'cloud', label: 'Gemini (' + (options.model || appState.model || MODEL_ROUTINE_DEFAULT) + ')' };
       const model = options.model || appState.model || MODEL_ROUTINE_DEFAULT;
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+      // streamGenerateContent (SSE) instead of a single generateContent call
+      // so story turns start arriving token-by-token -- consumeGeminiStream
+      // reassembles the same full JSON text a non-streaming call would have
+      // returned, and makeIncrementalJsonPrewarmer uses the partial stream to
+      // start each finished speaker-block's TTS early, the same way local
+      // models already do via consumeLocalLLMStream/makeIncrementalVnPrewarmer.
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(appState.apiKey)}`;
       let cachedName = '';
       if (model === MODEL_ROUTINE_DEFAULT && options.useCache !== false) cachedName = await ensureContextCache();
       const payload = {
@@ -11746,10 +12291,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             await new Promise(r=>setTimeout(r,API_RETRY_BASE_MS*Math.pow(2,attempt)+Math.random()*250));
             continue;
           }
-          const data=await response.json();
+          const jsonPrewarmer = makeIncrementalJsonPrewarmer();
+          const { rawOutput, usageMeta } = await consumeGeminiStream(response, bufferSoFar => jsonPrewarmer.feed(bufferSoFar));
           setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model});
-          recordTextUsage(model,data,JSON.stringify(contentsArray),payload.generationConfig.maxOutputTokens);
-          const rawOutput=data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          recordTextUsage(model,usageMeta,JSON.stringify(contentsArray),payload.generationConfig.maxOutputTokens);
           const parsed=parseJsonLoose(rawOutput,null);
           if(Array.isArray(parsed)&&parsed.length){
             const jsonBlocks = resplitBlocksForEmbeddedSpeakers(parsed.filter(b=>b?.t?.trim()).map(b=>({speaker:b.s||'Narrator',mood:b.m||'',text:b.t||''})));
@@ -12746,6 +13291,15 @@ REQUIREMENTS:
             }
             downloadBlob(JSON.stringify(copy, null, 2), 'application/json', `${base}_scenario.json`);
           }
+        } else if (mode === 'scenario-pdf' || mode === 'scenario-epub') {
+          if (!active.messages.length) { zfAlert('No story content to export in current scenario.'); return; }
+          closeModal('exportModal');
+          showLoading(true, mode === 'scenario-pdf' ? 'Building illustrated PDF…' : 'Building EPUB…');
+          try {
+            if (mode === 'scenario-pdf') await exportStoryPdf(active, base);
+            else await exportStoryEpub(active, base);
+          } finally { showLoading(false); }
+          return;
         } else {
           if (!active.messages.length) { zfAlert('No story content to export in current scenario.'); return; }
           downloadBlob(exportStoryMarkdown(active), 'text/markdown', `${base}_transcript.md`);
@@ -12756,6 +13310,213 @@ REQUIREMENTS:
         zfAlert(`Export failed: ${e?.message || e}. This usually means there was too much embedded image data for the browser to hold in memory at once — try again and choose "Skip Images" if prompted, or export the Markdown transcript instead.`, 'Export Failed');
       }
     }
+    // Groups a scenario's messages into chapters at each Chapter Chronicle
+    // divider, so PDF/EPUB export can give each archived chapter its own
+    // page break / spine entry instead of one undifferentiated wall of text.
+    // A scenario with no chapter dividers yet (never auto-archived) still
+    // gets exactly one chapter containing everything.
+    function splitMessagesIntoChapters(active) {
+      const chapters = [];
+      let current = { title: active.title || 'Story', items: [] };
+      (active.messages || []).forEach(m => {
+        if (m.isChapterDivider) {
+          if (current.items.length) chapters.push(current);
+          current = { title: m.text || `Chapter ${chapters.length + 2}`, items: [] };
+        } else {
+          current.items.push(m);
+        }
+      });
+      if (current.items.length || !chapters.length) chapters.push(current);
+      return chapters;
+    }
+    // Resolves whichever form an image reference is currently in (a live
+    // blob: URL, a persisted asset:<id> ref, an inline data: URL, or a plain
+    // http(s) URL) down to an actual Blob of image bytes for embedding in a
+    // PDF or EPUB. Returns null rather than throwing on anything unreachable
+    // (a revoked object URL, a CORS-blocked remote image) so one bad image
+    // never aborts the whole export -- it's just skipped, caption still shown.
+    async function resolveExportImageBlob(src) {
+      if (!src || typeof src !== 'string') return null;
+      try {
+        if (src.startsWith('asset:')) {
+          const url = await getAssetUrl(src.slice(6));
+          if (!url) return null;
+          return await (await fetch(url)).blob();
+        }
+        if (src.startsWith('blob:') || src.startsWith('data:') || /^https?:/.test(src)) {
+          return await (await fetch(src)).blob();
+        }
+      } catch (e) { /* unreachable/broken image -- skip it, export continues */ }
+      return null;
+    }
+    function blobToDataUrl(blob) {
+      return new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(blob); });
+    }
+
+    // Illustrated PDF export -- jsPDF loaded lazily from CDN (same on-demand
+    // import pattern already used for kokoro-js/transformers.js) so scenarios
+    // that never export a PDF never pay for the library at all.
+    async function exportStoryPdf(active, baseFilename) {
+      const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm');
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 48;
+      const maxW = pageW - margin * 2;
+      let y = margin;
+      const ensureSpace = (needed) => { if (y + needed > pageH - margin) { doc.addPage(); y = margin; } };
+      const addWrapped = (text, opts = {}) => {
+        const size = opts.size || 10.5;
+        doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+        doc.setFontSize(size);
+        const lines = doc.splitTextToSize(String(text || ''), maxW);
+        lines.forEach(line => { ensureSpace(size * 1.4); doc.text(line, margin, y); y += size * 1.4; });
+      };
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+      doc.text(active.title || 'Interactive Story', margin, y + 10); y += 40;
+      if (active.setting) addWrapped(`Setting: ${active.setting}`);
+      if (active.userPersona?.name) addWrapped(`User: ${active.userPersona.name}`);
+      y += 6;
+
+      const chapters = splitMessagesIntoChapters(active);
+      for (const chapter of chapters) {
+        ensureSpace(60);
+        y += 14;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+        doc.text(chapter.title, margin, y); y += 10;
+        doc.setDrawColor(200);
+        doc.line(margin, y, pageW - margin, y);
+        y += 16;
+
+        for (const m of chapter.items) {
+          if (m.isImage) {
+            const blob = await resolveExportImageBlob(m.imageUrl);
+            if (blob) {
+              const dataUrl = await blobToDataUrl(blob);
+              if (dataUrl) {
+                try {
+                  const props = doc.getImageProperties(dataUrl);
+                  const w = Math.min(maxW, 360);
+                  const h = (props.height / props.width) * w;
+                  ensureSpace(h + 20);
+                  doc.addImage(dataUrl, props.fileType || 'PNG', margin, y, w, h);
+                  y += h + 8;
+                } catch (e) { /* format jsPDF can't embed (e.g. some WEBP builds) -- caption below still renders */ }
+              }
+            }
+            if (m.text || m.prompt) addWrapped(m.text || m.prompt, { size: 9 });
+            y += 8;
+          } else {
+            addWrapped(m.speakerName || 'Narrator', { bold: true, size: 10.5 });
+            addWrapped(m.text || '', { size: 10.5 });
+            y += 6;
+          }
+        }
+      }
+      doc.save(`${baseFilename}.pdf`);
+    }
+
+    // Illustrated EPUB export -- JSZip loaded lazily from CDN. Builds a
+    // standards-compliant minimal EPUB2/3 hybrid (content.opf + toc.ncx for
+    // wide reader compatibility, one XHTML file per Chapter Chronicle chapter,
+    // embedded images under OEBPS/images/).
+    async function exportStoryEpub(active, baseFilename) {
+      const JSZipMod = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+      const JSZip = JSZipMod.default || JSZipMod;
+      const zip = new JSZip();
+      zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+      zip.folder('META-INF').file('container.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`);
+
+      const oebps = zip.folder('OEBPS');
+      const imagesFolder = oebps.folder('images');
+      const chapters = splitMessagesIntoChapters(active);
+      const manifestImages = [];
+      const chapterFiles = [];
+      let imgCounter = 0;
+
+      for (let ci = 0; ci < chapters.length; ci++) {
+        const chapter = chapters[ci];
+        let bodyHtml = '';
+        for (const m of chapter.items) {
+          if (m.isImage) {
+            const blob = await resolveExportImageBlob(m.imageUrl);
+            if (blob) {
+              imgCounter++;
+              const ext = blob.type?.includes('jpeg') ? 'jpg' : blob.type?.includes('webp') ? 'webp' : 'png';
+              const fname = `img${imgCounter}.${ext}`;
+              imagesFolder.file(fname, blob);
+              manifestImages.push({ id: `img${imgCounter}`, href: `images/${fname}`, mediaType: blob.type || 'image/png' });
+              bodyHtml += `<div class="scene-image"><img src="images/${fname}" alt="Scene"/><p class="caption">${escapeHtml(m.text || m.prompt || '')}</p></div>\n`;
+            } else if (m.text || m.prompt) {
+              bodyHtml += `<p class="caption">${escapeHtml(m.text || m.prompt || '')}</p>\n`;
+            }
+          } else {
+            bodyHtml += `<p><b>${escapeHtml(m.speakerName || 'Narrator')}:</b> ${escapeHtml(m.text || '').replace(/\n/g, '<br/>')}</p>\n`;
+          }
+        }
+        const chapterId = `chapter${ci + 1}`;
+        const chapterFile = `${chapterId}.xhtml`;
+        oebps.file(chapterFile, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>${escapeHtml(chapter.title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
+<body>
+<h1>${escapeHtml(chapter.title)}</h1>
+${bodyHtml || '<p><i>(No content)</i></p>'}
+</body>
+</html>`);
+        chapterFiles.push({ id: chapterId, href: chapterFile, title: chapter.title });
+      }
+
+      oebps.file('style.css', `body{font-family:serif;line-height:1.5;margin:1em;} h1{font-size:1.4em;border-bottom:1px solid #ccc;padding-bottom:.3em;} .scene-image{margin:1em 0;text-align:center;} .scene-image img{max-width:100%;} .caption{font-style:italic;font-size:0.85em;color:#555;}`);
+
+      const uid = 'urn:uuid:' + (crypto.randomUUID ? crypto.randomUUID() : ('zf-' + Date.now() + '-' + Math.random().toString(36).slice(2)));
+      const manifestItems = [
+        `<item id="css" href="style.css" media-type="text/css"/>`,
+        `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`,
+        ...chapterFiles.map(c => `<item id="${c.id}" href="${c.href}" media-type="application/xhtml+xml"/>`),
+        ...manifestImages.map(im => `<item id="${im.id}" href="${im.href}" media-type="${im.mediaType}"/>`)
+      ].join('\n    ');
+      const spineItems = chapterFiles.map(c => `<itemref idref="${c.id}"/>`).join('\n    ');
+
+      oebps.file('content.opf', `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>${escapeHtml(active.title || 'Interactive Story')}</dc:title>
+    <dc:language>en</dc:language>
+    <dc:identifier id="BookId">${uid}</dc:identifier>
+    <dc:creator>ZetaForge AI</dc:creator>
+  </metadata>
+  <manifest>
+    ${manifestItems}
+  </manifest>
+  <spine toc="ncx">
+    ${spineItems}
+  </spine>
+</package>`);
+
+      const navPoints = chapterFiles.map((c, i) => `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeHtml(c.title)}</text></navLabel><content src="${c.href}"/></navPoint>`).join('\n    ');
+      oebps.file('toc.ncx', `<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="${uid}"/>
+  </head>
+  <docTitle><text>${escapeHtml(active.title || 'Interactive Story')}</text></docTitle>
+  <navMap>
+    ${navPoints}
+  </navMap>
+</ncx>`);
+
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+      downloadBlob(blob, 'application/epub+zip', `${baseFilename}.epub`);
+    }
+
     // exportStory() and exportJsonBackup() were removed here during an audit
     // pass — trivial one-line aliases for openModal('exportModal') and
     // performExport('all-json'), which are what every actual call site uses
@@ -13204,7 +13965,7 @@ REQUIREMENTS:
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div onclick="handleChapterDividerClick('${escapeJsString(m.id)}')" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow cursor-pointer active:scale-95 transition" title="Tap to undo (most recent archive) or remove this chapter and renumber the rest">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
-        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=stripMentionMarkersForDisplay(formatDialogueSpacing((m.text||'').trim()),getKnownSpeakerNames(active));const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=stripMentionMarkersForDisplay(formatDialogueSpacing((m.text||'').trim()),getKnownSpeakerNames(active));const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${(m.editHistory&&m.editHistory.length)?`<button onclick="openMessageHistory('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">🕘 History</button>`:''}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
