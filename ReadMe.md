@@ -9,23 +9,28 @@ ZetaForge AI is a full-stack, single-page interactive story engine that combines
 | **Multiple Scenario Management** | Create, switch, rename and delete entire story timelines with independent cast, lore and message history. |
 | **Dual View Mode** | Toggle between Chat Messenger (turn feed) and Visual Novel Stage (large sprites, backdrop, auto-advance, left/right tap navigation). |
 | **Multi-LLM Routing** | Route story generation to Gemini or to your own self-hosted models, a home Workstation, Oracle Cloud or an iPad, with automatic LAN-first/tunnel-fallback addressing and an Auto profile that probes and picks whichever is reachable. |
+| **Streamed Story Turns** | Gemini story turns arrive over a live stream instead of waiting on one large response, and each character's line starts its voice line generating as soon as that line finishes streaming in, the same way local-model turns already did. |
 | **Local-First Reply Suggestions & Scene Prompts** | Suggested Replies and the Visualize scene-prompt writer try your active local LLM before ever touching Gemini, instead of requiring a Gemini key. |
+| **Local-First Background Maintenance** | Relationship-event detection and lorebook auto-extraction try your active local LLM first (falling back to Gemini only if it's unavailable), and lorebook extraction now also runs early whenever recent turns look likely to contain new lore, instead of waiting on a fixed turn interval alone. |
 | **Dramatis Personae Panel** | Sidebar lists Main Cast and dynamically detected Side Characters. Click any to open a full spotlight. |
+| **Relationship Graph View** | A node-and-edge diagram of the user and every Main Cast character, with a labeled connection for every pair that has a recorded relationship. Tap any node to jump to that character's spotlight. |
 | **Character Spotlight** | View and edit persona, visual profile, current outfit, mood, inter-character relationships and an AI-generated chapter arc. |
 | **Photo and Sprite Management** | Upload single photos, paste URLs or upload a 4×4 sprite sheet that auto-extracts 16 emotion sprites, with optional background removal and manual grid-adjustment for sheets that don't line up perfectly. |
-| **AI Image Generation with Local Fallback** | Generate 1:1 square character portraits and 4×4 sprite sheets via Gemini Flash Image, or switch to a locally-hosted MeinaMix/SD1.5 fallback (single-pose portrait prompting, no Gemini key required) at generation time, with a final anonymous public-renderer fallback if neither is available. |
+| **AI Image Generation with Local Fallback** | Generate 1:1 square character portraits and 4×4 sprite sheets via Gemini Flash Image, or switch to a locally-hosted MeinaMix/SD1.5 fallback (single-pose portrait prompting, no Gemini key required) at generation time, with a final anonymous public-renderer fallback if neither is available. MeinaMix portraits lock a per-character seed after the first generation so repeat portraits stay visually consistent (rerollable per character). |
 | **Scene Visualizer** | Generate a cinematic illustration of the current scene using character reference photos and story context, with the same Gemini/local engine choice as character photos. |
-| **Voice Acting (TTS)** | Three interchangeable engines: Kokoro (~85MB, in-browser, most expressive), Kitten TTS (~25-80MB, in-browser, lightest) and Chatterbox (Laptop, best quality, runs on your own machine with cloned voices), plus an Auto mode that picks whichever is actually reachable. Voice Lab supports AI voice matching and Gemini-assisted voice cloning per character. |
+| **Voice Acting (TTS)** | Three interchangeable engines: Kokoro (~85MB, in-browser, most expressive), Kitten TTS (~25-80MB, in-browser, lightest) and Chatterbox (Laptop, best quality, runs on your own machine with cloned voices), plus an Auto mode that picks whichever is actually reachable, in a priority order you can reorder yourself. Voice Lab supports AI voice matching and Gemini-assisted voice cloning per character. In-browser model weights are downloaded once and kept in the browser's own Cache Storage, so repeat sessions don't re-download them. |
 | **Lorebook and Codex** | Keyword-triggered entries that auto-inject relevant lore into the AI context only when needed. Background maintenance auto-extracts new durable facts from recent story turns on a rolling cadence (a missed check retries every subsequent turn instead of waiting a full interval), with an explicit per-entry schema so extracted keywords stay actually searchable later. |
 | **Chapter Chronicle** | Auto-archives chapters when the token limit is reached, with AI-generated chapter summaries and per-character arc summaries. Archiving (manual or automatic) can be undone from the Chronicle panel or by tapping the chapter divider chip inline in the story. |
 | **Relationship Tracking** | AI detects significant events (confession, fight, reunion, breakup, etc.) and updates relationship labels without degrading stable family or social relationships during ordinary inactivity. |
 | **Reply Suggestions** | AI generates distinct dialogue and action options, trying your active local LLM first with a scene-aware cache, falling back to Gemini only when a key is present. |
 | **Branch Editing** | Edit any message (correctly reverting to the original text on Undo), delete subsequent turns and regenerate from that branch or retry the last turn. |
+| **Full Message Version History** | Every past wording of an edited message is kept, not just the one most recent edit -- open a message's History to browse and restore any earlier version. |
+| **Speech-to-Text Input** | Dictate your turn with the microphone button (Web Speech API) instead of typing, on any browser that supports it. |
 | **Narration & Mentions** | Use `@:` to narrate as the scene itself, or `@Name` to mention a character, rendered without the leading `@` so mentions read like natural prose while the underlying stored text stays exact for search. |
 | **Dialogue Formatting Enforcement** | The AI is instructed (and its output is post-processed) to wrap actions/thoughts in asterisks consistently, and is hard-blocked from voicing the user's own persona on a turn the user just typed. Continue and the opening scene are the only points it may narrate on the user's behalf. |
-| **Import and Export** | Import plaintext transcripts (auto-parses speakers) or export full Markdown story logs. |
+| **Import and Export** | Import plaintext transcripts (auto-parses speakers) or export a Markdown transcript, an illustrated PDF, or an illustrated EPUB e-book (one chapter per Chapter Chronicle entry, images embedded in all three). |
 | **Full JSON Backup** | One-click backup and restore of all scenarios, messages, lore, avatars, metadata and raw story history. |
-| **Long-Term Local Memory** | Full raw story data remains locally stored while compact context, recaps and relevant lore are selectively sent to the active LLM to reduce token usage. |
+| **Long-Term Local Memory** | Full raw story data remains locally stored while compact context, recaps and relevant lore are selectively sent to the active LLM to reduce token usage. Generated images are stored as Blobs in IndexedDB (not inline base64) with automatic garbage collection of orphaned assets, keeping autosaves fast and storage bounded on long-running scenarios. |
 | **Context Caching** | Stable story and persona context can use Gemini context caching while dynamic dialogue remains outside the cache. |
 | **Cost and Token Monitor** | Click the Chapter Chronicle token counter to view estimated text, portrait, sprite sheet and scene generation costs. |
 | **PWA Ready** | Service worker, manifest, PNG/SVG app icon and touch-optimized UI for mobile and desktop. |
@@ -42,9 +47,10 @@ ZetaForge works with just a Gemini API key, but every generation surface (story 
   - `start_image_fallback_server.py`: a Flask server wrapping a local SD1.5 + LCM-LoRA (MeinaMix) pipeline for fast local image generation. Accepts optional width/height/negative-prompt overrides so the same server serves both wide scene visuals and single-pose character portraits correctly.
   - `reverse_proxy.py`: combines the LLM (`/v1/*`), image-gen fallback (`/image/*`) and Chatterbox TTS (everything else) behind a single local port, so one tunnel URL covers all three services.
   - `ngrok_tunnel_core.bat`: one-shot Windows launcher that restarts LM Studio's server with CORS enabled, loads the model, starts Chatterbox and the image-gen fallback server in the background, starts the reverse proxy, then opens the ngrok tunnel.
+  - `cloudflare_tunnel_core.bat`: the same launcher sequence, tunneled with Cloudflare Tunnel (`cloudflared`) instead of ngrok. Cloudflare doesn't inject a browser-warning interstitial the way a free ngrok tunnel does (see Known Limitation below), so this avoids that problem entirely at no cost. Supports both a zero-setup "quick tunnel" (a new random URL every run) and a one-time-setup named tunnel with a stable custom domain, the direct equivalent of ngrok's reserved subdomain.
   - `oracle_llm_setup.md`: setup notes for running a model on Oracle Cloud's free tier as the Oracle Cloud profile's backend.
 - **Image generation fallback chain**: Gemini (default) then your configured local MeinaMix server then an anonymous public renderer (pollinations.ai), tried in that order whenever the previous tier is rate-limited, refuses a scene or isn't configured.
-- **Known limitation**: a free ngrok tunnel serves its own browser-warning interstitial page to any cross-origin request that needs a CORS preflight (i.e. any JSON POST, which is most requests here), and that interstitial has no CORS headers, so the browser blocks the request before it reaches your server. This affects local LLM and image-gen calls made *through* a free ngrok tunnel from the HTTPS-deployed app. Workarounds: a paid ngrok plan (removes the interstitial), or a tunnel tool that doesn't inject one (e.g. Cloudflare Tunnel, Tailscale Funnel).
+- **Known limitation (ngrok specifically)**: a free ngrok tunnel serves its own browser-warning interstitial page to any cross-origin request that needs a CORS preflight (i.e. any JSON POST, which is most requests here), and that interstitial has no CORS headers, so the browser blocks the request before it reaches your server. This affects local LLM and image-gen calls made *through* a free ngrok tunnel from the HTTPS-deployed app. Workarounds: use `cloudflare_tunnel_core.bat` instead, a paid ngrok plan (removes the interstitial), or another tunnel tool that doesn't inject one (e.g. Tailscale Funnel).
 
 ---
 
@@ -66,6 +72,8 @@ ZetaForge AI
 │   ├── Image Library (all generated scene visuals)
 │   ├── Avatar Manager (upload and manage photos and sprite sheets)
 │   ├── Voice Lab (voice matching and cloning per character)
+│   ├── Relationship Graph (node/edge diagram of cast relationships)
+│   ├── Message History (browse and restore any prior edit of a message)
 │   ├── API Usage and Cost (estimated per-turn and image costs)
 │   └── Lightbox (full-screen image preview)
 │
@@ -81,7 +89,7 @@ ZetaForge AI
 │   ├── Endpoint Resolver (Gemini vs. Workstation/Oracle Cloud/iPad Air/Auto, LAN-first with tunnel fallback)
 │   ├── System Prompt Builder (persona, relationships, relevant lore, formatting rules)
 │   ├── Context Cache Manager (stable prefix caching with fallback)
-│   ├── Call API (structured multi-turn replies with retry, backoff and streaming for local models)
+│   ├── Call API (structured multi-turn replies with retry, backoff and streaming for both Gemini and local models)
 │   ├── Character Arc Analyzer
 │   ├── Significant Event Relationship Updater
 │   ├── Lorebook Auto-Extractor (rolling cadence, schema-constrained keywords)
@@ -92,9 +100,10 @@ ZetaForge AI
 │   └── Chapter Archiver, Undo and Recap Compaction
 │
 └── Image Pipeline
-    ├── Compression (client-side WebP and JPEG resizing)
+    ├── Compression (client-side WebP/JPEG resizing on a Web Worker, main-thread fallback)
     ├── Sprite Sheet Splitter (4×4 grid into 16 sprites, with manual grid adjustment)
-    ├── Optional Background Removal
+    ├── Optional Background Removal (AI segmentation model or a Web Worker heuristic, main-thread fallback)
+    ├── Blob-Backed Asset Store (IndexedDB, object-URL rendering, orphan garbage collection)
     └── Avatar and Photo Manager (upload, URL, set default, delete)
 ```
 
