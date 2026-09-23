@@ -3796,6 +3796,23 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       return formatted;
     }
 
+    // Narrate mode's @mention autocomplete inserts a literal "@Name " into
+    // the raw message text (kept exactly as typed in the stored/saved
+    // message, since search and any future mention-based matching should
+    // still be able to find it) but showing that leading "@" in a rendered
+    // bubble reads like a social-media handle rather than prose --
+    // "@Elena glances toward the door" instead of "Elena glances toward the
+    // door". This only ever runs on a copy used for display, right before
+    // marked.parse, and only strips the "@" immediately before one of this
+    // scenario's actual cast/user names -- an unrelated "@" typed or
+    // generated elsewhere (an email/handle inside dialogue) is left alone.
+    function stripMentionMarkersForDisplay(text, knownNames) {
+      if (!text || !knownNames || !knownNames.length) return text || '';
+      const namesPattern = knownNames.filter(Boolean).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      if (!namesPattern) return text;
+      return text.replace(new RegExp(`(^|\\s)@(${namesPattern})\\b`, 'g'), '$1$2');
+    }
+
     function openLightbox(src, caption) {
       currentLightboxImgSrc = src;
       document.getElementById('lightboxImg').src = src;
@@ -4367,9 +4384,28 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       saveState();
     }
 
-    function buildCharacterVisualGenerationPrompt(char, rawLogs = '') {
+    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini') {
       const active = getActiveScenario();
       const outfit = getCurrentOutfitDescription(char);
+      if (engine === 'meinamix') {
+        // MeinaMix is a raw SD1.5 checkpoint, not a multimodal model that
+        // reads "reference image" contextually the way Gemini does -- that
+        // phrasing (plus the wide 16:9 scene canvas this used to share with
+        // generateSceneImage) reliably pushed it toward a multi-panel
+        // "character reference sheet" composition instead -- a full-body
+        // pose next to a separate headshot/turned-head inset -- for what
+        // should be a single portrait. Blunter, more literal single-
+        // subject/single-pose language here, since SD-style checkpoints key
+        // off keywords rather than intent.
+        return `Solo portrait of exactly one character, one pose only, centered composition, medium shot from the waist up, simple clean background.
+Character: ${char.name || 'Unnamed character'}.
+Persona: ${getCharacterPersona(char)}
+Visual Profile: ${getCharacterVisualProfile(char)}
+Current Outfit: ${outfit}
+Art Style: ${active.artStyle || 'Anime'}.
+Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
+Preserve the character's described physical identity consistently. Do not invent contradictory physical traits. Exactly one full figure of this one character, nothing else in the frame -- no reference sheet, no character sheet, no turnaround, no multiple views or angles, no split screen, no comparison panels, no separate headshot inset, no grid layout, no collage.`;
+      }
       return `Create a single high-quality character portrait/reference image for the visual novel scenario "${active.title}".
 Character: ${char.name || 'Unnamed character'}.
 Persona: ${getCharacterPersona(char)}
@@ -4386,10 +4422,10 @@ Preserve the character's described physical identity consistently. Show the full
     // over size/aspect — it always renders whatever the local SD pipeline is
     // set up for), so it trades away face/outfit consistency and exact
     // resolution for not spending Gemini image tokens.
-    async function generateCharacterImageData(prompt, referenceSrc = '', imageConfig = { aspectRatio: '1:1', imageSize: '1K' }, engine = 'gemini') {
+    async function generateCharacterImageData(prompt, referenceSrc = '', imageConfig = { aspectRatio: '1:1', imageSize: '1K' }, engine = 'gemini', localOpts = null) {
       if (engine === 'meinamix') {
         if (!appState.imageFallbackLaptopUrl) throw new Error('No local image-gen server configured — set one in Setup under "Local Image-Gen Fallback", or switch back to Gemini.');
-        const img = await generateSceneImageViaLocalFallback(prompt);
+        const img = await generateSceneImageViaLocalFallback(prompt, localOpts || {});
         if (!img) throw new Error('Local MeinaMix server did not return an image.');
         return img;
       }
@@ -4455,7 +4491,8 @@ Preserve the character's described physical identity consistently. Show the full
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       showLoading(true, `Generating ${char.name || 'character'} photo...`);
       try {
-        const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine);
+        const meinamixPortraitOpts = { width: 512, height: 768, negativePrompt: 'reference sheet, character sheet, turnaround, multiple views, multiple poses, split screen, comparison, collage, grid, 2koma, multiple panels, inset, multiple characters, duplicate, side by side' };
+        const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
         const src = await normalizeGeneratedPortrait(generatedSrc);
         if (!Array.isArray(char.photos)) char.photos = [];
         markImagesDirty();
@@ -5682,7 +5719,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         stageBox.innerHTML = '';
       }
 
-      const fullText = formatDialogueSpacing(turn.text || '');
+      const fullText = stripMentionMarkersForDisplay(formatDialogueSpacing(turn.text || ''), getKnownSpeakerNames(active));
 
       if (!animate) {
         dialogueBody.innerHTML = marked.parse(fullText);
@@ -5897,10 +5934,6 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
     // AI Reply Generator
     async function generateReplySuggestions() {
-      if (!appState.apiKey) {
-        openModal('setupModal');
-        return;
-      }
       const active = getActiveScenario();
       if (active.messages.length === 0) {
         zfAlert("Start a story first before generating reply choices.");
@@ -5989,6 +6022,13 @@ CRITICAL RULES:
         }
 
         if (!choices || !choices.length) {
+          if (!appState.apiKey) {
+            if (suggestEndpointInfo.type === 'local') {
+              throw new Error(`${suggestEndpointInfo.label || 'Your local endpoint'} didn't return usable suggestions, and no Gemini API key is set as a fallback. Check the local endpoint, or add a Gemini key in Setup.`);
+            }
+            openModal('setupModal');
+            return;
+          }
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${suggestModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
           const res = await fetch(endpoint, {
             method: 'POST',
@@ -6063,7 +6103,14 @@ CRITICAL RULES:
       const newText = textareaEl.value.trim();
       if (!newText) return;
 
-      messageBranches[id] = [...active.messages];
+      // A shallow copy here ([...active.messages]) would share object
+      // references with the live array -- the very next line mutates
+      // active.messages[idx] in place, which is also messageBranches[id][idx],
+      // so the "undo" snapshot would silently pick up the edited text too and
+      // Undo could never actually restore the pre-edit wording. Deep-clone
+      // the snapshot first so it's a true point-in-time copy, matching how
+      // undoBranch() below already deep-clones on the way back out.
+      messageBranches[id] = JSON.parse(JSON.stringify(active.messages));
 
       active.messages[idx].text = formatDialogueSpacing(newText);
       active.messages = active.messages.slice(0, idx + 1);
@@ -8903,13 +8950,24 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     // The server unloads the local LLM, generates, then reloads it before
     // responding, so this can legitimately take tens of seconds — the timeout
     // here is generous on purpose rather than a sign something's stuck.
-    async function generateSceneImageViaLocalFallback(prompt) {
+    async function generateSceneImageViaLocalFallback(prompt, opts = {}) {
       const base = (appState.imageFallbackLaptopUrl || '').trim().replace(/\/+$/, '');
       if (!base) return null;
+      // width/height/negativePrompt are optional per-request overrides --
+      // start_image_fallback_server.py defaults to its own 16:9 scene canvas
+      // when they're omitted, so existing scene-visual callers are
+      // unaffected. Character-portrait generation passes a portrait-shaped
+      // canvas and extra negative terms here instead, since reusing the wide
+      // scene canvas for a single character reliably biased this SD1.5
+      // checkpoint toward multi-panel "reference sheet" compositions.
+      const body = { prompt };
+      if (opts.width) body.width = opts.width;
+      if (opts.height) body.height = opts.height;
+      if (opts.negativePrompt) body.negative_prompt = opts.negativePrompt;
       const res = await fetch(`${base}/generate-image`, {
         method: 'POST',
         headers: localRequestHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(120000)
       });
       const data = await res.json().catch(() => ({}));
@@ -12163,10 +12221,6 @@ TASK: Return a JSON object with:
     //     periodically and covers the same purpose in one combined call.
 
     async function generateSceneImage() {
-      if (!appState.apiKey) {
-        openModal('setupModal');
-        return;
-      }
       const active = getActiveScenario();
       if (active.messages.length === 0) {
         zfAlert("Start a story or send a message before generating a visual.");
@@ -12180,7 +12234,7 @@ TASK: Return a JSON object with:
           { value: 'gemini', label: 'Gemini (default)' },
           { value: 'meinamix', label: 'MeinaMix (fallback)' }
         ],
-        'gemini'
+        appState.apiKey ? 'gemini' : 'meinamix'
       );
       if (!imageEngineChoice) return;
 
@@ -12259,11 +12313,44 @@ REQUIREMENTS:
           visualPrompt = scenePromptCacheState.prompt;
         } else {
           const scenePromptModel = MODEL_ROUTINE_DEFAULT;
-          const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${scenePromptModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
-          const promptRes = await fetch(promptEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(promptReqPayload)});
-          const promptData = await promptRes.json().catch(() => ({}));
-          recordTextUsage(scenePromptModel, promptData, promptText, 140);
-          visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          // Writing the short descriptive image prompt is a low-stakes text
+          // task, same as reply suggestions -- try whichever LLM is actively
+          // configured (Workstation/Oracle/iPad/Auto) first, entirely text-
+          // only (a plain local chat/completions endpoint can't take the
+          // character reference photos), and only fall back to Gemini's
+          // multimodal call below (which CAN use those photos) when no local
+          // endpoint is active or it fails to produce usable text. This is
+          // what lets MeinaMix-only Visualize runs get a real, scene-specific
+          // prompt instead of always dropping to the generic template.
+          const scenePromptEndpointInfo = await resolveActiveEndpoint();
+          if (scenePromptEndpointInfo.type === 'local') {
+            try {
+              const localPromptRes = await fetch(`${scenePromptEndpointInfo.url.replace(/\/+$/, '')}/chat/completions`, {
+                method: 'POST',
+                headers: localRequestHeaders({ 'Content-Type': 'application/json' }, scenePromptEndpointInfo.apiKey),
+                body: JSON.stringify({
+                  model: scenePromptEndpointInfo.model || 'local-model',
+                  messages: [{ role: 'user', content: promptText }],
+                  temperature: 0.65, max_tokens: 140, stream: false
+                })
+              });
+              if (localPromptRes.ok) {
+                const localPromptData = await localPromptRes.json();
+                const localPromptText = (localPromptData.choices?.[0]?.message?.content || '').trim();
+                if (localPromptText && localPromptText.length >= 15) {
+                  visualPrompt = localPromptText;
+                  appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
+                }
+              }
+            } catch (e) { console.warn('Local visual-prompt generation failed, falling back:', e?.message || e); }
+          }
+          if (!visualPrompt && appState.apiKey) {
+            const promptEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${scenePromptModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+            const promptRes = await fetch(promptEndpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(promptReqPayload)});
+            const promptData = await promptRes.json().catch(() => ({}));
+            recordTextUsage(scenePromptModel, promptData, promptText, 140);
+            visualPrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          }
           if (!visualPrompt || visualPrompt.length < 15) visualPrompt = `Cinematic illustration of ${active.userPersona.name} with ${(active.characters || []).map(c => c.name).join(', ')} in ${active.title}, ${artStylePreset} aesthetic, detailed lighting, 16:9 masterpiece`;
           scenePromptCacheState = {fingerprint:scenePromptFingerprint,prompt:visualPrompt,createdAt:Date.now()};
         }
@@ -12491,7 +12578,13 @@ REQUIREMENTS:
         await playSequentialTypewriter(replyBlocks, allowUserPersonaSpeech);
       } catch (err) {
         showLoading(false);
-        zfAlert("Gemini API Error: " + err.message);
+        // callGeminiApi() (despite its name) can resolve to either Gemini or
+        // whichever local endpoint is active -- the error message itself
+        // already names the real source (e.g. "Workstation error 500: ...",
+        // "Enter your Gemini API key in setup."), so this prefix stays
+        // engine-neutral instead of always blaming Gemini for a local
+        // endpoint's failure.
+        zfAlert("Story Turn Error: " + err.message);
       }
     }
 
@@ -13111,7 +13204,7 @@ REQUIREMENTS:
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div onclick="handleChapterDividerClick('${escapeJsString(m.id)}')" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow cursor-pointer active:scale-95 transition" title="Tap to undo (most recent archive) or remove this chapter and renumber the rest">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
         else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
-        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=formatDialogueSpacing((m.text||'').trim());const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=stripMentionMarkersForDisplay(formatDialogueSpacing((m.text||'').trim()),getKnownSpeakerNames(active));const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
