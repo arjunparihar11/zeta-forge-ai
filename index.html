@@ -2884,6 +2884,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         appState.ttsEnabled = !!appState.ttsEnabled;
         syncTtsToggleButtons();
         ensureActiveScenario();
+        // Not awaited -- boot should never block on a possibly-still-running
+        // background job (see resumePendingLocalJob above). If a story turn
+        // was still generating via the local job queue when this tab was
+        // last closed/backgrounded, this quietly reconnects to it and plays
+        // the result once it's ready.
+        resumePendingLocalJob();
         closeAllDrawers();
       closeImageLibraryModal();
       closeAvatarManagerModal();
@@ -11691,14 +11697,42 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return !!((active.setting || '').trim() || introText || (active.aesthetic || '').trim());
     }
 
-    async function buildSystemInstruction(includeDynamicLore = false) {
+    async function buildSystemInstruction(includeDynamicLore = false, forLocal = false) {
       const active = getActiveScenario();
-      const charListStr=(active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
+      // forLocal reformats the cast sheet (and swaps rules 2 and 5 below) for
+      // local RP fine-tunes -- see buildSystemInstructionForLocalLLM. Gemini
+      // (forLocal=false, the default) keeps the exact original "Name: X /
+      // Current Mood: Y" labeled-line format and rules, unchanged.
+      //
+      // Why this exists: that labeled format uses the literal token "Name: "
+      // as a field label -- which is ALSO the exact required speaker prefix
+      // local models are told to open every turn with (see rule 5). A weak
+      // local model (observed directly with magnum-v2-12b) can conflate the
+      // two and echo the cast sheet's own formatting back as if it were part
+      // of its in-character output -- e.g. writing a stray line like
+      // "Name: Maria (Skeptical caution)" instead of narration, especially
+      // since the original rule 2 ("...exact speaker name and current
+      // mood") gave it no way to satisfy "state the mood" within a plain
+      // "Name: text" line other than inventing exactly that kind of tag.
+      // Gemini never hits this because its JSON schema has a real, separate
+      // field for mood -- there's nothing for it to conflate.
+      const charListStr = forLocal
+        ? (active.characters||[]).map(c=>`- ${c.name}, role: ${c.role||'Companion'}, currently feeling: ${c.mood||'Neutral'}. ${getCharacterPersona(c)} Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}.`).join('\n')
+        : (active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
       const memoryIndex=active.localMemoryIndex||{};
       const recaps=(memoryIndex.chapterRecaps||active.archivedRecaps||[]).map(r=>typeof r==='string'?r:(r.milestoneSummary||'')).filter(Boolean);
       const characterMemory=Object.entries(memoryIndex.characterMemory||{}).map(([name,note])=>note?`- ${name}: ${note}`:'').filter(Boolean).join('\n');
       const dynamicLore=includeDynamicLore?await getRelevantLorebookInjections():'';
-      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${buildWorldContextText(active)}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n2. Every reacting character must have a distinct turn with exact speaker name and current mood.\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.\n6. Wrap EVERY physical action, gesture, expression, or internal thought in single asterisks (*like this*) -- never write action/thought narration as plain unformatted text. Keep asterisked action/thought text separate from spoken dialogue (its own sentence or line), e.g. "*She leans against the doorframe, arms crossed.* You're late." Spoken dialogue itself stays outside asterisks.`;
+      const userPersonaBlock = forLocal
+        ? `${active.userPersona.name}, role: ${active.userPersona.role||'Protagonist'}, currently feeling: ${active.userPersona.mood||'Focused'}. ${getCharacterPersona(active.userPersona)||'Main character'}`
+        : `Name: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}`;
+      const rule2 = forLocal
+        ? '2. Every reacting character must have a distinct turn. Convey their current mood only through their actions, dialogue, and tone -- NEVER as a written label, tag, or parenthetical (e.g. never write "Name: Maria (Skeptical caution)" or "Current Mood: ...") -- the cast sheet above is background information for you only, never to be echoed or restated in your output.'
+        : '2. Every reacting character must have a distinct turn with exact speaker name and current mood.';
+      const rule5 = forLocal
+        ? '5. Do NOT output JSON or markdown code fences. Write each reacting character\'s turn as plain text, each starting on its own new line with ONLY "Name: " (their exact name, then a colon and a space) followed immediately by their in-character words/actions -- nothing else on that line. e.g. "Elena: *smiles warmly* Hello there." One block per reacting character, fully in-character, no meta commentary, no headers.'
+        : '5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.';
+      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\n${userPersonaBlock}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${buildWorldContextText(active)}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n${rule2}\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n${rule5}\n6. Wrap EVERY physical action, gesture, expression, or internal thought in single asterisks (*like this*) -- never write action/thought narration as plain unformatted text. Keep asterisked action/thought text separate from spoken dialogue (its own sentence or line), e.g. "*She leans against the doorframe, arms crossed.* You're late." Spoken dialogue itself stays outside asterisks.`;
     }
 
     function buildCachedSystemInstruction() {
@@ -11891,16 +11925,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     }
 
     // Local RP fine-tunes (Magnum, Stheno) can't reliably honor Gemini's
-    // responseSchema JSON mode, so they get the same system instruction minus
-    // the JSON rule, asking for plain "Name: text" blocks instead — which
-    // parsePlainTextIntoBlocks() already knows how to split (it's the same
-    // fallback path used if Gemini itself ever returns non-JSON).
+    // responseSchema JSON mode, so they get a differently-formatted system
+    // instruction (buildSystemInstruction's forLocal=true mode) asking for
+    // plain "Name: text" blocks instead of JSON — which parsePlainTextIntoBlocks()
+    // already knows how to split (it's the same fallback path used if Gemini
+    // itself ever returns non-JSON). See the forLocal comment inside
+    // buildSystemInstruction for why the cast sheet/rules are reworded, not
+    // just JSON-vs-plain-text swapped, for this path.
     async function buildSystemInstructionForLocalLLM() {
-      const base = await buildSystemInstruction(false);
-      return base.replace(
-        '5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.',
-        '5. Do NOT output JSON or markdown code fences. Write each reacting character\'s turn as plain text, each starting on its own new line with "Name: " (their exact name, then a colon and a space), e.g. "Elena: *smiles warmly* Hello there." One block per reacting character, fully in-character, no meta commentary, no headers.'
-      );
+      return buildSystemInstruction(false, true);
     }
 
     // Fires TTS generation for a finished speaker block in the background, as
@@ -11994,6 +12027,133 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return buffer;
     }
 
+    // --- Background job queue for local LLM completions --------------------
+    // A plain streamed fetch() ties the entire reply to the phone's tab
+    // staying alive and connected the whole time it's generating --
+    // backgrounding the tab (let alone force-closing it) on mobile routinely
+    // kills that connection long before a real reply finishes, even though
+    // the actual generation is happening on a laptop/server that never
+    // stopped running. reverse_proxy.py's /job/start decouples the two: it
+    // hands back a job_id immediately and keeps generating in a background
+    // thread regardless of whether anyone is still connected, and /job/<id>
+    // is a cheap poll that works exactly the same whether it's called a
+    // second later or ten minutes later after reopening the app.
+    //
+    // Only reverse_proxy.py (the Workstation tier, on this laptop) knows
+    // about /job/*; other local tiers (Oracle Cloud, Lightning AI, etc.) are
+    // different servers entirely and will 404 on /job/start, so this always
+    // tries the job API first and transparently falls back to the old
+    // direct-stream path (see callLocalRoutineLLM below) wherever it isn't
+    // supported -- remembered per endpoint so it isn't re-probed every turn.
+    const localJobUnsupported = new Set();
+    // jobId currently being polled by *some* loop in this tab -- guards
+    // resumePendingLocalJob() against starting a second, duplicate poll of a
+    // job the original in-tab call is still handling (e.g. the tab was only
+    // throttled while backgrounded, not actually reloaded).
+    let activeLocalJobPollId = null;
+
+    async function startLocalJob(base, body, apiKey) {
+      const res = await fetch(`${base}/job/start`, {
+        method: 'POST',
+        headers: localRequestHeaders({ 'Content-Type': 'application/json' }, apiKey),
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify(body)
+      });
+      if (res.status === 404) return null; // server has no job API -- caller falls back to the legacy path
+      if (!res.ok) throw new Error(`Failed to start local job: ${res.status}`);
+      const data = await res.json().catch(() => ({}));
+      if (!data.job_id) throw new Error('Local job API did not return a job_id.');
+      return data.job_id;
+    }
+
+    // Polls a job started via startLocalJob() until it finishes, feeding
+    // each partial-text update to onChunk exactly like consumeLocalLLMStream
+    // would from a live stream. A transient poll failure (tab just came back
+    // from being backgrounded, brief tunnel hiccup) is NOT treated as the
+    // job failing -- the job keeps running server-side regardless of whether
+    // this particular poll landed, so this just tries again next tick.
+    async function pollLocalJob(base, jobId, apiKey, onChunk) {
+      activeLocalJobPollId = jobId;
+      try {
+        let lastText = '';
+        while (true) {
+          await new Promise(r => setTimeout(r, 2000));
+          let res;
+          try {
+            res = await fetch(`${base}/job/${jobId}`, { headers: localRequestHeaders(null, apiKey), signal: AbortSignal.timeout(15000) });
+          } catch (e) {
+            continue;
+          }
+          if (!res.ok) {
+            if (res.status === 404) throw Object.assign(new Error('Local job not found (it may have expired, or the server restarted).'), { skipRetry: true });
+            continue;
+          }
+          const data = await res.json().catch(() => null);
+          if (!data) continue;
+          if (data.text && data.text !== lastText) { lastText = data.text; if (onChunk) onChunk(lastText); }
+          if (data.status === 'done') return lastText;
+          if (data.status === 'error') throw Object.assign(new Error(data.error || 'Local job failed.'), { skipRetry: true });
+        }
+      } finally {
+        if (activeLocalJobPollId === jobId) activeLocalJobPollId = null;
+      }
+    }
+
+    // Called at boot, and whenever the tab regains foreground visibility, to
+    // pick back up a story turn that was still generating via the job queue
+    // above when this tab was last open (see the DOMContentLoaded handler and
+    // the visibilitychange listener near the bottom of this script). The job
+    // runs entirely server-side, so it may already be finished by the time
+    // this runs -- either way this just polls it to completion and plays the
+    // result exactly like a normal turn would have. Only auto-resumes a job
+    // that belongs to the CURRENTLY open scenario; a job left running for a
+    // scenario you've since navigated away from is not auto-applied (it
+    // would need to render into a story you're not looking at) -- it simply
+    // stays pending and this function no-ops for it until that scenario is
+    // active again or it goes stale.
+    let resumingPendingLocalJob = false;
+    async function resumePendingLocalJob() {
+      const pending = appState.pendingLocalJob;
+      if (!pending || resumingPendingLocalJob || activeLocalJobPollId === pending.jobId) return;
+      const active = getActiveScenario();
+      if (!active || active.id !== pending.scenarioId) return;
+      if (Date.now() - (pending.startedAt || 0) > 20 * 60 * 1000) {
+        // Stale enough that the server likely restarted (and forgot the job)
+        // since -- drop it rather than polling a dead job id forever.
+        appState.pendingLocalJob = null;
+        saveState();
+        return;
+      }
+      resumingPendingLocalJob = true;
+      showLoading(true, 'Reconnecting to your still-generating reply…');
+      try {
+        const prewarmer = makeIncrementalVnPrewarmer();
+        const rawOutput = await pollLocalJob(pending.base, pending.jobId, pending.apiKey, buf => prewarmer.feed(buf));
+        prewarmer.finish(rawOutput);
+        appState.pendingLocalJob = null;
+        await saveState();
+        showLoading(false);
+        if (rawOutput && rawOutput.trim()) {
+          await playSequentialTypewriter(parsePlainTextIntoBlocks(rawOutput), pending.allowUserPersonaSpeech);
+        }
+      } catch (e) {
+        appState.pendingLocalJob = null;
+        await saveState();
+        showLoading(false);
+        zfAlert('The reply that was generating while this tab was closed or backgrounded could not be recovered: ' + (e?.message || 'unknown error') + '\n\nPress Continue to try again.');
+      } finally {
+        resumingPendingLocalJob = false;
+      }
+    }
+    // Covers the "backgrounded but not reloaded" case -- e.g. iOS suspended
+    // the tab's JS while you were in another app, but didn't fully evict the
+    // page -- by re-checking for a pending job as soon as the tab is visible
+    // again, on top of the boot-time check above (which only fires on an
+    // actual page load, i.e. after a full reload or force-close).
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') resumePendingLocalJob();
+    });
+
     async function callLocalRoutineLLM(contentsArray, options, endpointInfo) {
       // endpointInfo.contextCap is the local server's TOTAL context window
       // (e.g. 8192 for the Oracle Cloud Stheno endpoint), not a dialogue-only
@@ -12010,7 +12170,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // actually fit together under the server's real window.
       const systemText = await buildSystemInstructionForLocalLLM();
       const contextCap = endpointInfo.contextCap || 8192;
-      const reserveTokens = estimateTokens(systemText) + (options.maxOutputTokens || 850) + 200;
+      // Local generation is running on hardware you own, not a metered API,
+      // so there's no cost reason to keep the same conservative 850-token
+      // cap Gemini uses -- and a scene with several reacting characters in
+      // one turn can genuinely need more room than that, cutting off
+      // mid-sentence (mid-action, even) once it's hit. 1536 leaves a local
+      // 8192-context model plenty of headroom for a multi-character turn
+      // while still leaving most of the window for actual dialogue history.
+      const localMaxOutputTokens = options.maxOutputTokens || 1536;
+      const reserveTokens = estimateTokens(systemText) + localMaxOutputTokens + 200;
       const dialogueBudget = Math.max(500, contextCap - reserveTokens);
       const cappedContents = capContentsToTokenBudget(contentsArray, dialogueBudget);
       const messages = [{ role: 'system', content: systemText }];
@@ -12024,20 +12192,12 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // stream: true lets us start generating each character's voice line as
       // soon as their block of text finishes arriving, instead of waiting
       // for the whole reply -- see consumeLocalLLMStream/makeIncrementalVnPrewarmer.
-      const body = { model: endpointInfo.model || 'local-model', messages, temperature: appState.temperature || 0.85, max_tokens: options.maxOutputTokens || 850, stream: true };
+      const body = { model: endpointInfo.model || 'local-model', messages, temperature: appState.temperature || 0.85, max_tokens: localMaxOutputTokens, stream: true };
+      const jobKey = endpointInfo.profileKey || base;
       let lastError;
       for (let attempt = 0; attempt <= API_RETRY_LIMIT; attempt++) {
         const prewarmer = makeIncrementalVnPrewarmer();
         try {
-          const response = await fetch(target, { method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }, endpointInfo.apiKey), body: JSON.stringify(body) });
-          if (!response.ok) {
-            const errText = await response.text().catch(() => '');
-            if (![429, 500, 502, 503, 504].includes(response.status) || attempt === API_RETRY_LIMIT) {
-              throw new Error(`${endpointInfo.label || 'Local endpoint'} error ${response.status}: ${(errText || 'request failed').slice(0, 200)}`);
-            }
-            await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
-            continue;
-          }
           // The 'workstation' profile is, by ZetaForge's own naming/defaults
           // (default URL http://192.168.1.45:1234/v1, a LAN address), the
           // same physical machine as Chatterbox (Laptop) -- that's the whole
@@ -12054,7 +12214,58 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           // fully-sequential behavior (nothing waits for playSequentialTypewriter
           // to get around to it), just not overlapping the two GPU workloads.
           const ttsSharesGpuWithThisLlm = getActiveTtsEngine() === 'chatterbox-laptop' && endpointInfo.profileKey === 'workstation';
-          const rawOutput = await consumeLocalLLMStream(response, ttsSharesGpuWithThisLlm ? null : (bufferSoFar => prewarmer.feed(bufferSoFar)));
+          const onChunk = ttsSharesGpuWithThisLlm ? null : (bufferSoFar => prewarmer.feed(bufferSoFar));
+
+          let rawOutput;
+          let jobId = null;
+          if (!localJobUnsupported.has(jobKey)) {
+            try {
+              jobId = await startLocalJob(base, body, endpointInfo.apiKey);
+            } catch (e) {
+              jobId = null; // starting the job itself failed -- fall through to the legacy direct-stream path below for this attempt
+            }
+            if (jobId === null) localJobUnsupported.add(jobKey);
+          }
+
+          if (jobId) {
+            // Persist immediately, before waiting on a single poll -- this is
+            // what lets resumePendingLocalJob() pick the reply back up even
+            // if this tab is reloaded or force-closed a moment from now. The
+            // job itself is already running on the server independently of
+            // this; losing this tab from here on only affects who's watching.
+            appState.pendingLocalJob = {
+              jobId, base, apiKey: endpointInfo.apiKey || '',
+              scenarioId: getActiveScenario().id,
+              allowUserPersonaSpeech: !!options.allowUserPersonaSpeech,
+              startedAt: Date.now()
+            };
+            await saveState(true);
+            try {
+              rawOutput = await pollLocalJob(base, jobId, endpointInfo.apiKey, onChunk);
+            } finally {
+              if (appState.pendingLocalJob && appState.pendingLocalJob.jobId === jobId) {
+                appState.pendingLocalJob = null;
+                saveState();
+              }
+            }
+          } else {
+            // Legacy direct-stream path: either this endpoint has no /job/*
+            // API (Oracle Cloud, Lightning AI, or any non-Workstation tier
+            // that isn't running reverse_proxy.py), or starting a job on it
+            // failed outright -- either way, fall back to exactly the old
+            // behavior rather than failing the turn.
+            const response = await fetch(target, { method: 'POST', headers: localRequestHeaders({ 'Content-Type': 'application/json' }, endpointInfo.apiKey), body: JSON.stringify(body) });
+            if (!response.ok) {
+              const errText = await response.text().catch(() => '');
+              if (![429, 500, 502, 503, 504].includes(response.status) || attempt === API_RETRY_LIMIT) {
+                throw new Error(`${endpointInfo.label || 'Local endpoint'} error ${response.status}: ${(errText || 'request failed').slice(0, 200)}`);
+              }
+              await new Promise(r => setTimeout(r, API_RETRY_BASE_MS * Math.pow(2, attempt)));
+              continue;
+            }
+            rawOutput = await consumeLocalLLMStream(response, onChunk);
+          }
+
           if (!rawOutput || !rawOutput.trim()) {
             // A local endpoint can accept the request and then stream back
             // literally nothing. The most likely cause on a CPU-only box like
@@ -12427,11 +12638,33 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return cleaned.length ? cleaned : blocks;
     }
 
+    // Safety net for the local-model plain-text path specifically (see the
+    // forLocal comment in buildSystemInstruction): even with the reworded
+    // cast sheet and rules, a weak local model can still occasionally slip
+    // and echo a "Name: <speaker>" / "Current Mood: ..." style line as its
+    // own standalone line mid-reply, instead of pure narration -- e.g. the
+    // observed "Name: Maria (Skeptical caution)" artifact. Deliberately
+    // requires the "Name:"/"Current Mood:"/"Mood:" label to be present (not
+    // just "Speaker (mood)" alone) -- a label-less version was tried and
+    // dropped because it also matched legitimate bare narration lines that
+    // happen to end in a parenthetical aside (e.g. "The Grand Hall (west
+    // wing)"), which this must never eat. Only matches a line that consists
+    // ENTIRELY of the labeled pattern, start to end -- real dialogue or
+    // action text with a parenthetical embedded in it never matches.
+    const LEAKED_NAME_MOOD_LINE_PATTERN = /^[ \t]*(?:Name|Current Mood|Mood)\s*:\s*[A-Z][A-Za-z'’.-]*(?:[ \t][A-Z][A-Za-z'’.-]*){0,2}(?:\s*\([^)\n]{1,80}\))?[ \t]*$\n?/gim;
+    function stripLeakedNameMoodLines(blocks) {
+      return blocks.map(b => {
+        const cleanedText = (b.text || '').replace(LEAKED_NAME_MOOD_LINE_PATTERN, '').replace(/\n{3,}/g, '\n\n').trim();
+        return cleanedText ? { ...b, text: cleanedText } : null;
+      }).filter(Boolean);
+    }
+
     function parsePlainTextIntoBlocks(text) {
       if (!text) return [{ speaker: 'Narrator', text: '' }];
       const active = getActiveScenario();
       const blocks = splitTextBySpeakers(text, getKnownSpeakerNames(active), 'Narrator');
-      return stripLeadingSystemMeta(blocks);
+      const withoutLeakedTags = stripLeakedNameMoodLines(blocks);
+      return stripLeadingSystemMeta(withoutLeakedTags.length ? withoutLeakedTags : blocks);
     }
 
     // Safety net for the Gemini JSON path specifically: the schema asks for
@@ -13095,7 +13328,7 @@ REQUIREMENTS:
           role: 'user',
           parts: [{ text: `[System directive: Begin the story. Introduce setting and opening dialogue/actions for characters present as individual character blocks.]` }]
         }];
-        const replyBlocks = await callGeminiApi(contents);
+        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech: true });
         showLoading(false);
         // No user turn exists yet at story open, so there's nothing the AI
         // could be speaking "instead of" -- treat like Continue.
@@ -13118,7 +13351,7 @@ REQUIREMENTS:
       appState.usageStats.storyTurns = (appState.usageStats.storyTurns || 0) + 1;
       try {
         const contents = buildApiContents(extraDirective);
-        const replyBlocks = await callGeminiApi(contents);
+        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech });
         showLoading(false);
         await playSequentialTypewriter(replyBlocks, allowUserPersonaSpeech);
       } catch (err) {
