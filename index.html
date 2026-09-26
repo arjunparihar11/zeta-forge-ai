@@ -1538,7 +1538,7 @@
             </button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
+            <input type="text" id="userPersonaName" placeholder="Your Name (e.g. Aaron / Rapid)" oninput="getActiveScenario().userPersona.name = this.value.trim() || 'User'; renderCharacterCardsSetup();" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
             <input type="text" id="userPersonaRole" placeholder="Your Role / Archetype" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent" />
             <button type="button" id="userVoiceLabBtn" onclick="openVoiceLab('persona')" class="bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-left hover:border-zetaAccent transition">🎙️ Voice Off — Voice Lab</button>
           </div>
@@ -2621,11 +2621,12 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // MODEL_ROUTINE_DEFAULT regardless of this setting — see callGeminiApi().
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
     const LLM_PROFILE_DEFAULTS = {
-      // fallbackUrl is Workstation-only: a public tunnel address (e.g. an
-      // ngrok URL, per ZetaForge's own ngrok_tunnel_core.bat) for the SAME
-      // physical laptop, used only when the LAN address doesn't answer --
-      // see resolveWorkstationUrl(). Left blank by default/opt-in.
-      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', fallbackUrl: '', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
+      // fallbackUrl is Workstation-only: a public tunnel address (previously
+      // ngrok, now the named Cloudflare Tunnel at zeta.zetaforge.stream --
+      // see cloudflare_tunnel_core.bat / cloudflare_static_url_guide.md) for
+      // the SAME physical laptop, used only when the LAN address doesn't
+      // answer -- see resolveWorkstationUrl().
+      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', fallbackUrl: 'https://zeta.zetaforge.stream/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
       deviceIphone: { label: 'Oracle Cloud (Stheno 8B)', url: 'https://147-224-186-96.sslip.io/v1', model: 'stheno-v3.2', contextCap: 8192, pingMs: 4000, apiKey: 'zf-oracle-9f83ke2mdx' },
       deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600, apiKey: '' }
     };
@@ -2688,8 +2689,14 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       // 'gemini' | 'workstation' | 'deviceIphone' | 'deviceIpad' | 'auto'
       ttsEngine: 'kokoro',   // 'kokoro' | 'kitten' | 'chatterbox-laptop' | 'auto'
       ttsAutoPriority: ['chatterbox-laptop', 'kokoro', 'kitten'],   // order Auto tries engines in — see resolveAutoTtsEngine
-      chatterboxLaptopUrl: 'http://192.168.68.77:5050',   // your laptop server — see start_chatterbox_server.py
-      imageFallbackLaptopUrl: 'https://paralegal-pampers-chevron.ngrok-free.dev/image',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
+      // Both default to the named Cloudflare Tunnel's stable base URL (see
+      // cloudflare_tunnel_core.bat / cloudflare_static_url_guide.md) rather
+      // than a bare LAN IP -- reverse_proxy.py answers both of these routes
+      // (and everything else) on that same tunnel, so one URL works whether
+      // you're on the laptop's own Wi-Fi or anywhere else, unlike a raw LAN
+      // address which only ever works on that one network.
+      chatterboxLaptopUrl: 'https://zeta.zetaforge.stream',   // your laptop server — see start_chatterbox_server.py
+      imageFallbackLaptopUrl: 'https://zeta.zetaforge.stream/image',   // optional — your laptop server for when Gemini image gen is rate-limited or refuses; see start_image_fallback_server.py
       chatterboxClonedVoices: {},   // voiceId -> label, for voices cloned via the Gemini pipeline
       chatterboxVoiceClipData: {},  // voiceId -> base64 wav of the reference clip, so a scenario export can carry its cloned voices and re-register them with whatever laptop server imports it
       llmProfile: 'gemini',
@@ -6011,7 +6018,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
 
         const found = findCharacterForSpotlight(currentSpotlightCharName);
         const isUser = !!found?.isUser;
-        let charObj = found?.obj || { name: currentSpotlightCharName, role: 'Side Character', mood: 'Neutral', persona: '', visualProfile: '', personality: '', relationship: 'Companion', outfits: [], currentOutfitId: '' };
+        let charObj = found?.obj || { name: currentSpotlightCharName, role: 'Side Character', mood: 'Neutral', persona: '', visualProfile: '', personality: '', relationship: '', outfits: [], currentOutfitId: '' };
 
         document.getElementById('spotlightEditName').value = charObj.name || '';
         document.getElementById('spotlightEditRole').value = charObj.role || '';
@@ -6940,7 +6947,7 @@ IMPORTANT RULES:
         const obj = active.sideCharacterProfiles[key] || {
           id: 'side_' + sideName, name: sideName, role: 'Side Character', mood: 'Neutral', avatar: '', photos: [],
           persona: 'A side character currently present in the story.', visualProfile: '', personality: 'A side character currently present in the story.',
-          relationship: 'Companion', relationships: {}, outfits: [], currentOutfitId: ''
+          relationship: '', relationships: {}, outfits: [], currentOutfitId: ''
         };
         active.sideCharacterProfiles[key] = obj;
         return { obj, isUser: false, isSide: true };
@@ -10390,7 +10397,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (field) field.classList.toggle('hidden', selected !== 'chatterbox-laptop' && selected !== 'auto');
       const urlInput = document.getElementById('chatterboxLaptopUrl');
       if (urlInput) {
-        if (!appState.chatterboxLaptopUrl) appState.chatterboxLaptopUrl = 'http://192.168.68.77:5050';
+        if (!appState.chatterboxLaptopUrl) appState.chatterboxLaptopUrl = 'https://zeta.zetaforge.stream';
         urlInput.value = appState.chatterboxLaptopUrl;
       }
     }
@@ -10794,16 +10801,21 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         node.x = cx + radius * Math.cos(angle);
         node.y = cy + radius * Math.sin(angle);
       });
+      // Every pair gets an edge now, not just pairs that already have a label
+      // -- an unlabeled edge renders as a faint dashed line with a "+ Add"
+      // tag instead of being omitted entirely, so the graph doubles as an
+      // input surface (tap any line, labeled or not, to set/edit it right
+      // there) instead of just a read-only view of whatever's already set.
       const edges = [];
       chars.forEach(c => {
         const label = String(c.relationship || '').trim();
-        if (label) edges.push({ a: 0, b: nodes.findIndex(nd => !nd.isUser && nd.name === c.name), label });
+        edges.push({ a: 0, b: nodes.findIndex(nd => !nd.isUser && nd.name === c.name), label, aName: nodes[0].name, aIsUser: true, bName: c.name, bIsUser: false });
       });
       for (let i = 0; i < chars.length; i++) {
         for (let j = i + 1; j < chars.length; j++) {
           const ci = chars[i], cj = chars[j];
           const label = String((ci.relationships && ci.relationships[cj.name]) || (cj.relationships && cj.relationships[ci.name]) || '').trim();
-          if (label) edges.push({ a: nodes.findIndex(nd => !nd.isUser && nd.name === ci.name), b: nodes.findIndex(nd => !nd.isUser && nd.name === cj.name), label });
+          edges.push({ a: nodes.findIndex(nd => !nd.isUser && nd.name === ci.name), b: nodes.findIndex(nd => !nd.isUser && nd.name === cj.name), label, aName: ci.name, aIsUser: false, bName: cj.name, bIsUser: false });
         }
       }
       let svg = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-auto" style="min-height:340px">`;
@@ -10811,10 +10823,18 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         const A = nodes[e.a], B = nodes[e.b];
         if (!A || !B) return;
         const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
-        const shortLabel = e.label.length > 16 ? e.label.slice(0, 15) + '…' : e.label;
-        svg += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}" stroke="#493a72" stroke-width="1.5"/>`;
-        svg += `<rect x="${(mx - 40).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="80" height="16" rx="4" fill="#1a1626" stroke="#3d3159" stroke-width="1"/>`;
-        svg += `<text x="${mx.toFixed(1)}" y="${(my + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#c9bdf0">${escapeHtml(shortLabel)}</text>`;
+        const hasLabel = !!e.label;
+        const shortLabel = hasLabel ? (e.label.length > 16 ? e.label.slice(0, 15) + '…' : e.label) : '+ Add';
+        const lineColor = hasLabel ? '#493a72' : '#332a4d';
+        const boxFill = hasLabel ? '#1a1626' : '#15111f';
+        const boxStroke = hasLabel ? '#3d3159' : '#2a2340';
+        const textColor = hasLabel ? '#c9bdf0' : '#75688f';
+        const onClick = `editGraphRelationship('${escapeJsString(e.aName)}', ${e.aIsUser}, '${escapeJsString(e.bName)}', ${e.bIsUser})`;
+        svg += `<g style="cursor:pointer" onclick="${onClick}">`;
+        svg += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}" stroke="${lineColor}" stroke-width="1.5" ${hasLabel ? '' : 'stroke-dasharray="3,3"'}/>`;
+        svg += `<rect x="${(mx - 40).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="80" height="16" rx="4" fill="${boxFill}" stroke="${boxStroke}" stroke-width="1"/>`;
+        svg += `<text x="${mx.toFixed(1)}" y="${(my + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="${textColor}">${escapeHtml(shortLabel)}</text>`;
+        svg += `</g>`;
       });
       nodes.forEach((node, i) => {
         const r = node.isUser ? 27 : 22;
@@ -10831,10 +10851,46 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         svg += `</g>`;
       });
       svg += `</svg>`;
-      const note = edges.length
-        ? `<div class="text-[10px] text-slate-500 text-center mb-1">Tap any character to open their spotlight. Only pairs with a recorded relationship label are connected.</div>`
-        : `<div class="text-[10px] text-slate-500 text-center mb-1">No relationship labels recorded yet -- they fill in as the story plays out (or edit them directly from a character's spotlight).</div>`;
+      const note = `<div class="text-[10px] text-slate-500 text-center mb-1">Tap a name to open that character's spotlight. Tap any connecting line -- solid or dashed "+ Add" -- to set or edit that relationship right here.</div>`;
       container.innerHTML = note + svg;
+    }
+
+    // Lets a relationship be set/edited directly from a connecting line in
+    // the Relationship Graph (see renderRelationshipGraphModal), instead of
+    // needing to open a character's card in Setup one at a time. Mirrors
+    // updateCharacterRelationshipOverride's storage: a user-character edge
+    // writes both char.relationship (the canonical field the AI prompt and
+    // Setup's card both read) and the matching char.relationships[] entry; a
+    // character-character edge is stored on ONE side only (ci.relationships
+    // [cj.name]) and any stale duplicate on the other side is cleared, so a
+    // later read never has to guess which side is current.
+    async function editGraphRelationship(nameA, isUserA, nameB, isUserB) {
+      const active = getActiveScenario();
+      if (isUserA || isUserB) {
+        const userName = (isUserA ? nameA : nameB);
+        const charName = (isUserA ? nameB : nameA);
+        const char = active.characters.find(c => c.name === charName);
+        if (!char) return;
+        const value = await zfPrompt(`Relationship between ${userName} and ${charName}:`, char.relationship || '', 'Edit Relationship');
+        if (value === null || value === undefined) return; // cancelled
+        char.relationship = value.trim();
+        if (!char.relationships) char.relationships = {};
+        char.relationships[userName] = char.relationship;
+      } else {
+        const ci = active.characters.find(c => c.name === nameA);
+        const cj = active.characters.find(c => c.name === nameB);
+        if (!ci || !cj) return;
+        if (!ci.relationships) ci.relationships = {};
+        if (!cj.relationships) cj.relationships = {};
+        const current = ci.relationships[cj.name] || cj.relationships[ci.name] || '';
+        const value = await zfPrompt(`Relationship between ${nameA} and ${nameB}:`, current, 'Edit Relationship');
+        if (value === null || value === undefined) return;
+        ci.relationships[cj.name] = value.trim();
+        delete cj.relationships[ci.name];
+      }
+      await saveState();
+      renderRelationshipGraphModal();
+      renderCharacterCardsSetup();
     }
 
     function syncModalForm() {
@@ -10990,7 +11046,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">🔗 Relationships to Other Cast (Manual Override)</span>
             <div class="space-y-1.5">
               ${otherCastMembers.map(target => {
-                const existingVal = char.relationships[target.name] || (target.isUser ? (char.relationship || 'Companion') : 'Acquaintance / Neutral');
+                // Relationship-to-user used to default to "Companion" while every
+                // other pairing defaulted to "Acquaintance / Neutral" -- an
+                // inconsistency with no real reason behind it, so both now fall
+                // back to the same generic default.
+                const existingVal = char.relationships[target.name] || (target.isUser ? char.relationship : '') || 'Acquaintance / Neutral';
                 return `
                   <div class="flex items-center gap-2">
                     <span class="text-[11px] text-slate-300 w-28 truncate shrink-0">Toward ${escapeHtml(target.name)}:</span>
