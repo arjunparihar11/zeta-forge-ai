@@ -755,6 +755,7 @@
       <!-- MODE B: Traditional Visual Novel Stage View -->
       <div id="vnStageContainer" class="flex-1 relative overflow-hidden hidden flex-col justify-between p-3 sm:p-6 bg-[#0c0a10]">
         <div id="vnBackgroundLayer" class="absolute inset-0 bg-cover bg-center transition-all duration-700 opacity-60 filter brightness-[0.7] blur-[1px]"></div>
+        <audio id="vnMusicPlayer" loop preload="none" class="hidden"></audio>
         <div class="absolute inset-0 bg-gradient-to-t from-zetaBg via-transparent to-black/60 pointer-events-none"></div>
 
         <!-- Tap Zones -->
@@ -777,11 +778,17 @@
               <span id="vnTtsEngineLabel" class="hidden text-[10px] text-slate-400 font-medium whitespace-nowrap"></span>
             </div>
             <div class="flex items-center gap-1.5">
+              <button onclick="editVnLocationTag()" id="vnLocationBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow max-w-[110px] sm:max-w-[160px]" title="Set a location tag to steer backdrop & music selection">
+                <span>📍</span> <span id="vnLocationLabel" class="hidden sm:inline truncate">Location</span>
+              </button>
               <button onclick="generateVnSceneBackground()" id="vnGenBgBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
                 <span>🖼️</span> <span class="hidden sm:inline">Backdrop</span>
               </button>
               <button onclick="openBackdropLibraryModal()" id="vnBackdropLibraryBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Manage your backdrop library and keywords">
                 <span>📂</span> <span class="hidden sm:inline">Library</span>
+              </button>
+              <button onclick="openMusicLibraryModal()" id="vnMusicLibraryBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Manage your background music library">
+                <span>🎵</span> <span class="hidden sm:inline">Music</span>
               </button>
             </div>
           </div>
@@ -986,6 +993,45 @@
 
       <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
         <button onclick="closeBackdropLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Music Library Modal -->
+  <div id="musicLibraryModal" onclick="closeMusicLibraryModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🎵 Music Library</h2>
+        <button onclick="closeMusicLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <div class="px-4 sm:px-6 pt-3 pb-3 shrink-0 space-y-2.5 border-b border-zetaBorder bg-zetaCard/40">
+        <p class="text-[10px] text-slate-400 leading-relaxed">Tag each track with a few keywords (places, moods, activities). While auto-select is on, the VN stage compares those keywords — plus your Location tag (📍 on the stage bar), which counts extra — against the recent scene each turn and crossfades to whichever track matches best. Need tracks? <a href="https://pixabay.com/music/" target="_blank" rel="noopener" class="text-zetaAccent underline">Pixabay Music</a> is free, requires no attribution, and allows downloads for exactly this kind of use.</p>
+        <div class="flex items-center gap-2">
+          <label class="text-[10px] text-slate-400 shrink-0" for="musicLocationInput">📍 Location:</label>
+          <input type="text" id="musicLocationInput" placeholder="e.g. Tavern, Dark Forest, Spaceship Bridge" onchange="updateLocationTagFromModal(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-[10px] text-slate-400 shrink-0" for="musicVolumeSlider">🔊 Volume:</label>
+          <input type="range" id="musicVolumeSlider" min="0" max="100" value="50" oninput="setMusicVolume(this.value)" class="flex-1 accent-zetaAccent" />
+        </div>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="musicAutoSelectToggle" onchange="setMusicAutoSelect(this.checked)" class="w-4 h-4 accent-zetaAccent" />
+            Auto-select music from scene context
+          </label>
+          <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder cursor-pointer shrink-0 transition active:scale-95">
+            + Add Music
+            <input type="file" accept="audio/*" multiple class="hidden" onchange="addMusicToLibrary(event)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 scroll-touch" id="musicLibraryContainer">
+      </div>
+
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeMusicLibraryModal()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
       </div>
     </div>
   </div>
@@ -2208,9 +2254,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // the scan) that definitively answers "is anything still inline?", so the
     // expensive externalize pass runs exactly when it's actually needed.
     function hasInlineImages(stateObj) {
-      const isInline = v => typeof v === 'string' && v.startsWith('data:image');
+      const isInline = v => typeof v === 'string' && (v.startsWith('data:image') || v.startsWith('data:audio'));
       for (const sc of (stateObj.scenarios || [])) {
-        if (isInline(sc.cover) || isInline(sc.vnBackground) || isInline(sc.manualVnBackground)) return true;
+        if (isInline(sc.cover) || isInline(sc.vnBackground) || isInline(sc.manualVnBackground) || isInline(sc.manualVnMusic)) return true;
         const people = [sc.userPersona, ...(sc.characters || []), ...Object.values(sc.sideCharacterProfiles || {})].filter(Boolean);
         for (const p of people) {
           if (isInline(p.avatar) || isInline(p.chatAvatar)) return true;
@@ -2220,6 +2266,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         for (const m of (sc.messages || [])) if (m && isInline(m.imageUrl)) return true;
         for (const sh of (sc.spriteSheetLibrary || [])) if (sh && isInline(sh.src)) return true;
         for (const bg of (sc.backdropLibrary || [])) if (bg && isInline(bg.url)) return true;
+        for (const mu of (sc.musicLibrary || [])) if (mu && isInline(mu.url)) return true;
       }
       return false;
     }
@@ -2283,7 +2330,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     async function externalizeLiveImages(stateObj) {
       if (!assetStoreAvailable) return;
       await walkStateImages(stateObj, async (value) => {
-        if (typeof value !== 'string' || !value.startsWith('data:image')) return value;
+        if (typeof value !== 'string' || !(value.startsWith('data:image') || value.startsWith('data:audio'))) return value;
         try {
           return await internalizeDataUrl(value);
         } catch (e) {
@@ -2401,6 +2448,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         s.cover = await transform(s.cover);
         s.vnBackground = await transform(s.vnBackground);
         s.manualVnBackground = await transform(s.manualVnBackground);
+        s.manualVnMusic = await transform(s.manualVnMusic);
         const people = [s.userPersona, ...(s.characters || []), ...Object.values(s.sideCharacterProfiles || {})].filter(Boolean);
         for (const p of people) {
           p.avatar = await transform(p.avatar);
@@ -2420,6 +2468,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         }
         for (const bg of (s.backdropLibrary || [])) {
           if (bg && bg.url) bg.url = await transform(bg.url);
+        }
+        for (const mu of (s.musicLibrary || [])) {
+          if (mu && mu.url) mu.url = await transform(mu.url);
         }
       }
       return stateObj;
@@ -2518,6 +2569,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         manualVnBackground: '',
         backdropLibrary: [],
         backdropAutoSelect: true,
+        musicLibrary: [],
+        musicAutoSelect: true,
+        musicVolume: 0.5,
+        manualVnMusic: '',
+        currentLocation: '',
         userPersona: {
           name: 'Bob',
           role: 'Middle-aged businessman',
@@ -2825,6 +2881,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!found.narratorProfile) found.narratorProfile = { name: 'Narrator', ttsVoice: '', voiceLab: null };
       if (!Array.isArray(found.backdropLibrary)) found.backdropLibrary = [];
       if (found.backdropAutoSelect === undefined) found.backdropAutoSelect = true;
+      if (!Array.isArray(found.musicLibrary)) found.musicLibrary = [];
+      if (found.musicAutoSelect === undefined) found.musicAutoSelect = true;
+      if (typeof found.musicVolume !== 'number') found.musicVolume = 0.5;
+      if (found.manualVnMusic === undefined) found.manualVnMusic = '';
+      if (found.currentLocation === undefined) found.currentLocation = '';
       return found;
     }
 
@@ -5808,6 +5869,15 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const autoBackdropEntry = (active.backdropAutoSelect !== false) ? pickAutoBackdrop(active) : null;
       const pinnedOrGeneratedBg = active.manualVnBackground || active.vnBackground || active.cover;
       const candidateBg = (autoBackdropEntry && autoBackdropEntry.url) || pinnedOrGeneratedBg;
+
+      // Background music follows the same pinned > auto-selected precedence
+      // as the backdrop above, driven by the same scene-context/Location-tag
+      // scoring — see applyVnMusic/pickAutoMusic.
+      applyVnMusic(active);
+      const locLabel = document.getElementById('vnLocationLabel');
+      if (locLabel) locLabel.innerText = active.currentLocation || 'Location';
+      const locBtn = document.getElementById('vnLocationBtn');
+      if (locBtn) locBtn.title = active.currentLocation ? `Current location: ${active.currentLocation} (tap to change)` : 'Set a location tag to steer backdrop & music selection';
 
       if (candidateBg) {
         const nextBg = candidateBg;
@@ -10649,11 +10719,33 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     // Builds a lowercase blob of "what's happening right now" text (the
     // scenario setting plus the last few turns) that keyword matching runs
-    // against.
+    // against. The Location tag (active.currentLocation) is folded in here
+    // too, so both backdrop and music selection see it, but it's also
+    // checked separately and weighted higher in scoreLibraryByKeywords below
+    // — a location the player pinned on purpose should beat an incidental
+    // word appearing once in recent dialogue.
     function getVnSceneContextText(active) {
       const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
       const recent = validTurns.slice(-6).map(m => m.text || '').join(' ');
-      return `${active.setting || ''} ${recent}`.toLowerCase();
+      return `${active.currentLocation || ''} ${active.setting || ''} ${recent}`.toLowerCase();
+    }
+
+    // Shared scoring used by both pickAutoBackdrop and pickAutoMusic: a
+    // keyword match inside the pinned Location tag counts for 3x a match
+    // found only in the scene-context blob (setting + recent dialogue).
+    function scoreLibraryByKeywords(library, context, locationText) {
+      let best = null, bestScore = 0;
+      for (const entry of library) {
+        const keywords = (entry.keywords || []).map(k => k.toLowerCase()).filter(Boolean);
+        if (!keywords.length) continue;
+        let score = 0;
+        for (const kw of keywords) {
+          if (locationText && locationText.includes(kw)) score += 3;
+          else if (context.includes(kw)) score++;
+        }
+        if (score > bestScore) { bestScore = score; best = entry; }
+      }
+      return best;
     }
 
     // Picks the library entry whose keywords best match the current scene.
@@ -10664,15 +10756,246 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!library.length) return null;
       const context = getVnSceneContextText(active);
       if (!context.trim()) return null;
-      let best = null, bestScore = 0;
-      for (const entry of library) {
-        const keywords = (entry.keywords || []).map(k => k.toLowerCase()).filter(Boolean);
-        if (!keywords.length) continue;
-        let score = 0;
-        for (const kw of keywords) { if (context.includes(kw)) score++; }
-        if (score > bestScore) { bestScore = score; best = entry; }
+      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase());
+    }
+
+    // --- VN Music Library ------------------------------------------------
+    // Mirrors the Backdrop Library above, but for looping background music
+    // instead of the still image. Same storage shape (keywords[] + url,
+    // uploaded files land as data: URLs and get externalized into the asset
+    // store exactly like images — see hasInlineImages/walkStateImages), same
+    // auto-select-vs-pin behavior, same scoring — just applied to audio and
+    // played through the persistent <audio id="vnMusicPlayer"> element
+    // instead of drawn onto a background layer.
+
+    function openMusicLibraryModal() {
+      renderMusicLibrary();
+      const modal = document.getElementById('musicLibraryModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeMusicLibraryModal(event) {
+      if (event && event.target && event.target.id !== 'musicLibraryModal') return;
+      const modal = document.getElementById('musicLibraryModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderMusicLibrary() {
+      const active = getActiveScenario();
+      const container = document.getElementById('musicLibraryContainer');
+      const toggle = document.getElementById('musicAutoSelectToggle');
+      const volSlider = document.getElementById('musicVolumeSlider');
+      const locInput = document.getElementById('musicLocationInput');
+      if (!container) return;
+      if (toggle) toggle.checked = active.musicAutoSelect !== false;
+      if (volSlider) volSlider.value = String(Math.round(((typeof active.musicVolume === 'number') ? active.musicVolume : 0.5) * 100));
+      if (locInput) locInput.value = active.currentLocation || '';
+
+      const library = active.musicLibrary || [];
+      const pinnedUrl = active.manualVnMusic || '';
+
+      if (library.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No tracks saved yet. Upload one with "+ Add Music" above — tracks from <a href="https://pixabay.com/music/" target="_blank" rel="noopener" class="text-zetaAccent underline">Pixabay Music</a> are free to use and don't require attribution.</div>`;
+        return;
       }
-      return best;
+
+      container.innerHTML = library.slice().reverse().map(entry => {
+        const isPinned = !!pinnedUrl && pinnedUrl === entry.url;
+        return `
+          <div class="flex flex-col gap-2 p-3 bg-zetaCard border ${isPinned ? 'border-zetaAccent' : 'border-slate-800'} rounded-xl mb-3">
+            <div class="flex-1 min-w-0 space-y-1.5">
+              <input type="text" value="${escapeHtml(entry.label || '')}" placeholder="Label (optional)" oninput="updateMusicLibraryField('${entry.id}','label',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+              <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. tavern, night, battle)" oninput="updateMusicLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+            </div>
+            <audio controls preload="none" src="${entry.url}" class="w-full h-8"></audio>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="pinMusicFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
+              <button type="button" onclick="deleteMusicFromLibrary('${entry.id}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setMusicAutoSelect(checked) {
+      const active = getActiveScenario();
+      active.musicAutoSelect = !!checked;
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function setMusicVolume(value) {
+      const active = getActiveScenario();
+      active.musicVolume = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // Shared by the Music Library modal's inline field and the 📍 stage
+    // button (editVnLocationTag, below) — either one updates the same tag.
+    function updateLocationTagFromModal(value) {
+      const active = getActiveScenario();
+      active.currentLocation = String(value || '').trim();
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    async function editVnLocationTag() {
+      const active = getActiveScenario();
+      const next = await zfPrompt('Where are the characters right now? This tag is weighted heavily when auto-selecting a backdrop and background music (e.g. "Tavern", "Dark Forest", "Spaceship Bridge"). Leave it blank to go back to matching on scene text alone.', active.currentLocation || '', 'Set Location Tag');
+      if (next === null) return;
+      active.currentLocation = next.trim();
+      await saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    async function addMusicToLibrary(event) {
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
+      if (!files.length) return;
+      const active = getActiveScenario();
+      if (!Array.isArray(active.musicLibrary)) active.musicLibrary = [];
+
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const keywordsInput = await zfPrompt(`Keywords for this track (comma separated — e.g. "tavern, calm, night"). Leave blank to tag it later from the library.`, '', `Tag: ${file.name}`);
+        active.musicLibrary.push({
+          id: 'mu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          url: dataUrl,
+          label: file.name.replace(/\.[a-z0-9]+$/i, ''),
+          keywords: (keywordsInput || '').split(',').map(k => k.trim()).filter(Boolean),
+          source: 'uploaded',
+          createdAt: Date.now()
+        });
+      }
+
+      markImagesDirty();
+      await saveState();
+      renderMusicLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function updateMusicLibraryField(id, field, value) {
+      const active = getActiveScenario();
+      const entry = (active.musicLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      if (field === 'keywords') {
+        entry.keywords = String(value || '').split(',').map(k => k.trim()).filter(Boolean);
+      } else if (field === 'label') {
+        entry.label = value;
+      }
+      saveState();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function pinMusicFromLibrary(id) {
+      const active = getActiveScenario();
+      const entry = (active.musicLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      active.manualVnMusic = (active.manualVnMusic === entry.url) ? '' : entry.url;
+      saveState();
+      renderMusicLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    async function deleteMusicFromLibrary(id) {
+      const active = getActiveScenario();
+      const entry = (active.musicLibrary || []).find(e => e.id === id);
+      if (!entry) return;
+      if (!await zfConfirm(`Remove "${entry.label || 'this track'}" from your library?`, 'Delete Track', 'Delete')) return;
+      active.musicLibrary = (active.musicLibrary || []).filter(e => e.id !== id);
+      if (active.manualVnMusic === entry.url) active.manualVnMusic = '';
+      await saveState();
+      renderMusicLibrary();
+      if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // Picks the music library entry whose keywords best match the current
+    // scene (same scoring as pickAutoBackdrop — see scoreLibraryByKeywords).
+    function pickAutoMusic(active) {
+      const library = active.musicLibrary || [];
+      if (!library.length) return null;
+      const context = getVnSceneContextText(active);
+      if (!context.trim()) return null;
+      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase());
+    }
+
+    // Crossfades the persistent <audio id="vnMusicPlayer"> element toward a
+    // new src/volume by animating .volume — a single shared element rather
+    // than two overlapping ones, which keeps this simple and avoids doubling
+    // up on iOS's already-finicky autoplay/unlock rules for <audio>.
+    let vnMusicFadeRAF = null;
+    function fadeVnMusicElement(el, toVolume, ms, onDone) {
+      if (vnMusicFadeRAF) { cancelAnimationFrame(vnMusicFadeRAF); vnMusicFadeRAF = null; }
+      const from = el.volume;
+      const start = performance.now();
+      const clampedTo = Math.max(0, Math.min(1, toVolume));
+      function step(now) {
+        const t = Math.min(1, (now - start) / ms);
+        el.volume = from + (clampedTo - from) * t;
+        if (t < 1) {
+          vnMusicFadeRAF = requestAnimationFrame(step);
+        } else {
+          vnMusicFadeRAF = null;
+          if (onDone) onDone();
+        }
+      }
+      vnMusicFadeRAF = requestAnimationFrame(step);
+    }
+
+    // Applies whichever track auto-select/pin resolves to right now,
+    // crossfading between tracks rather than cutting. Called from
+    // renderVnTurn() alongside the backdrop pick — same trigger point, same
+    // pinned > auto-selected precedence pattern.
+    let currentVnMusicUrl = '';
+    function applyVnMusic(active) {
+      const player = document.getElementById('vnMusicPlayer');
+      if (!player) return;
+      const autoEntry = (active.musicAutoSelect !== false) ? pickAutoMusic(active) : null;
+      const pinnedUrl = active.manualVnMusic || '';
+      const nextUrl = (autoEntry && autoEntry.url) || pinnedUrl || '';
+      const targetVol = (typeof active.musicVolume === 'number') ? active.musicVolume : 0.5;
+
+      if (nextUrl === currentVnMusicUrl) {
+        // Nothing changed track-wise — still keep volume in sync with the
+        // slider (e.g. the user just dragged it) without restarting.
+        if (!player.paused) fadeVnMusicElement(player, targetVol, 300);
+        else player.volume = targetVol;
+        return;
+      }
+      currentVnMusicUrl = nextUrl;
+
+      if (!nextUrl) {
+        if (!player.paused) fadeVnMusicElement(player, 0, 600, () => { try { player.pause(); } catch (e) {} });
+        return;
+      }
+
+      const swapAndPlay = () => {
+        player.src = nextUrl;
+        player.volume = 0;
+        // Autoplay can be blocked before the user has interacted with the
+        // page at all (most browsers, and iOS in particular) — that's
+        // expected and silent here; the next tap/click on the VN stage
+        // (tap zones, buttons) is a user gesture and a subsequent call to
+        // applyVnMusic (e.g. the next renderVnTurn) will succeed.
+        const p = player.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+        fadeVnMusicElement(player, targetVol, 700);
+      };
+      if (!player.paused && player.volume > 0.02) {
+        fadeVnMusicElement(player, 0, 450, swapAndPlay);
+      } else {
+        swapAndPlay();
+      }
     }
     function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode!=='text');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
     function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')zfAlert('Choose a Markdown file above.');}
