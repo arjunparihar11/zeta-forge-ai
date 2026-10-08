@@ -877,12 +877,32 @@
 
           <div id="mentionAutocomplete" class="hidden fixed z-[75] bg-zetaSidebar border border-zetaBorder rounded-xl shadow-2xl max-h-48 overflow-y-auto scroll-touch py-1"></div>
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
+            <button
+              type="button"
+              id="enhanceBtn"
+              onclick="enhanceUserDraft()"
+              title="Enhance: turn what you typed into a full, in-story reply (tap again for a new take)"
+              aria-label="Enhance my message"
+              class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder px-3 py-2.5 rounded-xl text-sm flex items-center justify-center transition active:scale-95 shrink-0 h-[42px] w-[42px] disabled:opacity-50"
+            >
+              ✨
+            </button>
+            <button
+              type="button"
+              id="enhanceUndoBtn"
+              onclick="undoEnhanceDraft()"
+              title="Undo enhance (restore what you originally typed)"
+              aria-label="Undo enhance"
+              class="hidden bg-zetaCard hover:bg-zetaBorder text-slate-300 border border-zetaBorder px-2 py-2.5 rounded-xl text-sm items-center justify-center transition active:scale-95 shrink-0 h-[42px] w-[36px]"
+            >
+              ↩
+            </button>
             <textarea
               id="userInput"
               rows="1"
               placeholder="Speak, act, or @: to narrate... (@name to mention)"
               class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-zetaAccent resize-none h-[42px] max-h-36 overflow-y-auto leading-normal"
-              oninput="autoExpandTextarea(this); scheduleContextEstimate(); handleMentionInput(this)"
+              oninput="autoExpandTextarea(this); scheduleContextEstimate(); handleMentionInput(this); syncEnhanceUndo()"
               onkeydown="handleInputKeydown(event)"
               onblur="scheduleMentionPopupClose()"
             ></textarea>
@@ -6304,12 +6324,221 @@ CRITICAL RULES:
         inputEl.value = activeSuggestedReplies[index];
         autoExpandTextarea(inputEl);
         inputEl.focus();
+        syncEnhanceUndo();
       }
       hideReplySuggestions();
     }
 
     function hideReplySuggestions() {
       document.getElementById('replySuggestionsContainer').classList.add('hidden');
+    }
+
+    // --- Enhance (JanitorAI-style) -------------------------------------------
+    // Takes whatever rough draft is already in the text box -- "MARA? what is a
+    // key? keyhole?" -- and replaces it with a fully written, in-voice reply
+    // that keeps every beat of the draft. Unlike Suggest (which invents three
+    // options from the scene alone), the draft is the steering input here: the
+    // model may add body language, sensation, interior thought and scene
+    // detail, but it must not change what the user meant to say or do. Same
+    // routing as Suggest: the active local endpoint first (free), Gemini as the
+    // fallback. enhanceState remembers the original draft so (a) tapping
+    // Enhance again re-rolls from the ORIGINAL words rather than re-enhancing
+    // the already-enhanced text, and (b) the ↩ button can restore it.
+    let enhanceState = { original: '', enhanced: '' };
+    let enhanceInFlight = false;
+
+    function syncEnhanceUndo() {
+      const undoBtn = document.getElementById('enhanceUndoBtn');
+      const inputEl = document.getElementById('userInput');
+      if (!undoBtn || !inputEl) return;
+      const stillEnhanced = !!enhanceState.enhanced && inputEl.value === enhanceState.enhanced;
+      undoBtn.classList.toggle('hidden', !stillEnhanced);
+      undoBtn.classList.toggle('flex', stillEnhanced);
+    }
+
+    function resetEnhanceState() {
+      enhanceState = { original: '', enhanced: '' };
+      syncEnhanceUndo();
+    }
+
+    function undoEnhanceDraft() {
+      const inputEl = document.getElementById('userInput');
+      if (!inputEl || !enhanceState.enhanced || inputEl.value !== enhanceState.enhanced) { resetEnhanceState(); return; }
+      inputEl.value = enhanceState.original;
+      resetEnhanceState();
+      autoExpandTextarea(inputEl);
+      scheduleContextEstimate();
+      inputEl.focus();
+    }
+
+    // Local finetunes love to wrap output in labels, fences or <think> blocks;
+    // this peels those off without ever touching quoted dialogue inside the
+    // reply itself (a reply that merely STARTS with a spoken line keeps its
+    // quotes -- only a pair of quotes wrapping the entire text is removed).
+    function cleanEnhancedDraft(raw, personaName) {
+      let t = String(raw || '');
+      t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?think>/gi, '');
+      t = t.replace(/^\s*```[a-z]*\s*/i, '').replace(/\s*```\s*$/, '');
+      t = t.replace(/^\s*(?:enhanced|rewritten|revised|improved)(?:\s+(?:message|reply|version|text))?\s*:\s*/i, '');
+      if (personaName) {
+        const esc = personaName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        t = t.replace(new RegExp('^\\s*' + esc + '\\s*:\\s*', 'i'), '');
+      }
+      t = t.trim();
+      if (t.length > 2 && /^["“]/.test(t) && /["”]$/.test(t) && (t.match(/["“”]/g) || []).length === 2) {
+        t = t.slice(1, -1).trim();
+      }
+      return t;
+    }
+
+    function buildEnhancePromptParts(active, draft) {
+      const persona = active.userPersona || {};
+      const personaName = persona.name || 'the user';
+      const clip = (str, n) => { str = String(str || '').replace(/\s+/g, ' ').trim(); return str.length > n ? str.slice(0, n) + '…' : str; };
+      const turns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
+      const recent = turns.slice(-6).map(m => `${m.speakerName || 'Speaker'}: ${clip(m.text, 700)}`).join('\n') || '(The story has not started yet.)';
+      const userSamples = turns.filter(m => m.role === 'user').slice(-2).map(m => clip(m.text, 500));
+      const cast = (active.characters || []).map(c => c && c.name).filter(Boolean).join(', ');
+      const mentionNames = draft.match(/@[\w'’-]+/g) || [];
+
+      const system = `You are the "Enhance" tool in an interactive-fiction app. The player typed a rough draft of what their character says and does. Rewrite it into a polished, immersive, in-story message for ${personaName} that keeps everything the player meant, and nothing else gets decided for them.
+
+RULES:
+1. FAITHFUL: Keep every intent, question, action, emotion and key line from the draft, in the same order. Keep the draft's own wording for spoken lines wherever it reads naturally (fix typos and formatting, expand abbreviations). Do not add new decisions, plans, revelations or actions the draft doesn't imply, and do not answer the player's own questions for them.
+2. ENRICH: Add what a good writer would -- body language, physical sensations, internal thought, small sensory details from the current scene -- using only facts already established in the scene or character details below. Do not invent new named characters, locations or objects.
+3. YOUR CHARACTER ONLY: Write only ${personaName}'s words, actions, thoughts and perceptions. Never speak for or control other characters and never narrate how they respond. Do not resolve or advance the scene beyond ${personaName}'s own moment.
+4. STYLE: ${userSamples.length ? "Match the point of view, tense and formatting of the player's recent messages shown below." : `Third-person, past tense, close on ${personaName}'s experience; spoken lines in double quotes; flowing prose paragraphs.`} Refer to ${personaName} with the pronouns already established for them in the character details or recent turns; if none are established, use the name.
+5. TONE: Match the draft's intensity, language and subject matter exactly -- the same level of profanity, emotion and explicitness. Do not censor, soften, moralize or add disclaimers, and do not escalate past what the draft implies.
+6. LENGTH: Roughly 2-4x the draft for short drafts, typically 50-150 words; for a draft already over ~100 words, polish and enrich it modestly instead of ballooning it.
+7. OUTPUT: Return ONLY the rewritten message text. No title, no label, no quotation marks around the whole message, no explanation, no markdown headings, no JSON.${mentionNames.length ? `\n8. Keep these @mentions exactly as written: ${mentionNames.join(', ')}.` : ''}
+
+EXAMPLE (different story):
+Draft: hey who r u?? why am i tied up
+Rewritten: "Hey—who are you?" The words scraped out of a throat gone dry. ${personaName} twisted against the rope biting into their wrists, heart thudding hard enough to blur the edges of the room. "Why the hell am I tied up? Answer me!"`;
+
+      const user = `CHARACTER (the player): ${personaName}${persona.role ? ' -- ' + persona.role : ''}${(persona.desc || persona.persona) ? '\n' + clip(persona.desc || persona.persona, 450) : ''}
+
+STORY: ${active.title || 'Untitled'}${active.setting ? ' -- ' + clip(active.setting, 350) : ''}${active.currentLocation ? '\nCurrent location: ' + clip(active.currentLocation, 120) : ''}${cast ? '\nOther characters: ' + clip(cast, 250) : ''}
+
+RECENT SCENE:
+${recent}
+${userSamples.length ? `\nTHE PLAYER'S RECENT MESSAGES (style reference only):\n${userSamples.map(x => '- ' + x).join('\n')}\n` : ''}
+DRAFT TO ENHANCE:
+${draft}
+
+Rewrite the draft now. Output only the rewritten message.`;
+
+      return { system, user, personaName };
+    }
+
+    async function enhanceUserDraft() {
+      if (enhanceInFlight) return;
+      const inputEl = document.getElementById('userInput');
+      const btn = document.getElementById('enhanceBtn');
+      if (!inputEl || !btn) return;
+
+      // Tapping again on an untouched enhanced reply re-rolls from the
+      // player's original words, not from the previous enhancement.
+      const reroll = !!enhanceState.enhanced && inputEl.value === enhanceState.enhanced;
+      const currentText = reroll ? enhanceState.original : inputEl.value;
+      let draft = currentText.trim();
+      if (!draft) {
+        zfAlert('Type a rough idea in the box first -- Enhance expands whatever you wrote into a full reply.');
+        return;
+      }
+
+      const active = getActiveScenario();
+      // Narrate mode / "@:" prefix is routing syntax, not prose to rewrite.
+      let narratePrefix = '';
+      const narrateMatch = draft.match(/^@:\s*/);
+      if (narrateMatch) { narratePrefix = '@: '; draft = draft.slice(narrateMatch[0].length).trim(); }
+      if (!draft) { zfAlert('Type a rough idea in the box first -- Enhance expands whatever you wrote into a full reply.'); return; }
+
+      enhanceInFlight = true;
+      btn.disabled = true;
+      const originalLabel = btn.innerHTML;
+      btn.innerHTML = '⏳';
+      inputEl.readOnly = true;
+
+      try {
+        const { system, user, personaName } = buildEnhancePromptParts(active, draft);
+        const enhanceModel = appState.model || MODEL_ROUTINE_DEFAULT;
+        let result = '';
+        let localNote = '';
+
+        const endpointInfo = await resolveActiveEndpoint();
+        if (endpointInfo.type === 'local') {
+          try {
+            const localRes = await fetch(`${endpointInfo.url.replace(/\/+$/, '')}/chat/completions`, {
+              method: 'POST',
+              headers: localRequestHeaders({ 'Content-Type': 'application/json' }, endpointInfo.apiKey),
+              body: JSON.stringify({
+                model: endpointInfo.model || 'local-model',
+                messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+                temperature: 0.85, max_tokens: 600, stream: false
+              })
+            });
+            if (localRes.ok) {
+              const localData = await localRes.json();
+              result = cleanEnhancedDraft(localData.choices?.[0]?.message?.content || '', personaName);
+              if (result) appState.localTurnsServed = (appState.localTurnsServed || 0) + 1;
+            } else {
+              localNote = `${endpointInfo.label || 'Your local endpoint'} returned HTTP ${localRes.status}.`;
+            }
+          } catch (e) {
+            console.warn('Local enhance failed, falling back to Gemini:', e?.message || e);
+            localNote = `${endpointInfo.label || 'Your local endpoint'} didn't answer.`;
+          }
+        }
+
+        if (!result) {
+          if (!appState.apiKey) {
+            if (endpointInfo.type === 'local') {
+              throw new Error(`${localNote || 'Your local endpoint returned nothing usable.'} No Gemini API key is set as a fallback -- check the local endpoint, or add a Gemini key in Setup.`);
+            }
+            openModal('setupModal');
+            return;
+          }
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${enhanceModel}:generateContent?key=${encodeURIComponent(appState.apiKey)}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: system }] },
+              contents: [{ role: 'user', parts: [{ text: user }] }],
+              generationConfig: { temperature: 0.85, maxOutputTokens: 1000 },
+              safetySettings: buildSafetySettings()
+            })
+          });
+          if (!res.ok) throw new Error(`Enhance failed (HTTP ${res.status}).`);
+          const data = await res.json();
+          recordTextUsage(enhanceModel, data, system + user, 1000);
+          const candidate = data.candidates?.[0];
+          const rawText = (candidate?.content?.parts || []).map(p => p.text || '').join('');
+          result = cleanEnhancedDraft(rawText, personaName);
+          if (!result) {
+            const blocked = data.promptFeedback?.blockReason || candidate?.finishReason;
+            throw new Error(blocked && blocked !== 'STOP'
+              ? `Gemini didn't return text (${blocked}). If this is a safety block, check the relaxed-filter option in Setup.`
+              : 'The model returned an empty reply. Try again.');
+          }
+        }
+
+        const finalText = narratePrefix + result;
+        enhanceState = { original: currentText, enhanced: finalText };
+        inputEl.value = finalText;
+        autoExpandTextarea(inputEl);
+        scheduleContextEstimate();
+        syncEnhanceUndo();
+      } catch (err) {
+        zfAlert('Enhance Notice: ' + err.message);
+      } finally {
+        enhanceInFlight = false;
+        inputEl.readOnly = false;
+        btn.disabled = false;
+        btn.innerHTML = originalLabel;
+        inputEl.focus();
+      }
     }
 
     // Branch Editing & Undo Logic
@@ -13672,6 +13901,7 @@ REQUIREMENTS:
 
       inputEl.value = '';
       inputEl.style.height = '42px';
+      resetEnhanceState();
       await saveState();
       renderMessages();
       renderSidebar();
@@ -14245,6 +14475,7 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       const continueBtn = document.getElementById('continueBtn');
       const genImageBtn = document.getElementById('genImageBtn');
       const suggestRepliesBtn = document.getElementById('suggestRepliesBtn');
+      const enhanceBtnEl = document.getElementById('enhanceBtn');
 
       if (show) {
         textEl.innerText = message;
@@ -14253,12 +14484,14 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
         continueBtn.disabled = true;
         if (genImageBtn) genImageBtn.disabled = true;
         if (suggestRepliesBtn) suggestRepliesBtn.disabled = true;
+        if (enhanceBtnEl) enhanceBtnEl.disabled = true;
       } else {
         indicator.classList.add('hidden');
         sendBtn.disabled = false;
         continueBtn.disabled = false;
         if (genImageBtn) genImageBtn.disabled = false;
         if (suggestRepliesBtn) suggestRepliesBtn.disabled = false;
+        if (enhanceBtnEl && !enhanceInFlight) enhanceBtnEl.disabled = false;
       }
     }
 
