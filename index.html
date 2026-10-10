@@ -543,20 +543,41 @@
           <button onclick="openModal('setupModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Settings & Cast Setup">
             <span>⚙️</span> <span>Setup</span>
           </button>
-          <button onclick="openModal('importModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Import Transcript">
-            <span>📥</span> <span>Import</span>
-          </button>
-          <button onclick="openModal('exportModal')" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition active:scale-95 shadow" title="Export Markdown">
-            <span>💾</span> <span>Export</span>
-          </button>
-
+          <!-- Import / Export now live in the Story Scenarios drawer (☰ button at the far right). -->
         </div>
 
-        <!-- Mobile Menu Button -->
-        <button onclick="toggleMenuDrawer(true)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zetaCard hover:bg-zetaBorder flex items-center justify-center text-slate-200 border border-zetaBorder active:scale-95 transition shrink-0 shadow-sm md:hidden" title="Scenarios & Utilities">
-          ☰
+        <!-- Scenarios & Utilities drawer button: icon-only on phones, labelled
+             icon + text once the side panel is docked (md and up), so it is
+             reachable at every width. Always the far-right header control. -->
+        <button onclick="toggleMenuDrawer(true)" id="scenarioMenuBtn" class="h-8 sm:h-9 min-w-[2rem] sm:min-w-[2.25rem] px-0 md:px-3 md:gap-1.5 rounded-xl bg-zetaCard hover:bg-zetaBorder flex items-center justify-center text-slate-200 border border-zetaBorder active:scale-95 transition shrink-0 shadow-sm" title="Story Scenarios, Import & Export" aria-label="Open Story Scenarios">
+          <span>☰</span>
+          <span class="hidden md:inline text-xs font-medium">Scenarios</span>
         </button>
       </div>
+    </div>
+
+    <!-- Story tracker row: where the scene is + what day/time it is. Chips are tappable. -->
+    <div id="storyTrackerRow" class="relative px-2.5 sm:px-4 pb-2 flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+      <button type="button" onclick="toggleLocationPopover()" id="trackerLocationBtn" class="min-w-0 max-w-[48%] sm:max-w-xs h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm" title="Tap to set where the story is happening">
+        <span class="shrink-0">📍</span><span id="trackerLocationText" class="truncate">Set location</span>
+      </button>
+      <button type="button" onclick="toggleClockPopover()" id="trackerClockBtn" class="min-w-0 h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Tap to set the story day and time">
+        <span id="trackerClockIcon" class="shrink-0">🕒</span><span id="trackerClockText" class="whitespace-nowrap">Set day &amp; time</span><span class="text-[10px] text-zetaGlow shrink-0">▾</span>
+      </button>
+      <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" class="h-7 px-2 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium flex items-center gap-1 transition active:scale-95 shadow-sm shrink-0" title="Story calendar &amp; events">
+        <span>📅</span><span class="text-[10px] text-zetaGlow"></span>
+      </button>
+      <span id="trackerStoryDay" class="text-[10px] sm:text-[11px] text-slate-500 truncate min-w-0"></span>
+      <span id="trackerSuggestion" class="hidden h-7 pl-2.5 pr-1 rounded-full bg-[#2a223c] border border-zetaAccent/60 text-zetaLight text-[11px] flex items-center gap-1.5 min-w-0 max-w-full">
+        <span class="shrink-0">✨</span><span id="trackerSuggestionText" class="truncate"></span>
+        <button type="button" onclick="applySceneSuggestion()" class="shrink-0 px-2 py-0.5 rounded-full bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-semibold">Apply</button>
+        <button type="button" onclick="dismissSceneSuggestion()" class="shrink-0 px-1.5 text-slate-400 hover:text-white" aria-label="Dismiss">✕</button>
+      </span>
+      <button type="button" onclick="undoClockChange()" id="trackerUndoBtn" class="hidden h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-amber-500/50 text-amber-200 text-[11px] font-medium flex items-center gap-1 transition active:scale-95 shrink-0" title="Undo the last clock change">
+        <span>↶</span><span>Undo</span>
+      </button>
+      <div id="clockPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(23rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
+      <div id="locationPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(20rem,calc(100vw-1.25rem))] max-h-[70vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
     </div>
   </header>
 
@@ -1086,6 +1107,82 @@
     </div>
   </div>
 
+  <!-- Story Calendar Modal -->
+  <div id="calendarModal" onclick="closeCalendarModal(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2"><span class="text-base">📅</span><h2 class="text-sm sm:text-base font-bold text-white">Story Calendar</h2></div>
+        <button onclick="closeCalendarModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
+        <p id="calendarNow" class="text-[11px] text-[#b9a6ff]/80 leading-tight"></p>
+        <div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2">
+          <input type="text" id="calEvTitle" placeholder="Event (e.g. Harvest Festival, Gym leader match)" maxlength="80" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+          <div class="grid grid-cols-2 gap-2">
+            <select id="calEvKind" onchange="calKindChanged()" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-xs text-white">
+              <option value="day">On a story day</option>
+              <option value="weekday">Every week on…</option>
+            </select>
+            <div id="calEvDayWrap"><input type="number" min="1" id="calEvDay" placeholder="Story day #" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" /></div>
+            <div id="calEvDowWrap" class="hidden"><select id="calEvDow" class="w-full bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-xs text-white"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="time" id="calEvTime" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-xs text-white" aria-label="Time (optional)" />
+            <input type="text" id="calEvNote" placeholder="Note for the AI (optional)" maxlength="200" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <button type="button" onclick="addCalendarEvent()" class="w-full text-xs bg-zetaAccent hover:bg-zetaAccentHover text-white px-2.5 py-1.5 rounded-lg transition active:scale-95 shadow">+ Add event</button>
+        </div>
+        <div id="calendarList" class="space-y-2"></div>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closeCalendarModal()" class="w-full bg-zetaAccent hover:bg-zetaAccentHover text-white py-2 rounded-xl text-xs font-medium transition active:scale-95">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggested Locations Modal -->
+  <div id="locationSuggestModal" onclick="closeLocationSuggestions(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2"><span class="text-base">📍</span><h2 class="text-sm sm:text-base font-bold text-white">Suggested locations</h2></div>
+        <button onclick="closeLocationSuggestions()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 flex-1 scroll-touch">
+        <p class="text-[11px] text-[#b9a6ff]/80 leading-snug">Places found in your scenario setup, lorebook, cast and routines. Tick the ones to add -- they become Location entries you can pick from the tracker and give travel times.</p>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="toggleAllLocationSuggestions()" class="text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder">Select all / none</button>
+          <button type="button" id="locationSuggestAiBtn" onclick="improveLocationSuggestionsWithAI()" class="hidden text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder">🧠 Improve with AI</button>
+        </div>
+        <div id="locationSuggestList" class="space-y-2"></div>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 grid grid-cols-2 gap-2 shrink-0">
+        <button onclick="closeLocationSuggestions()" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Cancel</button>
+        <button id="locationSuggestAddBtn" onclick="addSelectedLocations()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white py-2 rounded-xl text-xs font-medium transition active:scale-95">Add selected</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Preview Modal -->
+  <div id="promptPreviewModal" onclick="closePromptPreview(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2"><span class="text-base">🔍</span><h2 class="text-sm sm:text-base font-bold text-white">What the model sees</h2></div>
+        <button onclick="closePromptPreview()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3 flex-1 scroll-touch">
+        <div class="grid grid-cols-2 gap-1.5 max-w-xs">
+          <button type="button" id="previewFmtLocal" onclick="setPreviewFormat('local')" class="px-2 py-1.5 rounded-lg text-[11px] font-medium border">Local model</button>
+          <button type="button" id="previewFmtGemini" onclick="setPreviewFormat('gemini')" class="px-2 py-1.5 rounded-lg text-[11px] font-medium border">Gemini</button>
+        </div>
+        <div id="promptPreviewSummary" class="space-y-1.5"></div>
+        <pre id="promptPreviewText" class="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-300 bg-zetaInput border border-zetaBorder rounded-xl p-3 max-h-[40vh] overflow-y-auto"></pre>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 flex justify-end shrink-0">
+        <button onclick="closePromptPreview()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Character Spotlight Dossier Modal -->
   <div id="characterSpotlightModal" onclick="closeCharacterSpotlight(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
@@ -1211,6 +1308,15 @@
         <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Relationship to User</label>
           <input type="text" id="spotlightEditRelationship" oninput="autoSaveSpotlightField('relationship', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-zetaGlow focus:border-zetaAccent" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">Where are they now? <span class="font-normal text-slate-500">(optional override)</span></label>
+          <input type="text" id="spotlightEditWhereabouts" placeholder="Leave blank to follow their weekly routine" oninput="autoSaveSpotlightField('whereabouts', this.value); refreshSpotlightSchedulePreview()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">Weekly routine <span class="font-normal text-slate-500">(used with the story clock)</span></label>
+          <textarea id="spotlightEditSchedule" rows="3" placeholder="One per line, e.g.&#10;weekdays 9am-5pm Pokémon Center&#10;sat,sun 10:00-14:00 City Park&#10;daily 10pm-6am Home" oninput="autoSaveSpotlightField('schedule', this.value); refreshSpotlightSchedulePreview()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
+          <p id="spotlightSchedulePreview" class="text-[10px] text-slate-500"></p>
         </div>
         <div class="space-y-1"><label class="text-[11px] font-semibold text-slate-400">Voice</label><button type="button" id="spotlightVoiceLabBtn" onclick="openVoiceLab('spotlight')" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white text-left hover:border-zetaAccent transition">🎙️ Voice Off — Voice Lab</button></div>
         <p class="text-[10px] text-slate-500 border-t border-zetaBorder pt-2">Changes save automatically while typing.</p>
@@ -2594,6 +2700,10 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         musicVolume: 0.5,
         manualVnMusic: '',
         currentLocation: '',
+        worldClock: { set: false, dow0: 0, storyDay: 1, minutes: 480, autoMinutes: 0, autoSnap: null, weather: '', season: '' },
+        sceneAuto: 'suggest',
+        calendar: [],
+        clockLog: [],
         userPersona: {
           name: 'Bob',
           role: 'Middle-aged businessman',
@@ -2906,6 +3016,10 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (typeof found.musicVolume !== 'number') found.musicVolume = 0.5;
       if (found.manualVnMusic === undefined) found.manualVnMusic = '';
       if (found.currentLocation === undefined) found.currentLocation = '';
+      if (!found.worldClock || typeof found.worldClock !== 'object') found.worldClock = defaultWorldClock();
+      if (!['off', 'suggest', 'auto'].includes(found.sceneAuto)) found.sceneAuto = 'suggest';
+      if (!Array.isArray(found.calendar)) found.calendar = [];
+      if (!Array.isArray(found.clockLog)) found.clockLog = [];
       return found;
     }
 
@@ -3295,6 +3409,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (d.chronicle) populateChapterChronicle();
       if (d.scenarios) renderScenariosList();
       if (d.layout) applyViewModeLayout();
+      renderStoryTracker();
       scheduleContextEstimate();
     }
     function scheduleUiRender(parts) {
@@ -3810,7 +3925,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
     }
     function isModalOrDrawerOpen() {
-      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal','newScenarioDrawer'];
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','calendarModal','locationSuggestModal','promptPreviewModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal','newScenarioDrawer'];
       if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
       const chapterDrawer = document.getElementById('chapterDrawer');
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
@@ -5524,67 +5639,223 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       renderLorebookSetup();
     }
 
-    function renderLorebookSetup() {
-      const container = document.getElementById('lorebookContainerSetup');
-      if (!container) return;
+    // ── Lorebook editor: tags, secrets, travel times, meter, templates ────
+    const LORE_CATEGORY_HINTS = {
+      general: 'Used when its title or keywords come up in the recent story.',
+      world: 'Always sent to the AI as a standing world rule -- keep it short.',
+      location: 'Sent when the tracker location matches it, or its keywords come up.',
+      object: 'Sent only when the item is mentioned (its keywords come up).',
+      character: 'Attached to one character -- sent while they are active in the scene.'
+    };
+    let lastLocalContextCap = 0;
+    let loreBulkOpen = false;
+    let loreBulkText = '';
+
+    function getLoreNames() {
       const active = getActiveScenario();
-      if (!active.lorebook) active.lorebook = [];
-
-      if (active.lorebook.length === 0) {
-        container.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">No codex entries. Click <strong>+ Add Lore Entry</strong> to add locations, factions, or magic rules.</div>`;
-        return;
-      }
-
-      container.innerHTML = active.lorebook.map((entry, index) => `
-        <div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-indigo-300">Codex Entry #${index + 1}</span>
-            <button type="button" onclick="removeLorebookRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Title (e.g. City of Solitude, Shadow Blade)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Keywords (e.g. solitude, capital, fortress)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
-          </div>
-          <textarea placeholder="Description, lore context, history, or rules to inject when keyword is mentioned..." oninput="getActiveScenario().lorebook[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
-        </div>
-      `).join('');
+      return [active.userPersona?.name, ...(active.characters || []).map(c => c.name)].filter(Boolean);
     }
 
-    function renderLorebookModal() {
-      const container = document.getElementById('lorebookContainerModal');
-      if (!container) return;
-      const active = getActiveScenario();
-      if (!active.lorebook) active.lorebook = [];
-
-      if (active.lorebook.length === 0) {
-        container.innerHTML = `<div class="text-xs text-slate-500 text-center py-8">No codex entries in this scenario yet. Tap <strong>+ Add Entry</strong> above to start building world lore!</div>`;
-        return;
+    // Heuristic tag suggestion for untagged entries.
+    const LORE_LOCATION_RE = /\b(city|town|village|forest|woods|cave|cavern|castle|tavern|inn|room|house|manor|temple|shrine|island|mountain|route|road|street|district|harbou?r|port|station|school|academy|hall|mill|lab|laboratory|gym|center|centre|market|bridge|ruins?|dungeon|tower|garden|park|lake|river|kingdom|capital|beach|desert|swamp|library|hospital|shop|store|cafe|bar|club|base|fortress|palace|valley|plains?|cliff|canyon)\b/i;
+    const LORE_OBJECT_RE = /\b(sword|blade|dagger|key|ring|amulet|necklace|pendant|book|tome|scroll|map|potion|device|artifact|relic|staff|wand|orb|crystal|gem|stone|badge|phone|weapon|gun|rifle|armor|armour|cloak|charm|tool|mask|crown|letter|diary|journal|bottle|vial|collar)\b/i;
+    const LORE_WORLD_RE = /\b(law|laws|rule|rules|magic|always|never|history|faction|guild|order|religion|currency|economy|war|prophecy|curse|era|age|society|class|system|empire|government|tradition|custom|ritual)\b/i;
+    function suggestLoreCategory(entry, names = getLoreNames()) {
+      const title = String(entry.title || '').toLowerCase();
+      const content = String(entry.content || '').toLowerCase();
+      if (!title.trim() && content.trim().length < 12) return null;
+      for (const n of names) {
+        const ln = n.toLowerCase();
+        if (title.includes(ln) || new RegExp('^' + ln.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(content)) return { cat: 'character', character: n };
       }
+      if (LORE_LOCATION_RE.test(title)) return { cat: 'location' };
+      if (LORE_OBJECT_RE.test(title)) return { cat: 'object' };
+      if (LORE_WORLD_RE.test(title)) return { cat: 'world' };
+      if ((content.match(new RegExp(LORE_LOCATION_RE.source, 'gi')) || []).length >= 2) return { cat: 'location' };
+      if ((content.match(new RegExp(LORE_OBJECT_RE.source, 'gi')) || []).length >= 2) return { cat: 'object' };
+      if (LORE_WORLD_RE.test(content)) return { cat: 'world' };
+      return null;
+    }
+    function loreCatLabel(id) { return (LORE_CATEGORIES.find(c => c.id === id) || LORE_CATEGORIES[0]).short; }
 
-      container.innerHTML = active.lorebook.map((entry, index) => `
-        <div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-indigo-300">Entry #${index + 1}</span>
-            <button type="button" onclick="removeLorebookRow(${index}); renderLorebookModal();" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Title" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Keywords (comma-separated)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
-          </div>
-          <textarea placeholder="Lore content and facts..." oninput="getActiveScenario().lorebook[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
-        </div>
-      `).join('');
+    const LORE_TEMPLATES = [
+      { id: 'faction', label: 'Faction / organization', category: 'world', title: 'New Faction', keywords: 'faction, guild', content: 'Who they are, what they want, how they operate, and who they oppose.' },
+      { id: 'rule', label: 'World rule / magic system', category: 'world', title: 'New World Rule', keywords: 'rule, magic', content: 'How it works, what it costs, its limits, and what happens when it is broken.' },
+      { id: 'history', label: 'Past event / history', category: 'world', title: 'New Historical Event', keywords: 'history', content: 'What happened, when, who was involved, and how it still affects the present.' },
+      { id: 'location', label: 'Location', category: 'location', title: 'New Location', keywords: '', content: 'What it looks like, sounds and smells, who is usually there, what it is used for, and any hidden details.', travelFrom: '' },
+      { id: 'object', label: 'Object / artifact', category: 'object', title: 'New Object', keywords: '', content: 'What it looks like, what it does, who owns it, and its limits or history.' },
+      { id: 'npc', label: 'Character note', category: 'character', title: 'Background', keywords: '', content: 'Habits, history, quirks, or knowledge that should shape how this character acts.' },
+      { id: 'secret', label: 'Secret (known to some)', category: 'character', title: 'Secret', keywords: '', content: 'What is being hidden, who knows, and what they would do to keep it hidden.', secret: true }
+    ];
+    function newLoreEntry(base = {}) {
+      return Object.assign({ id: 'lore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), title: '', keywords: '', content: '', category: 'general', characterTag: '', knownBy: [], travelFrom: '' }, base);
     }
 
-    function addLorebookRow() {
-      const active = getActiveScenario();
-      if (!active.lorebook) active.lorebook = [];
-      active.lorebook.push({ id: 'lore_' + Date.now(), title: '', keywords: '', content: '' });
+    function loreChipClass(on) {
+      return `px-1.5 py-0.5 rounded-md text-[10px] border transition ${on ? 'bg-zetaAccent border-zetaAccent text-white' : 'bg-zetaInput border-slate-700 text-slate-300 hover:bg-zetaBorder'}`;
+    }
+    function loreCategoryControlsHtml(entry, index) {
+      const cat = normalizeLoreCategory(entry.category);
+      const names = getLoreNames();
+      if (entry.characterTag && !names.includes(entry.characterTag)) names.push(entry.characterTag);
+      const known = Array.isArray(entry.knownBy) ? entry.knownBy : [];
+      return `<div class="space-y-1.5">
+          <div class="flex flex-wrap items-center gap-2">
+            <select onchange="setLoreCategory(${index}, this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white" aria-label="Entry type">
+              ${LORE_CATEGORIES.map(c => `<option value="${c.id}" ${c.id === cat ? 'selected' : ''}>${c.label}</option>`).join('')}
+            </select>
+            ${cat === 'character' ? `<select onchange="setLoreCharacterTag(${index}, this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white" aria-label="Character">
+              <option value="">Pick a character…</option>
+              ${names.map(n => `<option value="${escapeHtml(n)}" ${n === entry.characterTag ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+            </select>` : ''}
+            <span class="text-[10px] text-slate-500 leading-tight flex-1 min-w-[10rem]">${LORE_CATEGORY_HINTS[cat]}</span>
+          </div>
+          ${cat === 'location' ? `<input type="text" placeholder="Travel times from other places, e.g. Town=20, Old Mill=45 (minutes)" value="${escapeHtml(entry.travelFrom || '')}" oninput="getActiveScenario().lorebook[${index}].travelFrom = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-indigo-200" />` : ''}
+          <div class="flex flex-wrap items-center gap-1">
+            <span class="text-[10px] text-slate-500 mr-0.5">🔒 Known by:</span>
+            <button type="button" onclick="clearLoreKnownBy(${index})" class="${loreChipClass(!known.length)}">Everyone</button>
+            ${names.map((n, ni) => `<button type="button" onclick="toggleLoreKnownBy(${index}, ${ni})" class="${loreChipClass(known.includes(n))}">${escapeHtml(n)}</button>`).join('')}
+          </div>
+          <div class="lore-suggest" data-idx="${index}"></div>
+        </div>`;
+    }
+    function setLoreCategory(index, value) {
+      const e = getActiveScenario().lorebook?.[index];
+      if (!e) return;
+      e.category = normalizeLoreCategory(value);
+      if (e.category !== 'character') e.characterTag = '';
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+    }
+    function setLoreCharacterTag(index, value) {
+      const e = getActiveScenario().lorebook?.[index];
+      if (!e) return;
+      e.characterTag = String(value || '');
+      saveState();
+    }
+    function toggleLoreKnownBy(index, nameIdx) {
+      const e = getActiveScenario().lorebook?.[index];
+      const name = getLoreNames()[nameIdx];
+      if (!e || !name) return;
+      const list = Array.isArray(e.knownBy) ? e.knownBy.slice() : [];
+      const at = list.indexOf(name);
+      if (at === -1) list.push(name); else list.splice(at, 1);
+      e.knownBy = list;
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+    }
+    function clearLoreKnownBy(index) {
+      const e = getActiveScenario().lorebook?.[index];
+      if (!e) return;
+      e.knownBy = [];
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+    }
+    function applyLoreSuggestion(index) {
+      const e = getActiveScenario().lorebook?.[index];
+      if (!e) return;
+      const sug = suggestLoreCategory(e);
+      if (!sug) return;
+      e.category = sug.cat;
+      if (sug.cat === 'character') e.characterTag = sug.character || '';
       renderLorebookSetup();
       renderLorebookModal();
       saveState();
     }
 
+    function loreToolbarHtml(scope) {
+      return `<div class="space-y-2">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <select onchange="insertLoreTemplate(this.value); this.value=''" class="bg-zetaInput border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white" aria-label="Add from template">
+            <option value="">＋ From template…</option>
+            ${LORE_TEMPLATES.map(t => `<option value="${t.id}">${t.label}</option>`).join('')}
+          </select>
+          <button type="button" onclick="toggleLoreBulk()" class="text-[11px] px-2 py-1 rounded-lg border ${loreBulkOpen ? 'bg-zetaAccent border-zetaAccent text-white' : 'bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder'}">📥 Bulk import</button>
+          <button type="button" onclick="autoTagLorebook()" class="text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder" title="Suggest a type for every untagged entry">🏷️ Auto-tag</button>
+          <button type="button" onclick="openLocationSuggestions()" class="text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder" title="Find places in your setup and lorebook">📍 Suggest locations</button>
+          <button type="button" onclick="openPromptPreview()" class="text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder">🔍 Prompt preview</button>
+        </div>
+        ${loreBulkOpen ? `<div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2">
+          <p class="text-[10px] text-slate-400 leading-snug">Paste several entries, separated by a blank line. Each one is "Title: description" (or a title line, then the description). Start a title with [location], [object], [world] or [character] to force a type -- otherwise it is guessed.</p>
+          <textarea rows="6" oninput="loreBulkText=this.value" placeholder="Old Mill: A ruined mill outside town with a hidden cellar.&#10;&#10;[object] Silver Key: Opens only the cellar door." class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(loreBulkText)}</textarea>
+          <button type="button" onclick="bulkImportLore()" class="w-full text-xs bg-zetaAccent hover:bg-zetaAccentHover text-white px-2.5 py-1.5 rounded-lg transition active:scale-95">Import entries</button>
+        </div>` : ''}
+        <div class="lore-meter rounded-lg bg-zetaInput border border-zetaBorder px-2.5 py-1.5 text-[10px] text-slate-400 leading-snug"></div>
+      </div>`;
+    }
+
+    function renderLorebookInto(containerId, scope) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      const label = scope === 'modal' ? 'Entry' : 'Codex Entry';
+      const cards = active.lorebook.map((entry, index) => `
+        <div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-indigo-300">${label} #${index + 1} <span class="ml-1 px-1.5 py-0.5 rounded-md bg-zetaInput border border-slate-700 text-[9px] font-medium text-slate-300">${loreCatLabel(normalizeLoreCategory(entry.category))}${normalizeLoreCategory(entry.category) === 'character' && entry.characterTag ? ' · ' + escapeHtml(entry.characterTag) : ''}${Array.isArray(entry.knownBy) && entry.knownBy.length ? ' · 🔒' : ''}</span></span>
+            <button type="button" onclick="removeLorebookRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" placeholder="Title (e.g. City of Solitude, Shadow Blade)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Keywords (comma-separated)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
+          </div>
+          ${loreCategoryControlsHtml(entry, index)}
+          <textarea placeholder="Description, lore context, history, or rules..." oninput="getActiveScenario().lorebook[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
+        </div>`).join('');
+      const empty = `<div class="text-xs text-slate-500 text-center py-6">No codex entries yet. Add one, pick a template, or bulk-import a list.</div>`;
+      container.innerHTML = loreToolbarHtml(scope) + (cards || empty);
+      refreshLoreMeters();
+      refreshLoreSuggestions();
+    }
+    function renderLorebookSetup() { renderLorebookInto('lorebookContainerSetup', 'setup'); }
+    function renderLorebookModal() { renderLorebookInto('lorebookContainerModal', 'modal'); }
+
+    function refreshLoreMeters() {
+      const els = document.querySelectorAll('.lore-meter');
+      if (!els.length) return;
+      const active = getActiveScenario();
+      const book = (active.lorebook || []).filter(e => (e.content || '').trim());
+      const cap = lastLocalContextCap || 8192;
+      const budget = Math.max(600, Math.min(4500, Math.round(cap * 0.2)));
+      const block = buildLorebookContextText(active, budget);
+      const injTok = estimateTokens(block);
+      const injN = (block.match(/^- /gm) || []).length;
+      const total = book.reduce((n, e) => n + estimateTokens(`${e.title || ''}. ${e.content || ''}`), 0);
+      const budTok = Math.round(budget / 3.8);
+      const pct = Math.min(100, Math.round(injTok / Math.max(1, budTok) * 100));
+      const html = `<div class="flex items-center justify-between gap-2"><span>In the prompt right now: <b class="text-slate-200">~${injTok} tokens</b> (${injN} of ${book.length} entr${book.length === 1 ? 'y' : 'ies'})</span><span>budget ~${budTok} · all entries ~${total}</span></div><div class="h-1.5 rounded-full bg-zetaCard mt-1 overflow-hidden"><div class="h-full ${pct > 90 ? 'bg-amber-400' : 'bg-zetaAccent'}" style="width:${pct}%"></div></div>${pct > 90 ? '<div class="text-amber-300 mt-1">Near the lorebook budget -- longer entries get trimmed first.</div>' : ''}`;
+      els.forEach(el => { el.innerHTML = html; });
+    }
+    function refreshLoreSuggestions() {
+      const active = getActiveScenario();
+      const names = getLoreNames();
+      document.querySelectorAll('.lore-suggest').forEach(el => {
+        const idx = Number(el.dataset.idx);
+        const e = active.lorebook?.[idx];
+        const sug = e && normalizeLoreCategory(e.category) === 'general' ? suggestLoreCategory(e, names) : null;
+        el.innerHTML = sug ? `<button type="button" onclick="applyLoreSuggestion(${idx})" class="text-[10px] px-2 py-0.5 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">💡 Looks like ${loreCatLabel(sug.cat).toLowerCase()}${sug.character ? ' (' + escapeHtml(sug.character) + ')' : ''} -- tap to tag</button>` : '';
+      });
+    }
+    let loreRefreshTimer = null;
+    document.addEventListener('input', e => {
+      const t = e.target;
+      if (!t || !t.closest || !t.closest('#lorebookContainerModal, #lorebookContainerSetup')) return;
+      clearTimeout(loreRefreshTimer);
+      loreRefreshTimer = setTimeout(() => { refreshLoreMeters(); refreshLoreSuggestions(); }, 350);
+    });
+
+    function addLorebookRow() {
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      active.lorebook.push(newLoreEntry());
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+    }
     function removeLorebookRow(index) {
       const active = getActiveScenario();
       if (!active.lorebook) return;
@@ -5592,6 +5863,114 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       renderLorebookSetup();
       renderLorebookModal();
       saveState();
+    }
+    function insertLoreTemplate(id) {
+      const t = LORE_TEMPLATES.find(x => x.id === id);
+      if (!t) return;
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      active.lorebook.push(newLoreEntry({ title: t.title, keywords: t.keywords || '', content: t.content, category: t.category, travelFrom: t.travelFrom || '' }));
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+      showTransientToast('Template added at the bottom of the list');
+    }
+    function toggleLoreBulk() { loreBulkOpen = !loreBulkOpen; renderLorebookSetup(); renderLorebookModal(); }
+    function titleKeywords(title) {
+      const words = String(title || '').toLowerCase().match(/[a-z][a-z'-]{2,}/g) || [];
+      const stop = new Set(['the', 'and', 'for', 'with', 'new', 'old']);
+      const out = [String(title || '').trim().toLowerCase(), ...words.filter(w => !stop.has(w))];
+      return [...new Set(out.filter(Boolean))].join(', ').slice(0, 200);
+    }
+    function bulkImportLore() {
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      const blocks = loreBulkText.split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
+      let added = 0;
+      blocks.forEach(block => {
+        const lines = block.split('\n');
+        let first = lines[0].trim();
+        let cat = null;
+        const tagM = /^[\[(]\s*(world|location|place|object|item|character|person)\s*[\])]\s*/i.exec(first);
+        if (tagM) { cat = normalizeLoreCategory(tagM[1]); first = first.slice(tagM[0].length); }
+        let title, content;
+        const sep = /^(.{1,70}?)\s*(?::|—|–|\s-\s)\s*(.+)$/.exec(first);
+        if (sep) { title = sep[1].trim(); content = [sep[2], ...lines.slice(1)].join('\n').trim(); }
+        else if (lines.length > 1) { title = first.slice(0, 70); content = lines.slice(1).join('\n').trim(); }
+        else { title = first.split(/\s+/).slice(0, 5).join(' '); content = first; }
+        if (!title || !content) return;
+        const e = newLoreEntry({ title: title.slice(0, 120), keywords: titleKeywords(title), content: content.slice(0, 900), category: cat || 'general' });
+        if (!cat) { const sug = suggestLoreCategory(e); if (sug) { e.category = sug.cat; if (sug.character) e.characterTag = sug.character; } }
+        if (!active.lorebook.some(x => String(x.title || '').toLowerCase() === e.title.toLowerCase())) { active.lorebook.push(e); added++; }
+      });
+      loreBulkText = '';
+      loreBulkOpen = false;
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+      showTransientToast(added ? `Imported ${added} entr${added === 1 ? 'y' : 'ies'}` : 'Nothing new to import');
+    }
+    function autoTagLorebook() {
+      const active = getActiveScenario();
+      const names = getLoreNames();
+      let n = 0;
+      (active.lorebook || []).forEach(e => {
+        if (normalizeLoreCategory(e.category) !== 'general') return;
+        const sug = suggestLoreCategory(e, names);
+        if (sug) { e.category = sug.cat; if (sug.character) e.characterTag = sug.character; n++; }
+      });
+      renderLorebookSetup();
+      renderLorebookModal();
+      saveState();
+      showTransientToast(n ? `Tagged ${n} entr${n === 1 ? 'y' : 'ies'} -- review them in the list` : 'No confident suggestions for the untagged entries');
+    }
+
+    // ── Prompt preview ("what the model sees") ───────────────────────────
+    let previewFormat = 'local';
+    async function openPromptPreview() {
+      closeTrackerPopovers();
+      previewFormat = (appState.llmProfile || 'gemini') === 'gemini' ? 'gemini' : 'local';
+      const m = document.getElementById('promptPreviewModal');
+      if (!m) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      await renderPromptPreview();
+    }
+    function closePromptPreview(event) {
+      if (event && event.target && event.target.id !== 'promptPreviewModal') return;
+      const m = document.getElementById('promptPreviewModal');
+      if (!m) return;
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+    function setPreviewFormat(f) { previewFormat = f; renderPromptPreview(); }
+    async function renderPromptPreview() {
+      const active = getActiveScenario();
+      let cap = lastLocalContextCap || 8192;
+      if ((appState.llmProfile || 'gemini') !== 'gemini') {
+        try { const ep = await resolveActiveEndpoint({}); if (ep && ep.type === 'local' && ep.contextCap) cap = ep.contextCap; } catch (e) { /* keep default */ }
+      }
+      let text;
+      let note = '';
+      if (previewFormat === 'local') text = await buildSystemInstructionForLocalLLM({ contextCap: cap });
+      else { text = await buildSystemInstruction(false, false); note = buildStoryTurnNote(active); }
+      const sections = [];
+      const re = /\n\n(\[[A-Z][A-Z &\-]+\])/g;
+      let m, last = 0, name = '[INTRO]';
+      while ((m = re.exec(text))) { sections.push([name, text.slice(last, m.index)]); last = m.index; name = m[1]; }
+      sections.push([name, text.slice(last)]);
+      if (note) sections.push(['[APPENDED TO YOUR LATEST MESSAGE]', note]);
+      const toks = sections.map(([n, t]) => [n, estimateTokens(t)]);
+      const total = toks.reduce((n, x) => n + x[1], 0);
+      const colors = ['bg-violet-500', 'bg-sky-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-teal-500', 'bg-fuchsia-500', 'bg-indigo-500'];
+      const histLeft = previewFormat === 'local' ? Math.max(0, cap - total - LOCAL_OUTPUT_RESERVE - 160) : null;
+      const on = 'bg-zetaAccent border-zetaAccent text-white', off = 'bg-zetaCard border-zetaBorder text-slate-300';
+      document.getElementById('previewFmtLocal').className = `px-2 py-1.5 rounded-lg text-[11px] font-medium border ${previewFormat === 'local' ? on : off}`;
+      document.getElementById('previewFmtGemini').className = `px-2 py-1.5 rounded-lg text-[11px] font-medium border ${previewFormat === 'gemini' ? on : off}`;
+      document.getElementById('promptPreviewSummary').innerHTML = `
+        <div class="text-xs text-slate-200"><b>~${total} tokens</b> of instructions${histLeft != null ? ` · at a ${cap}-token context that leaves about <b>${histLeft}</b> for chat history after a ${LOCAL_OUTPUT_RESERVE}-token reply reserve` : ' (sent with every Gemini story turn)'}</div>
+        ${toks.map(([n, t], i) => `<div class="flex items-center gap-2 text-[10px] text-slate-400"><span class="w-44 shrink-0 truncate">${escapeHtml(n)}</span><div class="flex-1 h-2 rounded-full bg-zetaCard overflow-hidden"><div class="h-full ${colors[i % colors.length]}" style="width:${Math.max(1, Math.round(t / Math.max(1, total) * 100))}%"></div></div><span class="w-12 text-right">${t}</span></div>`).join('')}`;
+      document.getElementById('promptPreviewText').textContent = text + (note ? '\n\n=== appended to your latest message ===\n' + note : '');
     }
 
     // Premise & Future Plot Points -- arc 0 is the fixed "Introduction" (always
@@ -6118,6 +6497,9 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         const outfitSelect = document.getElementById('spotlightEditOutfit');
         outfitSelect.innerHTML = `<option value="">No specific outfit</option>` + getCharacterOutfits(charObj).map(o => `<option value="${escapeHtml(o.id)}" ${charObj.currentOutfitId === o.id ? 'selected' : ''}>${escapeHtml(o.name || 'Outfit')}</option>`).join('');
         document.getElementById('spotlightEditRelationship').value = charObj.relationship || '';
+        document.getElementById('spotlightEditWhereabouts').value = charObj.whereabouts || '';
+        document.getElementById('spotlightEditSchedule').value = charObj.schedule || '';
+        refreshSpotlightSchedulePreview();
         syncVoiceSelectButtons();
       } else {
         editBody.classList.add('hidden');
@@ -6128,6 +6510,22 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     }
 
     let spotlightSaveTimer=null;
+    function refreshSpotlightSchedulePreview() {
+      const el = document.getElementById('spotlightSchedulePreview');
+      if (!el) return;
+      const found = findCharacterForSpotlight(currentSpotlightCharName);
+      const ch = found && found.obj;
+      if (!ch) { el.textContent = ''; return; }
+      const n = parseScheduleText(ch.schedule).length;
+      const total = String(ch.schedule || '').split('\n').filter(l => l.trim()).length;
+      const c = getWorldClock(getActiveScenario());
+      const w = getCharacterWhereabouts(ch, c);
+      const parts = [];
+      if (total) parts.push(`${n} of ${total} line${total === 1 ? '' : 's'} understood`);
+      if (c.set) parts.push(w ? `right now: ${w.place}` : 'right now: no routine matches');
+      else if (total) parts.push('set the story clock to use routines');
+      el.textContent = parts.join(' · ');
+    }
     function autoSaveSpotlightField(field,value){
       const found=findCharacterForSpotlight(currentSpotlightCharName); if(!found?.obj)return; const charObj=found.obj;
       if(field==='persona') charObj.personality=value;
@@ -6885,7 +7283,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         // spells out the exact per-entry schema and what makes a keyword
         // list actually usable, instead of leaving the model to guess field
         // names and format from the bare {"lorebook":[]} shape alone.
-        const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?`Extract only durable new facts introduced in RECENT STORY that are NOT already covered in EXISTING LORE -- new locations, factions, items/artifacts, secrets/revelations, backstory, rules of the world, or significant plot developments (a decision made, a promise, a discovery, a status change) even if no new proper noun is involved. Do NOT restate existing lore. Do NOT log routine dialogue or transient mood/scenery. For each entry return exactly {"title":"short name","keywords":"comma,separated,list,of,searchable,terms","content":"1-3 sentence factual summary"}. "keywords" MUST be a comma-separated list of 3-8 distinct short terms someone would plausibly mention later (the entity's name, aliases/nicknames, related place/item/character names, and the core topic) -- NOT a restated sentence or the title alone. Return at most 4 entries; omit anything not clearly durable.`:'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[{"title":"","keywords":"","content":""}]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
+        const prompt=`Perform two background maintenance tasks in ONE response.\\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\\nB) Lorebook maintenance: ${dueLore?`Extract only durable new facts introduced in RECENT STORY that are NOT already covered in EXISTING LORE -- new locations, factions, items/artifacts, secrets/revelations, backstory, rules of the world, or significant plot developments (a decision made, a promise, a discovery, a status change) even if no new proper noun is involved. Do NOT restate existing lore. Do NOT log routine dialogue or transient mood/scenery. For each entry return exactly {"title":"short name","keywords":"comma,separated,list,of,searchable,terms","content":"1-3 sentence factual summary","category":"world|location|object|character","character":"exact cast name if category is character, else empty"}. Pick category "location" for places, "object" for items/artifacts, "character" for a durable fact about one specific character (set "character" to their exact name), and "world" only for standing world rules or factions that should always apply. "keywords" MUST be a comma-separated list of 3-8 distinct short terms someone would plausibly mention later (the entity's name, aliases/nicknames, related place/item/character names, and the core topic) -- NOT a restated sentence or the title alone. Return at most 4 entries; omit anything not clearly durable.`:'Return an empty lorebook array.'}\\nReturn STRICT JSON: {"characters":{},"lorebook":[{"title":"","keywords":"","content":"","category":"","character":""}]}\\nCAST: ${cast.join(', ')}\\nEXISTING RELATIONSHIPS:\\n${relBaseline}\\nEXISTING LORE:\\n${loreExisting}\\nRECENT STORY:\\n${dialogue}`;
         const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
         let parsed=null;
         if(maintEndpointInfo.type==='local'){
@@ -6921,7 +7319,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           const keywordTerms = new Set(keywordsRaw.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean));
           String(e.title||'').match(/[A-Za-z][A-Za-z'-]{2,}/g)?.forEach(w=>keywordTerms.add(w.toLowerCase()));
           const finalKeywords = keywordTerms.size ? Array.from(keywordTerms).join(', ') : String(e.title);
-          active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:finalKeywords.slice(0,240),content:String(e.content).slice(0,900),autoGenerated:true});
+          active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:finalKeywords.slice(0,240),content:String(e.content).slice(0,900),category:normalizeLoreCategory(e.category),characterTag:normalizeLoreCategory(e.category)==='character'?String(e.character||'').slice(0,80):'',autoGenerated:true});
         }
         active.relationshipState=active.relationshipState||{};if(event)active.relationshipState.lastUpdateFingerprint=event.fingerprint;if(dueLore&&active.localMemoryIndex)active.localMemoryIndex.lastLorebookAnalysisTurn=turns.length;await saveState();renderSidebar();renderLorebookSetup();
       }catch(e){console.warn('Batched background maintenance skipped:',e.message)}finally{backgroundMaintenanceBusy=false}
@@ -7660,7 +8058,7 @@ Return ONLY a JSON object with this exact shape, no prose, no code fences:
     { "name": "...", "role": "short role/archetype", "persona": "2-4 sentences: personality, motivations, background", "visualProfile": "1-2 sentences: physical appearance, clothing", "mood": "one word, current emotional state", "relationship": "1 sentence: their relationship to the user's character" }
   ],
   "lorebook": [
-    { "title": "short entry name", "keywords": "comma,separated,trigger,words", "content": "2-3 sentences of world/backstory detail relevant to those keywords" }
+    { "title": "short entry name", "keywords": "comma,separated,trigger,words", "content": "2-3 sentences of world/backstory detail relevant to those keywords", "category": "world | location | object | character", "character": "exact character name if category is character, else empty" }
   ]
 }
 
@@ -7715,7 +8113,7 @@ Write 2-4 characters, 3-6 lorebook entries, and 1-3 futureArcs (later plot devel
         });
         (Array.isArray(parsed.lorebook) ? parsed.lorebook : []).slice(0, 8).forEach(e => {
           if (!e || !e.title || !e.content) return;
-          newScen.lorebook.push({ id: 'lore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), title: String(e.title).slice(0, 120), keywords: String(e.keywords || e.title).slice(0, 240), content: String(e.content).slice(0, 900) });
+          newScen.lorebook.push({ id: 'lore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), title: String(e.title).slice(0, 120), keywords: String(e.keywords || e.title).slice(0, 240), content: String(e.content).slice(0, 900), category: normalizeLoreCategory(e.category), characterTag: normalizeLoreCategory(e.category) === 'character' ? String(e.character || '').slice(0, 80) : '' });
         });
 
         await saveState();
@@ -10962,7 +11360,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // Shared scoring used by both pickAutoBackdrop and pickAutoMusic: a
     // keyword match inside the pinned Location tag counts for 3x a match
     // found only in the scene-context blob (setting + recent dialogue).
-    function scoreLibraryByKeywords(library, context, locationText) {
+    function scoreLibraryByKeywords(library, context, locationText, timeText = '') {
       let best = null, bestScore = 0;
       for (const entry of library) {
         const keywords = (entry.keywords || []).map(k => k.toLowerCase()).filter(Boolean);
@@ -10970,6 +11368,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         let score = 0;
         for (const kw of keywords) {
           if (locationText && locationText.includes(kw)) score += 3;
+          else if (timeText && timeText.includes(kw)) score += 2;
           else if (context.includes(kw)) score++;
         }
         if (score > bestScore) { bestScore = score; best = entry; }
@@ -10985,7 +11384,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!library.length) return null;
       const context = getVnSceneContextText(active);
       if (!context.trim()) return null;
-      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase());
+      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase(), getTimeContextWords(active));
     }
 
     // --- VN Music Library ------------------------------------------------
@@ -11070,15 +11469,17 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const active = getActiveScenario();
       active.currentLocation = String(value || '').trim();
       saveState();
+      renderStoryTracker();
       if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
     async function editVnLocationTag() {
       const active = getActiveScenario();
-      const next = await zfPrompt('Where are the characters right now? This tag is weighted heavily when auto-selecting a backdrop and background music (e.g. "Tavern", "Dark Forest", "Spaceship Bridge"). Leave it blank to go back to matching on scene text alone.', active.currentLocation || '', 'Set Location Tag');
+      const next = await zfPrompt('Where are the characters right now? The AI is told this location every turn, and it is weighted heavily when auto-selecting a backdrop and music (e.g. "Tavern", "Dark Forest", "Spaceship Bridge"). Leave it blank to clear it.', active.currentLocation || '', 'Set Location Tag');
       if (next === null) return;
       active.currentLocation = next.trim();
       await saveState();
+      renderStoryTracker();
       if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
@@ -11155,7 +11556,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!library.length) return null;
       const context = getVnSceneContextText(active);
       if (!context.trim()) return null;
-      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase());
+      return scoreLibraryByKeywords(library, context, (active.currentLocation || '').toLowerCase(), getTimeContextWords(active));
     }
 
     // Crossfades the persistent <audio id="vnMusicPlayer"> element toward a
@@ -12101,6 +12502,12 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
       const active = getActiveScenario();
 
+      // Pull the optional [SCENE: place | time | weather] line out of the
+      // reply before anything is shown, then offer/apply it to the tracker.
+      const sceneExtract = extractSceneTags(replyBlocks);
+      replyBlocks = sceneExtract.blocks;
+      if (sceneExtract.tag) setTimeout(() => handleSceneTag(sceneExtract.tag), 0);
+
       // The system prompt already tells the model never to speak/act as the
       // user's own persona, but it doesn't always listen -- this is the hard
       // enforcement backstop. When the turn came from the user typing and
@@ -12271,6 +12678,1260 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       runBatchedBackgroundMaintenance();
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Prompt trimming + scene state (clock / location) + lorebook categories
+    // ─────────────────────────────────────────────────────────────────────
+    // How many recent messages decide who counts as "recently active" for the
+    // local cast sheet, and how many characters may get a full persona entry.
+    const CAST_FOCUS_MESSAGES = 10;
+    const CAST_FULL_MAX = 4;
+    const CAST_FULL_PERSONA_CHARS = 650;
+    const CAST_COMPACT_PERSONA_CHARS = 110;
+    // Output reserve for local models: what the dialogue budget leaves room
+    // for. The real max_tokens sent is raised toward LOCAL_OUTPUT_CEILING
+    // only when the prompt turns out to be small (see callLocalRoutineLLM).
+    const LOCAL_OUTPUT_RESERVE = 1024;
+    const LOCAL_OUTPUT_CEILING = 1536;
+
+    function clipText(s, max) {
+      s = String(s || '').replace(/\s+\n/g, '\n').trim();
+      if (s.length <= max) return s;
+      const cut = s.slice(0, max);
+      const stop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '), cut.lastIndexOf('.\n'), cut.lastIndexOf('\n'));
+      const body = stop > max * 0.6 ? cut.slice(0, stop + 1) : cut.replace(/\s+\S*$/, '');
+      return body.trim() + ' …';
+    }
+
+    function textMentionsName(lowerText, lowerName) {
+      if (!lowerName) return false;
+      const esc = lowerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp('(^|[^a-z0-9])' + esc + '($|[^a-z0-9])', 'i').test(lowerText);
+    }
+
+    // Characters who spoke or were named in the last few turns (or in the
+    // draft being typed), most recently involved first.
+    function getRecentCastFocus(active, extraText = '') {
+      const chars = active.characters || [];
+      const msgs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-CAST_FOCUS_MESSAGES);
+      const lastSeen = new Map();
+      const names = chars.map(c => {
+        const full = String(c.name || '').trim().toLowerCase();
+        const first = full.split(/\s+/)[0] || '';
+        return { name: c.name, full, first: first.length >= 3 ? first : '' };
+      }).filter(n => n.full);
+      msgs.forEach((m, idx) => {
+        const speaker = String(m.speakerName || '').trim().toLowerCase();
+        const text = String(m.text || '').toLowerCase();
+        names.forEach(n => {
+          if (speaker === n.full || textMentionsName(text, n.full) || (n.first && textMentionsName(text, n.first))) lastSeen.set(n.name, idx);
+        });
+      });
+      const draft = String(extraText || '').toLowerCase();
+      if (draft) names.forEach(n => { if (textMentionsName(draft, n.full) || (n.first && textMentionsName(draft, n.first))) lastSeen.set(n.name, msgs.length + 1); });
+      return [...lastSeen.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+    }
+
+    // Local-model cast sheet: full persona for recent/mentioned characters
+    // (capped), one compact line for everyone else. Before any dialogue
+    // exists (opening scene) the first few characters get full detail.
+    function buildLocalCastSheet(active) {
+      const chars = active.characters || [];
+      const user = active.userPersona.name;
+      let focus = getRecentCastFocus(active, document.getElementById('userInput')?.value || '');
+      if (!focus.length) focus = chars.slice(0, CAST_FULL_MAX).map(c => c.name);
+      const full = new Set(focus.slice(0, CAST_FULL_MAX));
+      return chars.map(c => {
+        const head = `- ${c.name}, role: ${c.role || 'Companion'}, currently feeling: ${c.mood || 'Neutral'}`;
+        const rel = `Relationship to ${user}: ${c.relationship || 'Companion'}.`;
+        const persona = getCharacterPersona(c);
+        return full.has(c.name)
+          ? `${head}. ${clipText(persona, CAST_FULL_PERSONA_CHARS)} ${rel}`
+          : `${head}. ${clipText(persona, CAST_COMPACT_PERSONA_CHARS)} ${rel.replace('Relationship to ', 'To ')}`;
+      }).join('\n');
+    }
+
+    // Weighted water-filling: sections shorter than their share keep all
+    // their text; the unused budget flows to the longer ones.
+    function fitSectionsToBudget(sections, maxChars) {
+      const total = sections.reduce((n, s) => n + s.text.length, 0);
+      if (!isFinite(maxChars) || total <= maxChars) return sections.map(s => s.text);
+      const alloc = new Array(sections.length).fill(null);
+      let remaining = sections.map((_, i) => i);
+      let budget = maxChars;
+      for (let guard = 0; guard < 10 && remaining.length; guard++) {
+        const wSum = remaining.reduce((n, i) => n + sections[i].weight, 0);
+        const small = remaining.filter(i => sections[i].text.length <= budget * sections[i].weight / wSum);
+        if (!small.length) { remaining.forEach(i => { alloc[i] = Math.floor(budget * sections[i].weight / wSum); }); break; }
+        small.forEach(i => { alloc[i] = sections[i].text.length; budget -= sections[i].text.length; });
+        remaining = remaining.filter(i => !small.includes(i));
+      }
+      return sections.map((s, i) => alloc[i] == null || s.text.length <= alloc[i] ? s.text : clipText(s.text, Math.max(80, alloc[i])));
+    }
+
+    // ── Story clock ─────────────────────────────────────────────────────
+    const CLOCK_WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const CLOCK_TIME_PRESETS = [
+      { label: 'Dawn', icon: '🌅', minutes: 330 },
+      { label: 'Morning', icon: '☀️', minutes: 480 },
+      { label: 'Midday', icon: '🌞', minutes: 720 },
+      { label: 'Afternoon', icon: '🌤️', minutes: 900 },
+      { label: 'Evening', icon: '🌇', minutes: 1110 },
+      { label: 'Night', icon: '🌙', minutes: 1320 },
+      { label: 'Late night', icon: '🦉', minutes: 120 }
+    ];
+    function defaultWorldClock() { return { set: false, dow0: 0, storyDay: 1, minutes: 480, autoMinutes: 0, autoSnap: null, weather: '', season: '' }; }
+    function getWorldClock(active) {
+      if (!active) return null;
+      if (!active.worldClock || typeof active.worldClock !== 'object') active.worldClock = defaultWorldClock();
+      const c = active.worldClock;
+      if (typeof c.dow0 !== 'number') c.dow0 = 0;
+      if (typeof c.storyDay !== 'number' || c.storyDay < 1) c.storyDay = 1;
+      if (typeof c.minutes !== 'number') c.minutes = 480;
+      if (typeof c.autoMinutes !== 'number') c.autoMinutes = 0;
+      if (typeof c.weather !== 'string') c.weather = '';
+      if (typeof c.season !== 'string') c.season = '';
+      return c;
+    }
+    function clockDow(c) { return (((c.dow0 + c.storyDay - 1) % 7) + 7) % 7; }
+    function clockPeriod(min) {
+      if (min >= 300 && min < 450) return 'dawn';
+      if (min >= 450 && min < 690) return 'morning';
+      if (min >= 690 && min < 810) return 'midday';
+      if (min >= 810 && min < 1020) return 'afternoon';
+      if (min >= 1020 && min < 1200) return 'evening';
+      if (min >= 1200 && min < 1380) return 'night';
+      return 'late night';
+    }
+    function formatClockTime(min) {
+      min = ((Math.round(min) % 1440) + 1440) % 1440;
+      const h = Math.floor(min / 60), m = min % 60;
+      return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+    }
+    function formatClockDelta(delta) {
+      if (delta <= 0) return 'no time passes';
+      const d = Math.floor(delta / 1440), h = Math.floor((delta % 1440) / 60), m = delta % 60;
+      return [d ? `${d} day${d > 1 ? 's' : ''}` : '', h ? `${h}h` : '', m ? `${m}m` : ''].filter(Boolean).join(' ');
+    }
+    function formatClockDeltaLong(delta) {
+      const d = Math.floor(delta / 1440), h = Math.floor((delta % 1440) / 60), m = delta % 60;
+      return [d ? `${d} day${d > 1 ? 's' : ''}` : '', h ? `${h} hour${h > 1 ? 's' : ''}` : '', m ? `${m} minute${m > 1 ? 's' : ''}` : ''].filter(Boolean).join(' ') || 'no time';
+    }
+    function advanceClock(c, deltaMin) {
+      const total = c.minutes + Math.max(0, Math.round(deltaMin));
+      c.storyDay += Math.floor(total / 1440);
+      c.minutes = total % 1440;
+    }
+    // Minutes to move forward to reach (dow|null, minutes|null). A null
+    // weekday means "next time that clock-time comes around" (today if it
+    // hasn't passed yet, otherwise tomorrow); an explicit weekday always
+    // moves forward, up to a week.
+    function computeClockSkip(c, dow, minutes) {
+      const curMin = c.minutes, curDow = clockDow(c);
+      const tMin = minutes == null ? curMin : minutes;
+      if (dow == null) return (tMin - curMin + 1440) % 1440;
+      return (((dow - curDow) * 1440 + (tMin - curMin)) % 10080 + 10080) % 10080;
+    }
+    function describeClock(c) {
+      return `${CLOCK_WEEKDAYS[clockDow(c)]} ${clockPeriod(c.minutes)}, ${formatClockTime(c.minutes)}`;
+    }
+
+    // ── Weather & season ─────────────────────────────────────────────────
+    const WEATHER_PRESETS = [
+      { id: 'clear', label: 'Clear', icon: '☀️', words: 'clear sunny sun bright' },
+      { id: 'cloudy', label: 'Cloudy', icon: '☁️', words: 'cloudy overcast grey gloomy' },
+      { id: 'rain', label: 'Rain', icon: '🌧️', words: 'rain rainy wet drizzle' },
+      { id: 'storm', label: 'Storm', icon: '⛈️', words: 'storm stormy thunder lightning rain' },
+      { id: 'snow', label: 'Snow', icon: '❄️', words: 'snow snowy winter cold blizzard' },
+      { id: 'fog', label: 'Fog', icon: '🌫️', words: 'fog foggy mist misty' },
+      { id: 'windy', label: 'Windy', icon: '💨', words: 'wind windy breeze gale' },
+      { id: 'hot', label: 'Heatwave', icon: '🔥', words: 'hot heat summer sweltering' }
+    ];
+    const CLOCK_SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
+    function isNoneToken(x) { return !x || /^(?:-|—|–|\?|none|same|unchanged|n\/a|no change)$/i.test(String(x).trim()); }
+    function normalizeWeather(v) {
+      const s = String(v || '').trim().toLowerCase();
+      if (isNoneToken(s)) return null;
+      if (/storm|thunder|lightning/.test(s)) return 'storm';
+      if (/rain|drizzle|shower|downpour/.test(s)) return 'rain';
+      if (/snow|blizzard|sleet|flurr/.test(s)) return 'snow';
+      if (/fog|mist|haze/.test(s)) return 'fog';
+      if (/wind|breez|gale/.test(s)) return 'windy';
+      if (/heat|hot|swelter|scorch/.test(s)) return 'hot';
+      if (/cloud|overcast|gloom|grey|gray/.test(s)) return 'cloudy';
+      if (/clear|sun|fair|bright|fine/.test(s)) return 'clear';
+      return s.slice(0, 30);
+    }
+    function weatherPreset(id) { return WEATHER_PRESETS.find(w => w.id === id) || null; }
+    function weatherLabel(id) { const p = weatherPreset(id); return p ? p.label.toLowerCase() : String(id || ''); }
+    function weatherIcon(id) { const p = weatherPreset(id); return p ? p.icon : '🌡️'; }
+    function normalizeSeason(v) {
+      const s = String(v || '').trim().toLowerCase();
+      if (/spring/.test(s)) return 'Spring';
+      if (/summer/.test(s)) return 'Summer';
+      if (/autumn|fall/.test(s)) return 'Autumn';
+      if (/winter/.test(s)) return 'Winter';
+      return '';
+    }
+
+    // Words describing the current time/weather/season, folded into the
+    // backdrop and music scoring so an evening scene prefers evening art.
+    const PERIOD_WORDS = {
+      'dawn': 'dawn sunrise early morning daybreak',
+      'morning': 'morning day daytime sunlight',
+      'midday': 'midday noon day daytime sunlight',
+      'afternoon': 'afternoon day daytime sunlight',
+      'evening': 'evening dusk sunset twilight',
+      'night': 'night nighttime dark moonlit moon',
+      'late night': 'late night midnight night dark moon'
+    };
+    function getTimeContextWords(active) {
+      const c = active && active.worldClock;
+      if (!c) return '';
+      const words = [];
+      if (c.set) words.push(PERIOD_WORDS[clockPeriod(c.minutes)] || '');
+      if (c.weather) words.push((weatherPreset(c.weather)?.words) || c.weather);
+      if (c.season) words.push(c.season.toLowerCase());
+      return words.join(' ').toLowerCase();
+    }
+
+    // ── Clock text parsing (for the AI's [SCENE] line) ───────────────────
+    const SCENE_TAG_RE = /\[SCENE:\s*([^\]\n]*)\]/gi;
+    function stripSceneTagText(text) {
+      return String(text || '').replace(SCENE_TAG_RE, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    const PERIOD_MINUTES = { 'late night': 120, 'midnight': 0, 'sunrise': 360, 'dawn': 330, 'afternoon': 900, 'morning': 480, 'noon': 720, 'midday': 720, 'dusk': 1110, 'sunset': 1110, 'evening': 1110, 'night': 1320 };
+    function parseClockText(str) {
+      const s = String(str || '').toLowerCase();
+      let dow = null;
+      const dm = /\b(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)\b/.exec(s);
+      if (dm) dow = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(dm[1].slice(0, 3));
+      let minutes = null;
+      let tm = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/.exec(s);
+      if (tm) {
+        let h = Number(tm[1]) % 12; if (/^p/.test(tm[3])) h += 12;
+        minutes = h * 60 + Number(tm[2] || 0);
+      } else if ((tm = /\b([01]?\d|2[0-3]):([0-5]\d)\b/.exec(s))) {
+        minutes = Number(tm[1]) * 60 + Number(tm[2]);
+      } else {
+        for (const [word, min] of Object.entries(PERIOD_MINUTES)) { if (s.includes(word)) { minutes = min; break; } }
+      }
+      return { dow: dow === -1 ? null : dow, minutes };
+    }
+
+    // ── Character schedules / whereabouts ────────────────────────────────
+    const DAY_TOKENS = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
+    function parseDayToken(tok) {
+      const t = String(tok || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (/^(daily|every ?day|all week|everyday)$/.test(t)) return [0, 1, 2, 3, 4, 5, 6];
+      if (/^weekdays?$/.test(t)) return [0, 1, 2, 3, 4];
+      if (/^weekends?$/.test(t)) return [5, 6];
+      const out = new Set();
+      t.split(/[,\s]+/).filter(Boolean).forEach(part => {
+        const range = /^([a-z]{3})[a-z]*-([a-z]{3})[a-z]*$/.exec(part);
+        if (range && range[1] in DAY_TOKENS && range[2] in DAY_TOKENS) {
+          let i = DAY_TOKENS[range[1]]; const end = DAY_TOKENS[range[2]];
+          for (let g = 0; g < 8; g++) { out.add(i); if (i === end) break; i = (i + 1) % 7; }
+        } else if (part.slice(0, 3) in DAY_TOKENS) out.add(DAY_TOKENS[part.slice(0, 3)]);
+      });
+      return [...out];
+    }
+    function parseTimeToken(tok) {
+      const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(String(tok || '').trim());
+      if (!m) return null;
+      let h = Number(m[1]); const mi = Number(m[2] || 0);
+      if (m[3]) { h = h % 12; if (/pm/i.test(m[3])) h += 12; }
+      if (h > 24 || mi > 59) return null;
+      return (h % 24) * 60 + mi;
+    }
+    const SCHEDULE_LINE_RE = /^\s*([A-Za-z,\s\-]+?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:-|–|—|to)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+(.+?)\s*$/i;
+    function parseScheduleText(text) {
+      return String(text || '').split('\n').map(line => {
+        const m = SCHEDULE_LINE_RE.exec(line);
+        if (!m) return null;
+        const days = parseDayToken(m[1]);
+        let start = parseTimeToken(m[2]);
+        const end = parseTimeToken(m[3]);
+        if (!days.length || start == null || end == null) return null;
+        return { days, start, end, place: m[4].trim() };
+      }).filter(Boolean);
+    }
+    function getCharacterWhereabouts(char, c) {
+      const manual = String(char.whereabouts || '').trim();
+      if (manual) return { place: manual, manual: true };
+      if (!c || !c.set || !String(char.schedule || '').trim()) return null;
+      const dow = clockDow(c), prev = (dow + 6) % 7, min = c.minutes;
+      for (const e of parseScheduleText(char.schedule)) {
+        const hit = e.start <= e.end
+          ? (e.days.includes(dow) && min >= e.start && min < e.end)
+          : ((e.days.includes(dow) && min >= e.start) || (e.days.includes(prev) && min < e.end));
+        if (hit) return { place: e.place, manual: false };
+      }
+      return null;
+    }
+    function buildWhereaboutsText(active) {
+      const c = active.worldClock;
+      const lines = (active.characters || []).map(ch => {
+        const w = getCharacterWhereabouts(ch, c);
+        return w ? `- ${ch.name}: ${clipText(w.place, 70)}${w.manual ? '' : ' (usual routine)'}` : '';
+      }).filter(Boolean).slice(0, 8);
+      if (!lines.length) return '';
+      return `Where people usually are right now (someone elsewhere should only appear if the scene brings them there):\n${lines.join('\n')}`;
+    }
+
+    // ── Calendar ─────────────────────────────────────────────────────────
+    function getCalendar(active) { if (!Array.isArray(active.calendar)) active.calendar = []; return active.calendar; }
+    function clockAbs(c) { return (c.storyDay - 1) * 1440 + c.minutes; }
+    function dowAtDay(c, dayIdx) { return (((c.dow0 + dayIdx) % 7) + 7) % 7; }
+    function eventNextAbs(ev, c) {
+      const now = clockAbs(c);
+      const t = ev.minutes == null ? 0 : ev.minutes;
+      if (ev.kind === 'weekday') {
+        const base = (c.storyDay - 1) * 1440;
+        const days = (((ev.dow - clockDow(c)) % 7) + 7) % 7;
+        let abs = base + days * 1440 + t;
+        if (abs < now && !(ev.minutes == null && days === 0)) abs += 7 * 1440;
+        return abs;
+      }
+      return (Math.max(1, Number(ev.day) || 1) - 1) * 1440 + t;
+    }
+    function eventWhenText(ev, c, abs) {
+      const dayDiff = Math.floor(abs / 1440) - (c.storyDay - 1);
+      let when = dayDiff === 0 ? 'TODAY' : dayDiff === 1 ? 'tomorrow' : dayDiff < 0 ? `${-dayDiff} day${dayDiff === -1 ? '' : 's'} ago` : `in ${dayDiff} days (${CLOCK_WEEKDAYS[dowAtDay(c, Math.floor(abs / 1440))]})`;
+      if (ev.minutes != null) when += ` ${formatClockTime(ev.minutes)}`;
+      return when;
+    }
+    function buildCalendarContextText(active) {
+      const c = active.worldClock;
+      const cal = getCalendar(active);
+      if (!c || !c.set || !cal.length) return '';
+      const now = clockAbs(c);
+      const rows = cal.map(ev => ({ ev, abs: eventNextAbs(ev, c) }))
+        .filter(x => { const d = Math.floor(x.abs / 1440) - (c.storyDay - 1); return d >= 0 && d <= 3 && !(x.ev.kind !== 'weekday' && x.abs < now - 1440); })
+        .sort((a, b) => a.abs - b.abs).slice(0, 5);
+      if (!rows.length) return '';
+      return `Scheduled events (bring them up naturally as they approach; they happen at their time):\n${rows.map(x => `- ${eventWhenText(x.ev, c, x.abs)}: ${x.ev.title}${x.ev.note ? ' -- ' + clipText(x.ev.note, 100) : ''}`).join('\n')}`;
+    }
+    function eventsBetween(active, snapBefore, c) {
+      const absA = (snapBefore.storyDay - 1) * 1440 + snapBefore.minutes, absB = clockAbs(c);
+      const out = [];
+      getCalendar(active).forEach(ev => {
+        for (let d = Math.floor(absA / 1440); d <= Math.floor(absB / 1440) && d < Math.floor(absA / 1440) + 30; d++) {
+          const hit = ev.kind === 'weekday' ? dowAtDay(c, d) === ev.dow : (Number(ev.day) || 1) - 1 === d;
+          const t = d * 1440 + (ev.minutes == null ? 0 : ev.minutes);
+          if (hit && t > absA && t <= absB) out.push(`${ev.title} (${CLOCK_WEEKDAYS[dowAtDay(c, d)]}${ev.minutes != null ? ' ' + formatClockTime(ev.minutes) : ''})`);
+        }
+      });
+      return out;
+    }
+
+    // ── Location lore helpers (picker + travel time) ─────────────────────
+    function getLocationLore(active) {
+      return (active.lorebook || []).filter(e => e && normalizeLoreCategory(e.category) === 'location' && (e.title || '').trim());
+    }
+    function looseNameMatch(a, b) {
+      a = String(a || '').trim().toLowerCase(); b = String(b || '').trim().toLowerCase();
+      if (!a || !b) return false;
+      return a === b || (a.length >= 3 && b.includes(a)) || (b.length >= 3 && a.includes(b));
+    }
+    function matchLocationEntry(active, name) {
+      const list = getLocationLore(active);
+      return list.find(e => String(e.title).trim().toLowerCase() === String(name || '').trim().toLowerCase()) || list.find(e => looseNameMatch(e.title, name)) || null;
+    }
+    function parseTravelMap(text) {
+      const map = [];
+      String(text || '').split(/[,;\n]/).forEach(part => {
+        const m = /^\s*(.+?)\s*[=:]\s*(\d+)\s*(?:m|min|mins|minutes)?\s*$/i.exec(part);
+        if (m) map.push({ name: m[1].trim(), minutes: Number(m[2]) });
+      });
+      return map;
+    }
+    function getTravelMinutes(active, fromName, toName) {
+      if (!fromName || !toName || looseNameMatch(fromName, toName)) return null;
+      const toE = matchLocationEntry(active, toName), fromE = matchLocationEntry(active, fromName);
+      const a = toE ? parseTravelMap(toE.travelFrom).find(x => looseNameMatch(x.name, fromName)) : null;
+      if (a) return a.minutes;
+      const b = fromE ? parseTravelMap(fromE.travelFrom).find(x => looseNameMatch(x.name, toName)) : null;
+      return b ? b.minutes : null;
+    }
+
+    // ── Clock history / undo ─────────────────────────────────────────────
+    function clockSnapshot(active) {
+      const c = getWorldClock(active);
+      return { set: !!c.set, dow0: c.dow0, storyDay: c.storyDay, minutes: c.minutes, weather: c.weather || '', season: c.season || '', location: active.currentLocation || '' };
+    }
+    let undoChipTimer = null;
+    function logClockChange(active, kind, label, before, narrationId) {
+      if (!Array.isArray(active.clockLog)) active.clockLog = [];
+      active.clockLog.push({ id: 'clk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), ts: Date.now(), kind, label, before, narrationId: narrationId || null });
+      if (active.clockLog.length > 30) active.clockLog.splice(0, active.clockLog.length - 30);
+      const chip = document.getElementById('trackerUndoBtn');
+      if (chip) {
+        chip.classList.remove('hidden');
+        chip.title = `Undo: ${label}`;
+        const t = chip.querySelector('span:last-child'); if (t) t.textContent = 'Undo';
+        clearTimeout(undoChipTimer);
+        undoChipTimer = setTimeout(() => chip.classList.add('hidden'), 20000);
+      }
+    }
+    async function undoClockChange() {
+      const active = getActiveScenario();
+      const entry = Array.isArray(active.clockLog) ? active.clockLog.pop() : null;
+      if (!entry) return;
+      const c = getWorldClock(active), b = entry.before;
+      c.set = b.set; c.dow0 = b.dow0; c.storyDay = b.storyDay; c.minutes = b.minutes; c.weather = b.weather || ''; c.season = b.season || ''; c.autoSnap = null;
+      active.currentLocation = b.location || '';
+      if (entry.narrationId) {
+        const idx = active.messages.findIndex(m => m.id === entry.narrationId);
+        if (idx !== -1) active.messages.splice(idx, 1);
+      }
+      document.getElementById('trackerUndoBtn')?.classList.add('hidden');
+      clearTimeout(undoChipTimer);
+      await saveState();
+      renderStoryTracker();
+      if (isClockPopoverOpen()) renderClockPopover();
+      renderMessages();
+      renderSidebar();
+      if (active.viewMode === 'vn') { const n = active.messages.filter(m => !m.isImage && !m.isChapterDivider).length; currentVnIndex = Math.max(0, n - 1); renderVnTurn(true); }
+      showTransientToast('↶ Undid: ' + entry.label);
+    }
+
+    // ── Clock: per-turn auto-advance, tracker row, popover ───────────────
+    // Optional "each reply passes N minutes" setting. A Retry removes the
+    // reply and re-runs the turn, so the pre-advance time is snapshotted and
+    // restored when the message count is back to what it was at turn start.
+    function clockBeginTurn(active) {
+      const c = active && active.worldClock;
+      if (!c || !c.set) return;
+      const s = c.autoSnap;
+      if (s && s.msgCount === active.messages.length) { c.storyDay = s.storyDay; c.minutes = s.minutes; }
+      c.autoSnap = null;
+    }
+    function clockEndTurn(active, msgCountAtStart) {
+      const c = active && active.worldClock;
+      if (!c || !c.set || !(c.autoMinutes > 0)) return;
+      c.autoSnap = { msgCount: msgCountAtStart, storyDay: c.storyDay, minutes: c.minutes };
+      advanceClock(c, c.autoMinutes);
+      saveState();
+      afterClockChange(active);
+    }
+    // Everything that should react to a clock/place/weather change.
+    function afterClockChange(active) {
+      renderStoryTracker();
+      if (active && active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    function clockPeriodIcon(min) {
+      return { 'dawn': '🌅', 'morning': '☀️', 'midday': '🌞', 'afternoon': '🌤️', 'evening': '🌇', 'night': '🌙', 'late night': '🦉' }[clockPeriod(min)] || '🕒';
+    }
+
+    let sceneSuggestion = null; // { scenarioId, place, delta, weather, label }
+
+    function renderStoryTracker() {
+      const active = getActiveScenario();
+      if (!active) return;
+      const c = getWorldClock(active);
+      const locText = document.getElementById('trackerLocationText');
+      if (locText) {
+        locText.textContent = active.currentLocation || 'Set location';
+        locText.parentElement.classList.toggle('text-slate-400', !active.currentLocation);
+        locText.parentElement.title = active.currentLocation ? `Current location: ${active.currentLocation} (tap to change)` : 'Tap to set where the story is happening';
+      }
+      const clockText = document.getElementById('trackerClockText');
+      const clockIcon = document.getElementById('trackerClockIcon');
+      const dayText = document.getElementById('trackerStoryDay');
+      if (clockText) clockText.textContent = c.set ? `${CLOCK_WEEKDAYS[clockDow(c)].slice(0, 3)} · ${formatClockTime(c.minutes)}` : 'Set day & time';
+      if (clockIcon) clockIcon.textContent = c.set ? clockPeriodIcon(c.minutes) : '🕒';
+      const extras = [];
+      if (c.set) extras.push(`Day ${c.storyDay}`);
+      if (c.weather) extras.push(`${weatherIcon(c.weather)} ${weatherLabel(c.weather)}`);
+      if (c.season) extras.push(c.season);
+      if (c.set && c.autoMinutes) extras.push(`+${c.autoMinutes >= 60 ? (c.autoMinutes / 60) + 'h' : c.autoMinutes + 'm'}/reply`);
+      if (dayText) dayText.textContent = extras.join(' · ');
+      const btn = document.getElementById('trackerClockBtn');
+      if (btn) btn.title = c.set ? `${describeClock(c)} -- tap to skip ahead or change` : 'Tap to set the story day and time';
+      const calBtn = document.getElementById('trackerCalendarBtn');
+      if (calBtn) { const n = getCalendar(active).length; calBtn.querySelector('span:last-child').textContent = n ? String(n) : ''; }
+      // AI-suggested update chip
+      const sug = document.getElementById('trackerSuggestion');
+      if (sug) {
+        const s = sceneSuggestion && sceneSuggestion.scenarioId === active.id ? sceneSuggestion : null;
+        sug.classList.toggle('hidden', !s);
+        const t = document.getElementById('trackerSuggestionText');
+        if (t && s) t.textContent = s.label;
+      }
+    }
+
+    // ---- AI-driven tracker updates ([SCENE: place | time | weather]) ----
+    function extractSceneTags(blocks) {
+      let tag = null;
+      const cleaned = (blocks || []).map(b => {
+        const raw = String(b.text || '');
+        SCENE_TAG_RE.lastIndex = 0;
+        let m; while ((m = SCENE_TAG_RE.exec(raw))) { if (!tag || m[1].split('|').some(x => !isNoneToken(x))) tag = m[1]; }
+        SCENE_TAG_RE.lastIndex = 0;
+        return { ...b, text: stripSceneTagText(raw) };
+      }).filter(b => b.text);
+      return { blocks: cleaned, tag };
+    }
+
+    function handleSceneTag(inner) {
+      const active = getActiveScenario();
+      const mode = active.sceneAuto || 'suggest';
+      if (!inner || mode === 'off') return;
+      const c = getWorldClock(active);
+      const parts = String(inner).split('|').map(p => p.trim());
+      const sug = { scenarioId: active.id, place: '', delta: 0, weather: '', label: '' };
+      if (!isNoneToken(parts[0])) {
+        const entry = matchLocationEntry(active, parts[0]);
+        const place = (entry ? entry.title : parts[0]).slice(0, 80);
+        if (place.toLowerCase() !== (active.currentLocation || '').trim().toLowerCase()) sug.place = place;
+      }
+      if (c.set && !isNoneToken(parts[1])) {
+        const t = parseClockText(parts[1]);
+        if (t.dow != null || t.minutes != null) {
+          const effDow = (t.dow === clockDow(c) && t.minutes != null && t.minutes < c.minutes) ? null : t.dow;
+          sug.delta = computeClockSkip(c, effDow, t.minutes);
+        }
+      }
+      if (!isNoneToken(parts[2])) {
+        const w = normalizeWeather(parts[2]);
+        if (w && w !== c.weather) sug.weather = w;
+      }
+      if (!sug.place && !sug.delta && !sug.weather) return;
+      const bits = [];
+      if (sug.place) bits.push('📍 ' + sug.place);
+      if (sug.delta) { const sim = { ...c }; advanceClock(sim, sug.delta); bits.push('🕒 ' + CLOCK_WEEKDAYS[clockDow(sim)].slice(0, 3) + ' ' + formatClockTime(sim.minutes)); }
+      if (sug.weather) bits.push(weatherIcon(sug.weather) + ' ' + weatherLabel(sug.weather));
+      sug.label = bits.join('  ');
+      if (mode === 'auto' && sug.delta <= 3 * 1440) { sceneSuggestion = sug; applySceneSuggestion(true); return; }
+      sceneSuggestion = sug;
+      renderStoryTracker();
+    }
+
+    async function applySceneSuggestion(silent) {
+      const active = getActiveScenario();
+      const s = sceneSuggestion;
+      sceneSuggestion = null;
+      if (!s || s.scenarioId !== active.id) { renderStoryTracker(); return; }
+      const c = getWorldClock(active);
+      const before = clockSnapshot(active);
+      if (s.place) active.currentLocation = s.place;
+      if (s.delta > 0) { advanceClock(c, s.delta); c.autoSnap = null; }
+      if (s.weather) c.weather = s.weather;
+      logClockChange(active, 'scene', 'AI update: ' + s.label.replace(/\s+/g, ' '), before, null);
+      await saveState();
+      afterClockChange(active);
+      if (!silent) showTransientToast('Tracker updated');
+    }
+    function dismissSceneSuggestion() { sceneSuggestion = null; renderStoryTracker(); }
+    function setSceneAutoMode(v) {
+      const active = getActiveScenario();
+      active.sceneAuto = ['off', 'suggest', 'auto'].includes(v) ? v : 'suggest';
+      if (active.sceneAuto === 'off') sceneSuggestion = null;
+      saveState();
+      renderStoryTracker();
+    }
+
+    // ---- Popovers (clock + location) ----
+    let clockDraft = { mode: 'skip', dow: null, minutes: null, narrate: true };
+    let locTravelTime = true;
+
+    function isClockPopoverOpen() { const p = document.getElementById('clockPopover'); return !!p && !p.classList.contains('hidden'); }
+    function isLocationPopoverOpen() { const p = document.getElementById('locationPopover'); return !!p && !p.classList.contains('hidden'); }
+    function closeTrackerPopovers() {
+      document.getElementById('clockPopover')?.classList.add('hidden');
+      document.getElementById('locationPopover')?.classList.add('hidden');
+    }
+    function toggleClockPopover(force) {
+      const pop = document.getElementById('clockPopover');
+      if (!pop) return;
+      const open = typeof force === 'boolean' ? force : pop.classList.contains('hidden');
+      closeTrackerPopovers();
+      if (!open) return;
+      const c = getWorldClock(getActiveScenario());
+      clockDraft = c.set ? { mode: 'skip', dow: null, minutes: null, narrate: true } : { mode: 'set', dow: 0, minutes: 480, narrate: false };
+      renderClockPopover();
+      pop.classList.remove('hidden');
+    }
+    function toggleLocationPopover(force) {
+      const active = getActiveScenario();
+      const pop = document.getElementById('locationPopover');
+      if (!pop) return;
+      const open = typeof force === 'boolean' ? force : pop.classList.contains('hidden');
+      closeTrackerPopovers();
+      if (!open) return;
+      renderLocationPopover();
+      pop.classList.remove('hidden');
+    }
+    document.addEventListener('click', e => {
+      if (!isClockPopoverOpen() && !isLocationPopoverOpen()) return;
+      const path = e.composedPath ? e.composedPath() : [];
+      const ids = ['clockPopover', 'trackerClockBtn', 'locationPopover', 'trackerLocationBtn'];
+      if (ids.some(id => path.includes(document.getElementById(id)))) return;
+      closeTrackerPopovers();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTrackerPopovers(); });
+
+    // ── Suggested locations (pulled from setup, lorebook, cast, routines) ──
+    const LOC_SUFFIX = 'Town|City|Village|Forest|Woods|Cave|Caves|Cavern|Castle|Tavern|Inn|Gym|Center|Centre|Lab|Laboratory|Park|Road|Street|Harbor|Harbour|Port|Station|School|Academy|Hall|Mill|Market|Bridge|Ruins|Tower|Garden|Gardens|Lake|River|Beach|Library|Hospital|Shop|Store|Cafe|Club|Base|Fortress|Palace|Valley|Mountain|Mountains|Island|Islands|Temple|Shrine|House|Manor|Museum|Mine|Mines|Dungeon|Plains|Desert|Swamp|Cliff|Canyon|Region|Kingdom|Realm|Capital|District|Quarter|Square|Plaza|Dock|Docks|Pier|Underground|Outpost|Stronghold|Sanctuary|Observatory|Arena|Stadium|Hotel|Camp|Hideout|Bunker|Citadel|Monastery|Cathedral|Dojo|Cabin|Cottage|Farm|Ranch|Bay|Cove|Peak|Gate|Spire|Pillar|World|Dimension';
+    const LOC_PREFIX = 'Lake|Mount|Mt|Fort|Port|Cape|Isle|Route|Cave|Forest|Valley|River|Bay|Camp|Hotel|Mine|Cafe|Bar';
+    const LOC_OF = 'City|Town|Temple|Tower|Castle|Fort|Forest|Lake|Cave|Valley|Port|Kingdom|Realm|Fortress|Palace|Citadel|Isle|Island|Shrine|Hall|Halls|Tomb|Gate|House|Land|Lands';
+    const LOC_W = "\\p{Lu}[\\p{L}\\d'’\\-]*";
+    const LOC_SENTENCE_STARTERS = new Set(['the', 'a', 'an', 'in', 'at', 'on', 'to', 'from', 'then', 'when', 'after', 'before', 'near', 'into', 'through', 'across', 'along', 'toward', 'towards', 'and', 'but', 'or', 'with', 'without', 'during', 'while', 'back', 'inside', 'outside', 'within', 'around', 'over', 'under', 'past', 'beyond', 'between', 'meanwhile', 'once', 'now', 'every', 'each', 'all', 'this', 'that', 'his', 'her', 'their', 'our', 'your', 'my', 'its', 'of', 'by', 'for', 'as', 'if', 'so', 'chapter', 'setting', 'locations', 'location', 'places']);
+    const LOC_GENERIC_WORDS = new Set(LOC_SUFFIX.toLowerCase().split('|'));
+    const LOC_STOP_NAMES = new Set(['setting', 'tone', 'premise', 'chapter', 'opening', 'beat', 'keywords']);
+
+    function cleanSourceText(t) { return String(t || '').replace(/[​-‍⁠﻿]/g, ''); }
+
+    function gatherLocationSources(active) {
+      const out = [];
+      const setup = [active.setting, active.aesthetic, ...(active.plotArcs || []).map(a => `${a.title || ''}. ${a.content || ''}`)].map(cleanSourceText).filter(t => t.trim());
+      setup.forEach(t => out.push({ label: 'Setup', text: t }));
+      (active.lorebook || []).forEach(e => {
+        const t = cleanSourceText(`${e.title || ''}. ${e.content || ''} ${e.keywords || ''}`);
+        if (t.trim()) out.push({ label: 'Lorebook', text: t, entry: e });
+      });
+      (active.characters || []).forEach(c => {
+        const sched = parseScheduleText(c.schedule).map(s => s.place).join('. ');
+        const t = cleanSourceText(`${getCharacterPersona(c)}. ${c.whereabouts || ''}. ${sched}`);
+        if (t.trim()) out.push({ label: 'Cast & routines', text: t });
+      });
+      return out;
+    }
+
+    function cleanLocationName(raw, fullText) {
+      let n = String(raw || '').replace(/[​-‍⁠﻿]/g, '').replace(/^[\s"'“”‘’(\[-]+|[\s"'“”‘’)\].,;:!?-]+$/g, '').replace(/\s+/g, ' ').trim();
+      n = n.replace(/['’]s$/i, '');
+      let words = n.split(' ');
+      // drop leading sentence-starter words ("Then Sandgem Town" -> "Sandgem Town"),
+      // including a capitalised word that only ever appears capitalised at
+      // the start of sentences (it is probably not part of the name)
+      while (words.length > 1) {
+        const w = words[0];
+        const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const starter = LOC_SENTENCE_STARTERS.has(w.toLowerCase());
+        const lowerMid = new RegExp('[a-z,] ' + esc.toLowerCase() + '\\b').test(fullText);
+        const capMid = new RegExp('[a-z,] ' + esc + '\\b').test(fullText);
+        if (starter || (lowerMid && !capMid)) words.shift(); else break;
+      }
+      while (words.length > 1 && LOC_STOP_NAMES.has(words[words.length - 1].toLowerCase())) words.pop();
+      n = words.join(' ');
+      if (n.length < 3 || n.length > 44 || words.length > 5) return '';
+      if (LOC_STOP_NAMES.has(n.toLowerCase())) return '';
+      if (words.length === 1 && LOC_GENERIC_WORDS.has(n.toLowerCase())) return '';
+      if (!/^\p{Lu}/u.test(n)) return '';
+      return n;
+    }
+
+    function findLocationSentence(sources, name) {
+      const needle = name.toLowerCase();
+      for (const src of sources) {
+        const sentences = src.text.split(/(?<=[.!?])\s+|\n+/);
+        for (const s of sentences) {
+          const t = s.trim();
+          if (t.length < 20 || t.length > 420 || !t.toLowerCase().includes(needle)) continue;
+          if ((t.match(/,/g) || []).length >= 3 || /^\s*(?:chapter\s*\d+\W*)?(?:setting|settings|locations?|places?)\s*:/i.test(t)) continue;
+          return clipText(t.replace(/\s+/g, ' '), 220);
+        }
+      }
+      return '';
+    }
+
+    function findLocationSuggestions(active) {
+      const sources = gatherLocationSources(active);
+      if (!sources.length) return [];
+      const fullText = sources.map(s => s.text).join('\n');
+      const fullLower = fullText.toLowerCase();
+      const cands = new Map(); // lower name -> { name, explicit, sources:Set }
+      const add = (raw, label, explicit) => {
+        const name = cleanLocationName(raw, fullText);
+        if (!name) return;
+        const key = name.toLowerCase();
+        const c = cands.get(key) || { name, explicit: false, sources: new Set() };
+        c.explicit = c.explicit || !!explicit;
+        c.sources.add(label);
+        cands.set(key, c);
+      };
+      const reSuffix = new RegExp(`(?:${LOC_W}\\s+){1,3}(?:${LOC_SUFFIX})\\b(?:\\s+of\\s+${LOC_W})?`, 'gu');
+      const rePrefix = new RegExp(`\\b(?:${LOC_PREFIX})\\.?\\s+(?:${LOC_W}|\\d+)(?:\\s+${LOC_W})?`, 'gu');
+      const reOf = new RegExp(`\\b(?:${LOC_OF})\\s+of\\s+(?:the\\s+)?${LOC_W}`, 'gu');
+      const reList = /^\s*(?:chapter\s*\d+[^:\n]*?\s+)?(?:setting|settings|locations?|places?|where)\s*:\s*(.+)$/gim;
+      sources.forEach(src => {
+        for (const re of [reSuffix, rePrefix, reOf]) { re.lastIndex = 0; let m; while ((m = re.exec(src.text))) add(m[0], src.label, false); }
+        reList.lastIndex = 0;
+        let lm;
+        while ((lm = reList.exec(src.text))) {
+          let rest = lm[1];
+          const parens = [...rest.matchAll(/\(([^)]*)\)/g)].map(p => p[1]);
+          rest = rest.replace(/\([^)]*\)/g, ' ');
+          [...parens, rest].forEach(chunk => String(chunk).split(/,|;|&|\band\b|\bto\b|→|->|\/|\bthen\b/i).forEach(tok => add(tok, src.label, true)));
+        }
+      });
+      // never suggest people, or places that are already Location entries
+      const castLower = new Set([active.userPersona?.name, ...(active.characters || []).map(c => c.name)].filter(Boolean).map(n => n.toLowerCase()));
+      const existing = getLocationLore(active);
+      const lore = active.lorebook || [];
+      const list = [];
+      cands.forEach(c => {
+        const lower = c.name.toLowerCase();
+        if (castLower.has(lower)) return;
+        if (existing.some(e => looseNameMatch(e.title, c.name))) return;
+        let count = 0, at = 0;
+        while (count < 8 && (at = fullLower.indexOf(lower, at)) !== -1) { count++; at += lower.length; }
+        const score = 1 + Math.min(count, 5) * 0.5 + (c.explicit ? 2 : 0) + (c.sources.size - 1) * 0.5;
+        // an untagged lorebook entry with this exact title just needs tagging
+        const retag = lore.findIndex(e => String(e.title || '').trim().toLowerCase() === lower && normalizeLoreCategory(e.category) !== 'location');
+        list.push({ name: c.name, score, count, sources: [...c.sources], snippet: findLocationSentence(sources, c.name), retagIndex: retag === -1 ? null : retag, checked: score >= 2.5 });
+      });
+      // untagged lorebook entries that already look like places
+      lore.forEach((e, i) => {
+        if (normalizeLoreCategory(e.category) !== 'general' || !(e.title || '').trim()) return;
+        const title = String(e.title).trim();
+        if (!LORE_LOCATION_RE.test(title) || title.split(/\s+/).length > 4 || /[&—–(]/.test(title)) return;
+        if (suggestLoreCategory(e)?.cat === 'character') return;
+        if (list.some(x => x.retagIndex === i)) return;
+        if (existing.some(x => looseNameMatch(x.title, e.title)) || castLower.has(String(e.title).trim().toLowerCase())) return;
+        list.push({ name: String(e.title).trim(), score: 3, count: 1, sources: ['Lorebook'], snippet: clipText(e.content || '', 160), retagIndex: i, checked: true });
+      });
+      // "Sandgem" is redundant next to "Sandgem Town"
+      const deduped = list.filter(a => !list.some(b => b !== a && b.name.toLowerCase().startsWith(a.name.toLowerCase() + ' ')));
+      return deduped.sort((a, b) => b.score - a.score).slice(0, 24);
+    }
+
+    let locSuggestions = [];
+    function openLocationSuggestions() {
+      closeTrackerPopovers();
+      locSuggestions = findLocationSuggestions(getActiveScenario());
+      renderLocationSuggestions();
+      const m = document.getElementById('locationSuggestModal');
+      if (!m) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+    function closeLocationSuggestions(event) {
+      if (event && event.target && event.target.id !== 'locationSuggestModal') return;
+      const m = document.getElementById('locationSuggestModal');
+      if (!m) return;
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+    function renderLocationSuggestions() {
+      const list = document.getElementById('locationSuggestList');
+      const addBtn = document.getElementById('locationSuggestAddBtn');
+      const aiBtn = document.getElementById('locationSuggestAiBtn');
+      if (!list) return;
+      const picked = locSuggestions.filter(s => s.checked).length;
+      if (addBtn) { addBtn.textContent = picked ? `Add ${picked} selected` : 'Nothing selected'; addBtn.disabled = !picked; addBtn.classList.toggle('opacity-50', !picked); }
+      if (aiBtn) aiBtn.classList.toggle('hidden', !appState.apiKey);
+      if (!locSuggestions.length) {
+        list.innerHTML = '<div class="text-xs text-slate-500 text-center py-8 leading-relaxed">No new places found in your setup, lorebook or cast.<br>Try "Improve with AI", or add one by hand from the location menu.</div>';
+        return;
+      }
+      list.innerHTML = locSuggestions.map((s, i) => `
+        <label class="flex items-start gap-2.5 p-2.5 bg-zetaCard border border-slate-700/80 rounded-xl cursor-pointer">
+          <input type="checkbox" ${s.checked ? 'checked' : ''} onchange="locSuggestions[${i}].checked=this.checked; renderLocationSuggestions()" class="mt-0.5 accent-[#7c5cff]" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap"><span class="text-xs font-semibold text-white">${escapeHtml(s.name)}</span>${s.retagIndex != null ? '<span class="px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/40 text-[9px] text-amber-200">tags your existing entry</span>' : ''}${s.sources.map(x => `<span class="px-1.5 py-0.5 rounded-md bg-zetaInput border border-slate-700 text-[9px] text-slate-400">${escapeHtml(x)}</span>`).join('')}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5 leading-snug">${s.snippet ? escapeHtml(s.snippet) : '<span class="italic text-slate-500">No description found -- you can write one in the lorebook afterwards.</span>'}</div>
+          </div>
+        </label>`).join('');
+    }
+    function toggleAllLocationSuggestions() {
+      const allOn = locSuggestions.every(s => s.checked);
+      locSuggestions.forEach(s => { s.checked = !allOn; });
+      renderLocationSuggestions();
+    }
+    async function addSelectedLocations() {
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      let added = 0, tagged = 0;
+      locSuggestions.filter(s => s.checked).forEach(s => {
+        if (s.retagIndex != null && active.lorebook[s.retagIndex]) {
+          active.lorebook[s.retagIndex].category = 'location'; active.lorebook[s.retagIndex].characterTag = ''; tagged++;
+        } else if (!getLocationLore(active).some(e => looseNameMatch(e.title, s.name))) {
+          active.lorebook.push(newLoreEntry({ title: s.name, keywords: titleKeywords(s.name), content: s.snippet || '', category: 'location' })); added++;
+        }
+      });
+      closeLocationSuggestions();
+      renderLorebookSetup();
+      renderLorebookModal();
+      await saveState();
+      if (isLocationPopoverOpen()) renderLocationPopover();
+      showTransientToast(`Added ${added} place${added === 1 ? '' : 's'}${tagged ? ` and tagged ${tagged} existing entr${tagged === 1 ? 'y' : 'ies'}` : ''}`);
+    }
+    async function addLocationByHand() {
+      const name = await zfPrompt('Name of the new place?', '', 'Add Location');
+      if (name === null || !name.trim()) return;
+      const active = getActiveScenario();
+      if (!active.lorebook) active.lorebook = [];
+      if (getLocationLore(active).some(e => looseNameMatch(e.title, name))) { showTransientToast('That place is already in the list'); return; }
+      active.lorebook.push(newLoreEntry({ title: name.trim().slice(0, 80), keywords: titleKeywords(name.trim()), content: '', category: 'location' }));
+      renderLorebookSetup();
+      renderLorebookModal();
+      await saveState();
+      if (isLocationPopoverOpen()) renderLocationPopover();
+    }
+    async function improveLocationSuggestionsWithAI() {
+      if (!appState.apiKey) { showTransientToast('Add a Gemini API key in Setup to use this'); return; }
+      const active = getActiveScenario();
+      const btn = document.getElementById('locationSuggestAiBtn');
+      const sources = gatherLocationSources(active);
+      const material = sources.map(s => `[${s.label}] ${s.text}`).join('\n').slice(0, 7000);
+      const known = [...getLocationLore(active).map(e => e.title), ...locSuggestions.map(s => s.name)].join(', ');
+      const prompt = `From the story material below, list the distinct named PLACES where scenes could take place (towns, buildings, rooms, regions, landmarks). Exclude characters, groups, creatures and objects. Do not repeat these already-known places: ${known || 'none'}.\nFor each give a one-sentence description drawn only from the material. Return STRICT JSON: {"locations":[{"name":"","description":""}]} with at most 12 entries.\n\nMATERIAL:\n${material}`;
+      if (btn) { btn.disabled = true; btn.textContent = 'Thinking…'; }
+      try {
+        const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json' } };
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('AI request failed (' + res.status + ')');
+        const data = await res.json();
+        recordTextUsage(MODEL_ADVANCED, data, prompt, 700);
+        const parsed = parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text, {}) || {};
+        let n = 0;
+        (Array.isArray(parsed.locations) ? parsed.locations : []).slice(0, 12).forEach(l => {
+          const name = String(l?.name || '').trim().slice(0, 60);
+          if (!name || locSuggestions.some(s => looseNameMatch(s.name, name)) || getLocationLore(active).some(e => looseNameMatch(e.title, name))) return;
+          locSuggestions.push({ name, score: 2, count: 1, sources: ['AI'], snippet: clipText(String(l.description || ''), 220), retagIndex: null, checked: true });
+          n++;
+        });
+        showTransientToast(n ? `AI found ${n} more place${n === 1 ? '' : 's'}` : 'AI found nothing new');
+      } catch (e) {
+        showTransientToast('AI suggestions failed: ' + (e?.message || e));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🧠 Improve with AI'; }
+        renderLocationSuggestions();
+      }
+    }
+
+    function renderLocationPopover() {
+      const pop = document.getElementById('locationPopover');
+      if (!pop) return;
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      const cur = active.currentLocation || '';
+      const list = getLocationLore(active);
+      pop.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-zetaLight">📍 Go to…</span>
+          <button type="button" onclick="toggleLocationPopover(false)" class="text-slate-400 hover:text-white text-sm leading-none px-1" aria-label="Close">✕</button>
+        </div>
+        ${list.length ? '' : '<p class="text-[11px] text-slate-400 leading-snug">No places yet. Pull them from your scenario setup and lorebook, or add one by hand.</p>'}
+        <div class="space-y-1">
+          ${list.map((e, i) => {
+            const here = looseNameMatch(e.title, cur);
+            const travel = here ? null : getTravelMinutes(active, cur, e.title);
+            return `<button type="button" onclick="pickLocation(${i})" class="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-left text-[11px] transition active:scale-[0.98] ${here ? 'bg-zetaAccent/30 border-zetaAccent text-white' : 'bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder'}"><span class="truncate">${escapeHtml(e.title)}</span><span class="shrink-0 text-[10px] ${here ? 'text-zetaGlow' : 'text-slate-400'}">${here ? 'you are here' : (travel != null ? '~' + formatClockDelta(travel) : '')}</span></button>`;
+          }).join('')}
+        </div>
+        ${c.set ? `<label class="flex items-center gap-2 text-[11px] text-slate-300 select-none"><input type="checkbox" ${locTravelTime ? 'checked' : ''} onchange="locTravelTime=this.checked" class="accent-[#7c5cff]" /> Travel takes time (advance the clock)</label>` : ''}
+        <button type="button" onclick="openLocationSuggestions()" class="w-full px-2 py-2 rounded-lg text-[11px] font-semibold bg-zetaAccent hover:bg-zetaAccentHover text-white shadow active:scale-95 transition">✨ Suggest places from my setup &amp; lorebook</button>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="addLocationByHand()" class="px-2 py-1.5 rounded-lg text-[11px] font-medium border bg-zetaCard border-zetaBorder text-slate-300 hover:bg-zetaBorder">＋ New</button>
+          <button type="button" onclick="toggleLocationPopover(false); editVnLocationTag()" class="px-2 py-1.5 rounded-lg text-[11px] font-medium border bg-zetaCard border-zetaBorder text-slate-300 hover:bg-zetaBorder">✏️ Custom</button>
+          <button type="button" onclick="clearLocation()" class="px-2 py-1.5 rounded-lg text-[11px] font-medium border bg-zetaCard border-zetaBorder text-slate-300 hover:bg-zetaBorder">Clear</button>
+        </div>`;
+    }
+    async function clearLocation() {
+      const active = getActiveScenario();
+      active.currentLocation = '';
+      closeTrackerPopovers();
+      await saveState();
+      afterClockChange(active);
+    }
+    function pushNarratorLine(active, text) {
+      const id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      active.messages.push({ id, role: 'model', speakerName: 'Narrator', text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+      return id;
+    }
+    function refreshAfterNarration(active) {
+      renderMessages();
+      renderSidebar();
+      if (active.viewMode === 'vn') {
+        const validTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
+        currentVnIndex = validTurns.length - 1;
+        renderVnTurn(true);
+      }
+    }
+    async function pickLocation(i) {
+      const active = getActiveScenario();
+      const entry = getLocationLore(active)[i];
+      if (!entry) return;
+      const c = getWorldClock(active);
+      const from = active.currentLocation || '';
+      const travel = getTravelMinutes(active, from, entry.title);
+      const before = clockSnapshot(active);
+      active.currentLocation = entry.title;
+      closeTrackerPopovers();
+      let narrationId = null;
+      if (c.set && travel > 0 && locTravelTime) {
+        advanceClock(c, travel);
+        c.autoSnap = null;
+        narrationId = pushNarratorLine(active, `*The trip to ${entry.title} takes about ${formatClockDeltaLong(travel)}. It is now ${describeClock(c)}.*`);
+        logClockChange(active, 'travel', `Travel to ${entry.title} (+${formatClockDelta(travel)})`, before, narrationId);
+      }
+      await saveState();
+      afterClockChange(active);
+      if (narrationId) refreshAfterNarration(active);
+    }
+
+    function clockDraftResult() {
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      const d = clockDraft;
+      if (!c.set || d.mode === 'set') {
+        const tDow = d.dow == null ? (c.set ? clockDow(c) : 0) : d.dow;
+        const tMin = d.minutes == null ? c.minutes : d.minutes;
+        return { delta: 0, text: `${CLOCK_WEEKDAYS[tDow]} ${clockPeriod(tMin)}, ${formatClockTime(tMin)}`, note: c.set ? 'Corrects the clock without counting days as passed.' : 'This becomes the story\'s starting day and time.' };
+      }
+      const delta = computeClockSkip(c, d.dow, d.minutes);
+      if (delta <= 0) return { delta: 0, text: describeClock(c), note: (d.dow == null && d.minutes == null) ? 'Pick a day and/or a time to skip to.' : 'That is the current moment -- nothing to skip.' };
+      const sim = { ...c };
+      advanceClock(sim, delta);
+      const evs = eventsBetween(active, { storyDay: c.storyDay, minutes: c.minutes }, sim);
+      return { delta, text: describeClock(sim), note: `+${formatClockDelta(delta)} · story day ${sim.storyDay}${evs.length ? ' · 📅 ' + evs.slice(0, 2).join(', ') : ''}` };
+    }
+
+    function renderClockPopover() {
+      const pop = document.getElementById('clockPopover');
+      if (!pop) return;
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      const d = clockDraft;
+      const curDow = clockDow(c);
+      const mode = c.set ? d.mode : 'set';
+      const res = clockDraftResult();
+      const shownMin = d.minutes == null ? c.minutes : d.minutes;
+      const hh = String(Math.floor(shownMin / 60)).padStart(2, '0'), mm = String(shownMin % 60).padStart(2, '0');
+      const chip = (on, extra = '') => `px-2 py-1.5 rounded-lg text-[11px] font-medium border transition active:scale-95 ${on ? 'bg-zetaAccent border-zetaAccent text-white' : 'bg-zetaCard border-zetaBorder text-slate-300 hover:bg-zetaBorder'} ${extra}`;
+      const log = (Array.isArray(active.clockLog) ? active.clockLog : []).slice(-5).reverse();
+      pop.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-zetaLight">🕒 Story clock</span>
+          <button type="button" onclick="toggleClockPopover(false)" class="text-slate-400 hover:text-white text-sm leading-none px-1" aria-label="Close">✕</button>
+        </div>
+        ${c.set ? `
+        <div class="grid grid-cols-2 gap-1.5">
+          <button type="button" onclick="clockSetMode('skip')" class="${chip(mode === 'skip')}">⏩ Skip ahead</button>
+          <button type="button" onclick="clockSetMode('set')" class="${chip(mode === 'set')}">✏️ Set exactly</button>
+        </div>` : `<p class="text-[11px] text-slate-400 leading-snug">Pick the day and time the story is at right now. The AI will keep lighting, schedules, and atmosphere consistent with it.</p>`}
+        <div>
+          <div class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">${mode === 'skip' ? 'Advance to day' : 'Day of week'}</div>
+          <div class="grid grid-cols-7 gap-1">
+            ${CLOCK_WEEKDAYS.map((n, i) => `<button type="button" onclick="clockPickDow(${i})" title="${n}" class="${chip(d.dow === i, (d.dow == null && c.set && i === curDow) ? 'ring-1 ring-zetaGlow/70' : '')} !px-0">${n.slice(0, 3)}</button>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">${mode === 'skip' ? 'Advance to time' : 'Time of day'}</div>
+          <div class="grid grid-cols-4 gap-1">
+            ${CLOCK_TIME_PRESETS.map(p => `<button type="button" onclick="clockPickTime(${p.minutes})" class="${chip(d.minutes === p.minutes)}">${p.icon} ${p.label}</button>`).join('')}
+            <input type="time" value="${hh}:${mm}" onchange="clockPickExact(this.value)" class="bg-zetaInput border border-zetaBorder rounded-lg px-1.5 py-1 text-[11px] text-white min-w-0" aria-label="Exact time" />
+          </div>
+        </div>
+        <div class="rounded-xl bg-zetaCard border border-zetaBorder px-2.5 py-2">
+          <div class="text-[10px] uppercase tracking-wide text-slate-500">${mode === 'skip' ? 'Will skip to' : 'Clock will read'}</div>
+          <div class="text-xs font-semibold text-white">${escapeHtml(res.text)}</div>
+          <div class="text-[10px] text-slate-400">${escapeHtml(res.note)}</div>
+        </div>
+        ${c.set ? `<label class="flex items-center gap-2 text-[11px] text-slate-300 select-none"><input type="checkbox" ${d.narrate ? 'checked' : ''} onchange="clockDraft.narrate=this.checked" class="accent-[#7c5cff]" /> Add a narrator time-skip line to the story</label>` : ''}
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="applyClock(false)" class="${chip(false)} !py-2">${c.set ? 'Apply' : 'Set clock'}</button>
+          <button type="button" onclick="applyClock(true)" class="px-2 py-2 rounded-lg text-[11px] font-semibold bg-zetaAccent hover:bg-zetaAccentHover text-white shadow active:scale-95 transition">${c.set && mode === 'skip' ? 'Skip & continue ▶' : 'Apply & continue ▶'}</button>
+        </div>
+        <div class="border-t border-zetaBorder pt-2.5 space-y-2">
+          <div class="text-[10px] uppercase tracking-wide text-slate-500">Atmosphere</div>
+          <div class="grid grid-cols-4 gap-1">
+            ${WEATHER_PRESETS.map(w => `<button type="button" onclick="setClockWeather('${w.id}')" class="${chip(c.weather === w.id)}">${w.icon} ${w.label}</button>`).join('')}
+          </div>
+          <div class="grid grid-cols-4 gap-1">
+            ${CLOCK_SEASONS.map(sn => `<button type="button" onclick="setClockSeason('${sn}')" class="${chip(c.season === sn)}">${sn}</button>`).join('')}
+          </div>
+        </div>
+        <div class="border-t border-zetaBorder pt-2.5 space-y-2">
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] text-slate-400 shrink-0">Each reply passes</label>
+            <select onchange="setClockAuto(this.value)" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2 py-1 text-[11px] text-white">
+              ${[[0, 'no time (manual only)'], [5, '5 minutes'], [15, '15 minutes'], [30, '30 minutes'], [60, '1 hour']].map(([v, l]) => `<option value="${v}" ${Number(c.autoMinutes) === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] text-slate-400 shrink-0">AI updates tracker</label>
+            <select onchange="setSceneAutoMode(this.value)" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2 py-1 text-[11px] text-white">
+              ${[['off', 'Off'], ['suggest', 'Suggest (I confirm)'], ['auto', 'Automatic']].map(([v, l]) => `<option value="${v}" ${(active.sceneAuto || 'suggest') === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        ${log.length ? `<div class="border-t border-zetaBorder pt-2.5 space-y-1">
+          <div class="text-[10px] uppercase tracking-wide text-slate-500">Recent changes</div>
+          ${log.map((l, i) => `<div class="flex items-center gap-2 text-[11px] text-slate-300"><span class="flex-1 min-w-0 truncate" title="${escapeHtml(l.label)}">${escapeHtml(l.label)}</span><span class="text-[10px] text-slate-500 shrink-0">${new Date(l.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>${i === 0 ? `<button type="button" onclick="undoClockChange()" class="shrink-0 px-2 py-0.5 rounded-md bg-zetaCard border border-zetaBorder hover:bg-zetaBorder text-[10px]">↶ Undo</button>` : ''}</div>`).join('')}
+        </div>` : ''}
+        <div class="flex items-center justify-between border-t border-zetaBorder pt-2">
+          <button type="button" onclick="openCalendarModal()" class="text-[11px] text-zetaGlow hover:underline">📅 Calendar</button>
+          <button type="button" onclick="openPromptPreview()" class="text-[11px] text-zetaGlow hover:underline">🔍 Prompt preview</button>
+        </div>`;
+    }
+
+    function clockSetMode(m) { clockDraft.mode = m; renderClockPopover(); }
+    function clockPickDow(i) { clockDraft.dow = clockDraft.dow === i && getWorldClock(getActiveScenario()).set ? null : i; renderClockPopover(); }
+    function clockPickTime(min) { clockDraft.minutes = clockDraft.minutes === min && getWorldClock(getActiveScenario()).set ? null : min; renderClockPopover(); }
+    function clockPickExact(v) {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(v || '');
+      if (!m) return;
+      clockDraft.minutes = (Number(m[1]) % 24) * 60 + Number(m[2]);
+      renderClockPopover();
+    }
+    function setClockAuto(v) {
+      const c = getWorldClock(getActiveScenario());
+      c.autoMinutes = Number(v) || 0;
+      saveState();
+      renderStoryTracker();
+    }
+    function setClockWeather(id) {
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      c.weather = c.weather === id ? '' : id;
+      saveState();
+      renderClockPopover();
+      afterClockChange(active);
+    }
+    function setClockSeason(name) {
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      c.season = c.season === name ? '' : name;
+      saveState();
+      renderClockPopover();
+      afterClockChange(active);
+    }
+
+    async function applyClock(andContinue) {
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      const d = clockDraft;
+      const before = clockSnapshot(active);
+      let narration = '';
+      let directive = null;
+      let label = '';
+      if (!c.set) {
+        c.set = true;
+        c.storyDay = 1;
+        c.dow0 = d.dow == null ? 0 : d.dow;
+        c.minutes = d.minutes == null ? 480 : d.minutes;
+        label = `Started the clock at ${describeClock(c)}`;
+        directive = `[System directive: The story clock is now ${describeClock(c)}. Continue the scene naturally, letting the lighting and atmosphere reflect that time.]`;
+      } else if (d.mode === 'set') {
+        const tDow = d.dow == null ? clockDow(c) : d.dow;
+        c.dow0 = (((tDow - (c.storyDay - 1)) % 7) + 7) % 7;
+        if (d.minutes != null) c.minutes = d.minutes;
+        label = `Set the clock to ${describeClock(c)}`;
+        directive = `[System directive: The story clock now reads ${describeClock(c)}. Continue the scene naturally from this moment.]`;
+      } else {
+        const delta = computeClockSkip(c, d.dow, d.minutes);
+        if (delta <= 0) { renderClockPopover(); return; }
+        advanceClock(c, delta);
+        c.autoSnap = null;
+        const passed = eventsBetween(active, before, c);
+        label = `Skipped +${formatClockDelta(delta)} to ${describeClock(c)}`;
+        if (d.narrate) narration = `*Time passes. It is now ${describeClock(c)}.*`;
+        directive = `[System directive: Time has passed -- it is now ${describeClock(c)}. Continue from this moment: show what has changed (light, surroundings, who is where, what happened in between) instead of repeating the previous scene.${passed.length ? ' Scheduled events that came due in the meantime: ' + passed.join('; ') + '.' : ''}]`;
+      }
+      const narrationId = narration ? pushNarratorLine(active, narration) : null;
+      logClockChange(active, c.set && before.set ? (d.mode === 'set' ? 'set' : 'skip') : 'start', label, before, narrationId);
+      toggleClockPopover(false);
+      await saveState();
+      afterClockChange(active);
+      if (narrationId) refreshAfterNarration(active);
+      if (andContinue) {
+        skipTypewriter();
+        hideReplySuggestions();
+        await triggerAiResponse(directive, true);
+        await checkAndTriggerChapterArchival();
+      }
+    }
+
+    // ── Calendar modal ───────────────────────────────────────────────────
+    function openCalendarModal() {
+      closeTrackerPopovers();
+      renderCalendarModal();
+      const m = document.getElementById('calendarModal');
+      if (!m) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+    function closeCalendarModal(event) {
+      if (event && event.target && event.target.id !== 'calendarModal') return;
+      const m = document.getElementById('calendarModal');
+      if (!m) return;
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      renderStoryTracker();
+    }
+    function calKindChanged() {
+      const k = document.getElementById('calEvKind')?.value;
+      document.getElementById('calEvDayWrap')?.classList.toggle('hidden', k !== 'day');
+      document.getElementById('calEvDowWrap')?.classList.toggle('hidden', k !== 'weekday');
+    }
+    function renderCalendarModal() {
+      const active = getActiveScenario();
+      const c = getWorldClock(active);
+      const info = document.getElementById('calendarNow');
+      if (info) info.textContent = c.set ? `Now: ${describeClock(c)} · story day ${c.storyDay}` : 'The story clock is not set yet -- set it from the tracker so events can count down.';
+      const dayInput = document.getElementById('calEvDay');
+      if (dayInput && !dayInput.value) dayInput.value = Math.max(1, c.storyDay + 1);
+      calKindChanged();
+      const list = document.getElementById('calendarList');
+      if (!list) return;
+      const cal = getCalendar(active);
+      if (!cal.length) { list.innerHTML = '<div class="text-xs text-slate-500 text-center py-6">No events yet. Add a festival, an exam, a weekly shift -- the AI is reminded as they approach.</div>'; return; }
+      const rows = cal.map(ev => ({ ev, abs: c.set ? eventNextAbs(ev, c) : 0 })).sort((a, b) => a.abs - b.abs);
+      list.innerHTML = rows.map(({ ev, abs }) => `
+        <div class="flex items-start gap-2 p-2.5 bg-zetaCard border border-slate-700/80 rounded-xl">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-semibold text-white truncate">${escapeHtml(ev.title)}</div>
+            <div class="text-[10px] text-slate-400">${ev.kind === 'weekday' ? `Every ${CLOCK_WEEKDAYS[ev.dow]}` : `Story day ${ev.day}`}${ev.minutes != null ? ' · ' + formatClockTime(ev.minutes) : ''}${c.set ? ' · ' + escapeHtml(eventWhenText(ev, c, abs).replace(/ \d{1,2}:\d{2} [AP]M$/, '')) : ''}</div>
+            ${ev.note ? `<div class="text-[11px] text-slate-300 mt-0.5">${escapeHtml(ev.note)}</div>` : ''}
+          </div>
+          <button type="button" onclick="removeCalendarEvent('${ev.id}')" class="text-[11px] text-rose-400 hover:text-rose-300 shrink-0">Remove</button>
+        </div>`).join('');
+    }
+    async function addCalendarEvent() {
+      const active = getActiveScenario();
+      const title = (document.getElementById('calEvTitle').value || '').trim();
+      if (!title) { showTransientToast('Give the event a title first'); return; }
+      const kind = document.getElementById('calEvKind').value === 'weekday' ? 'weekday' : 'day';
+      const t = document.getElementById('calEvTime').value;
+      const tm = /^(\d{1,2}):(\d{2})$/.exec(t || '');
+      const ev = {
+        id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        title: title.slice(0, 80), note: (document.getElementById('calEvNote').value || '').trim().slice(0, 200),
+        kind, day: Math.max(1, Number(document.getElementById('calEvDay').value) || 1), dow: Number(document.getElementById('calEvDow').value) || 0,
+        minutes: tm ? Number(tm[1]) * 60 + Number(tm[2]) : null
+      };
+      getCalendar(active).push(ev);
+      ['calEvTitle', 'calEvNote', 'calEvTime'].forEach(id => { document.getElementById(id).value = ''; });
+      await saveState();
+      renderCalendarModal();
+      renderStoryTracker();
+    }
+    async function removeCalendarEvent(id) {
+      const active = getActiveScenario();
+      active.calendar = getCalendar(active).filter(e => e.id !== id);
+      await saveState();
+      renderCalendarModal();
+      renderStoryTracker();
+    }
+
+    // Background + prompt block: where and when the scene is right now.
+    const SCENE_TAG_INSTRUCTION = 'Only if the place, time of day, or weather clearly changed during this reply, end your reply with one final line like [SCENE: place | Weekday h:mm AM/PM | weather] -- write - for any part that did not change. Otherwise leave the line out. Never mention or explain it.';
+    function buildSceneStateText(active) {
+      const lines = [];
+      const loc = (active.currentLocation || '').trim();
+      if (loc) lines.push(`Location: ${loc}`);
+      const c = getWorldClock(active);
+      if (c && c.set) lines.push(`Time: ${describeClock(c)} (story day ${c.storyDay})`);
+      const atmo = [];
+      if (c && c.weather) atmo.push(`Weather: ${weatherLabel(c.weather)}`);
+      if (c && c.season) atmo.push(`Season: ${c.season.toLowerCase()}`);
+      if (atmo.length) lines.push(atmo.join('. '));
+      const where = buildWhereaboutsText(active);
+      if (where) lines.push(where);
+      const cal = buildCalendarContextText(active);
+      if (cal) lines.push(cal);
+      if (lines.length) lines.push('Keep lighting, weather cues, who is awake or working, and which places are open consistent with this. Time only moves when the story moves it; do not announce the clock unless it is natural.');
+      if ((active.sceneAuto || 'suggest') !== 'off') lines.push(SCENE_TAG_INSTRUCTION);
+      if (!lines.length) return '';
+      return `[CURRENT TIME & PLACE]\n${lines.join('\n')}`;
+    }
+
+    // ── Lorebook categories ──────────────────────────────────────────────
+    const LORE_CATEGORIES = [
+      { id: 'general', label: 'Untagged (keyword-triggered)', short: 'General' },
+      { id: 'world', label: 'World lore (always on)', short: 'World' },
+      { id: 'location', label: 'Location', short: 'Location' },
+      { id: 'object', label: 'Object / item', short: 'Object' },
+      { id: 'character', label: 'Character-specific', short: 'Character' }
+    ];
+    function normalizeLoreCategory(v) {
+      const s = String(v || '').toLowerCase().trim();
+      if (s === 'world' || s === 'world lore' || s === 'lore') return 'world';
+      if (s === 'location' || s === 'place') return 'location';
+      if (s === 'object' || s === 'item' || s === 'artifact') return 'object';
+      if (s === 'character' || s === 'person') return 'character';
+      return 'general';
+    }
+    function loreKeywordList(entry) {
+      const list = String(entry.keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+      const t = String(entry.title || '').trim().toLowerCase();
+      if (t && !list.includes(t)) list.push(t);
+      return list;
+    }
+    function loreHits(entry, lowerText) {
+      return loreKeywordList(entry).reduce((n, k) => n + (k.length >= 2 && lowerText.includes(k) ? 1 : 0), 0);
+    }
+
+    // Category-aware lorebook injection (synchronous, keyword + tag based so
+    // it works identically for local and cloud turns):
+    //  - world: always on, kept compact
+    //  - location: the entry matching the tracker's location first, plus any
+    //    location whose keywords appear in recent dialogue
+    //  - object: only when mentioned
+    //  - character: attached to that character while they are active (or the
+    //    user's persona, always)
+    //  - untagged: keyword hits, like the old behaviour
+    // Entries with a "known by" list are labelled SECRET so the model keeps
+    // that knowledge away from everyone else.
+    function loreIsSecret(e) { return Array.isArray(e.knownBy) && e.knownBy.length > 0; }
+    function loreItemText(e, n) {
+      const sec = loreIsSecret(e) ? `[SECRET -- only ${e.knownBy.join(', ')} know this] ` : '';
+      return `${sec}${clipText(e.content || '', n)}`;
+    }
+    function buildLorebookContextText(active, maxChars = 3000) {
+      const book = Array.isArray(active.lorebook) ? active.lorebook.filter(e => e && (e.content || '').trim()) : [];
+      if (!book.length) return '';
+      const recentMsgs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider).slice(-8);
+      const draft = document.getElementById('userInput')?.value || '';
+      const lower = (recentMsgs.map(m => m.text || '').join(' ') + ' ' + draft).toLowerCase();
+      const focusNames = getRecentCastFocus(active, draft).map(n => n.toLowerCase());
+      const userName = String(active.userPersona?.name || '').toLowerCase();
+      const loc = String(active.currentLocation || '').trim().toLowerCase();
+      const groups = { world: [], location: [], object: [], character: [], general: [] };
+
+      book.forEach(e => {
+        const cat = normalizeLoreCategory(e.category);
+        const hits = loreHits(e, lower);
+        if (cat === 'world') { groups.world.push({ e, rank: 0 }); return; }
+        if (cat === 'location') {
+          const atLoc = loc && loreKeywordList(e).some(k => k.length >= 2 && (loc.includes(k) || k.includes(loc)));
+          if (atLoc) groups.location.push({ e, rank: 100 + hits });
+          else if (hits) groups.location.push({ e, rank: hits });
+          return;
+        }
+        if (cat === 'object') { if (hits) groups.object.push({ e, rank: hits }); return; }
+        if (cat === 'character') {
+          const tag = String(e.characterTag || '').trim().toLowerCase();
+          const isActive = tag && (tag === userName || focusNames.includes(tag));
+          if (isActive) groups.character.push({ e, rank: 100 + hits });
+          else if (hits) groups.character.push({ e, rank: hits });
+          return;
+        }
+        if (hits) groups.general.push({ e, rank: hits });
+      });
+      Object.values(groups).forEach(g => g.sort((a, b) => b.rank - a.rank));
+
+      const line = (x, n) => `- ${x.e.title ? x.e.title + ': ' : ''}${loreItemText(x.e, n)}`;
+      const sections = [];
+      if (groups.world.length) sections.push({ weight: 3, text: `World rules (always apply):\n${groups.world.map(x => line(x, 320)).join('\n')}` });
+      if (groups.location.length) sections.push({ weight: 3, text: `Places in play:\n${groups.location.slice(0, 3).map(x => line(x, 380)).join('\n')}` });
+      if (groups.object.length) sections.push({ weight: 2, text: `Objects in play:\n${groups.object.slice(0, 4).map(x => line(x, 260)).join('\n')}` });
+      if (groups.character.length) sections.push({ weight: 3, text: `Character notes:\n${groups.character.slice(0, 5).map(x => `- ${x.e.characterTag ? x.e.characterTag + (x.e.title ? ' / ' + x.e.title : '') : (x.e.title || 'Note')}: ${loreItemText(x.e, 340)}`).join('\n')}` });
+      if (groups.general.length) sections.push({ weight: 2, text: `Other relevant lore:\n${groups.general.slice(0, LOREBOOK_INJECTION_LIMIT).map(x => line(x, 300)).join('\n')}` });
+      if (!sections.length) return '';
+      const fitted = fitSectionsToBudget(sections, maxChars);
+      return `[LOREBOOK -- canon facts]\n${fitted.join('\n\n')}`;
+    }
+    const LOREBOOK_RULE_TEXT = 'Treat the [LOREBOOK] block as established canon: world rules always hold; describe a place the way its entry does; objects behave exactly as described and only appear when the scene calls for them; a character note governs that character\'s behaviour, knowledge, and appearance -- do not reveal it to other characters unless the scene justifies it.';
+    function loreRuleText(block) {
+      return LOREBOOK_RULE_TEXT + (String(block || '').includes('[SECRET') ? ' Anything marked SECRET is known ONLY to the named characters: nobody else may reveal, hint at, or act on it unless they learn it within the scene.' : '');
+    }
+
     // Recombines the 3 scenario-definition fields (Setting/Locations, Visual
     // Aesthetic, Premise & Future Plot Points) into one block, the same way
     // the single legacy "setting" textarea used to feed the prompt on its
@@ -12278,26 +13939,28 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // active.currentChapter reaches their assigned chapter, so future plot
     // points aren't spoiled early; dynamic arcs are always offered as
     // material the AI can weave in whenever it fits, never forced.
-    function buildWorldContextText(active) {
-      const parts = [];
+    function buildWorldContextText(active, maxChars = Infinity) {
+      const sections = [];
       const settingText = (active.setting || '').trim();
-      if (settingText) parts.push(settingText);
+      if (settingText) sections.push({ weight: 3, text: settingText });
 
       const arcs = Array.isArray(active.plotArcs) && active.plotArcs.length ? active.plotArcs : [createIntroArc()];
       const introText = (arcs[0]?.content || '').trim();
-      if (introText) parts.push(introText);
+      if (introText) sections.push({ weight: 2, text: introText });
 
       const aestheticText = (active.aesthetic || '').trim();
-      if (aestheticText) parts.push(`Visual/atmospheric tone: ${aestheticText}`);
+      if (aestheticText) sections.push({ weight: 1, text: `Visual/atmospheric tone: ${aestheticText}` });
 
       const currentChapter = active.currentChapter || 1;
       const unlockedArcs = arcs.slice(1).filter(a => a.mode === 'chapter' && Number(a.chapter) > 0 && currentChapter >= Number(a.chapter) && (a.content || '').trim());
       const dynamicArcs = arcs.slice(1).filter(a => a.mode !== 'chapter' && (a.content || '').trim());
 
-      if (unlockedArcs.length) parts.push(`[PLOT DEVELOPMENTS NOW IN PLAY -- weave these into the unfolding story]\n${unlockedArcs.map(a => `- ${a.title ? a.title + ': ' : ''}${a.content}`).join('\n')}`);
-      if (dynamicArcs.length) parts.push(`[AVAILABLE FUTURE PLOT ARCS -- introduce naturally whenever it fits, don't force them]\n${dynamicArcs.map(a => `- ${a.title ? a.title + ': ' : ''}${a.content}`).join('\n')}`);
+      if (unlockedArcs.length) sections.push({ weight: 2, text: `[PLOT DEVELOPMENTS NOW IN PLAY -- weave these into the unfolding story]\n${unlockedArcs.map(a => `- ${a.title ? a.title + ': ' : ''}${a.content}`).join('\n')}` });
+      if (dynamicArcs.length) sections.push({ weight: 1.5, text: `[AVAILABLE FUTURE PLOT ARCS -- introduce naturally whenever it fits, don't force them]\n${dynamicArcs.map(a => `- ${a.title ? a.title + ': ' : ''}${a.content}`).join('\n')}` });
 
-      return parts.join('\n\n') || 'An open roleplay world.';
+      // maxChars is only passed for local models (see buildSystemInstruction);
+      // Gemini keeps the full, untrimmed text.
+      return fitSectionsToBudget(sections, maxChars).join('\n\n') || 'An open roleplay world.';
     }
 
     // Cheap seed check used to decide whether an empty new scenario has
@@ -12309,8 +13972,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return !!((active.setting || '').trim() || introText || (active.aesthetic || '').trim());
     }
 
-    async function buildSystemInstruction(includeDynamicLore = false, forLocal = false) {
+    async function buildSystemInstruction(includeDynamicLore = false, forLocal = false, opts = {}) {
       const active = getActiveScenario();
+      const contextCap = opts.contextCap || 8192;
       // forLocal reformats the cast sheet (and swaps rules 2 and 5 below) for
       // local RP fine-tunes -- see buildSystemInstructionForLocalLLM. Gemini
       // (forLocal=false, the default) keeps the exact original "Name: X /
@@ -12328,13 +13992,23 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // "Name: text" line other than inventing exactly that kind of tag.
       // Gemini never hits this because its JSON schema has a real, separate
       // field for mood -- there's nothing for it to conflate.
+      // Local models get a trimmed prompt: full persona only for recently
+      // active/mentioned characters, a capped world text, and a lorebook
+      // budget scaled to the context window.
+      const worldMaxChars = forLocal ? Math.max(1200, Math.min(9000, Math.round(contextCap * 0.42))) : Infinity;
+      const loreMaxChars = Math.max(600, Math.min(4500, Math.round(contextCap * 0.2)));
       const charListStr = forLocal
-        ? (active.characters||[]).map(c=>`- ${c.name}, role: ${c.role||'Companion'}, currently feeling: ${c.mood||'Neutral'}. ${getCharacterPersona(c)} Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}.`).join('\n')
+        ? buildLocalCastSheet(active)
         : (active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
       const memoryIndex=active.localMemoryIndex||{};
       const recaps=(memoryIndex.chapterRecaps||active.archivedRecaps||[]).map(r=>typeof r==='string'?r:(r.milestoneSummary||'')).filter(Boolean);
       const characterMemory=Object.entries(memoryIndex.characterMemory||{}).map(([name,note])=>note?`- ${name}: ${note}`:'').filter(Boolean).join('\n');
       const dynamicLore=includeDynamicLore?await getRelevantLorebookInjections():'';
+      // Scene state + category-tagged lorebook go straight into the local
+      // system prompt; for Gemini they ride along on the final user turn
+      // instead (see buildStoryTurnNote) so the cached system prompt stays stable.
+      const sceneBlock = opts.includeScene ? buildSceneStateText(active) : '';
+      const loreBlock = opts.includeScene ? buildLorebookContextText(active, loreMaxChars) : '';
       const userPersonaBlock = forLocal
         ? `${active.userPersona.name}, role: ${active.userPersona.role||'Protagonist'}, currently feeling: ${active.userPersona.mood||'Focused'}. ${getCharacterPersona(active.userPersona)||'Main character'}`
         : `Name: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}`;
@@ -12344,7 +14018,22 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const rule5 = forLocal
         ? '5. Do NOT output JSON or markdown code fences. Write each reacting character\'s turn as plain text, each starting on its own new line with ONLY "Name: " (their exact name, then a colon and a space) followed immediately by their in-character words/actions -- nothing else on that line. e.g. "Elena: *smiles warmly* Hello there." One block per reacting character, fully in-character, no meta commentary, no headers.'
         : '5. Output ONLY a JSON array using compact keys s=speaker, m=mood, t=text.';
-      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\n${userPersonaBlock}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${buildWorldContextText(active)}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n${rule2}\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n${rule5}\n6. Wrap EVERY physical action, gesture, expression, or internal thought in single asterisks (*like this*) -- never write action/thought narration as plain unformatted text. Keep asterisked action/thought text separate from spoken dialogue (its own sentence or line), e.g. "*She leans against the doorframe, arms crossed.* You're late." Spoken dialogue itself stays outside asterisks.`;
+      return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\n${userPersonaBlock}\n\n[MAIN CAST]\n${charListStr||'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD & SCENARIO]\n${buildWorldContextText(active, worldMaxChars)}\n\n[PAST CHAPTER MEMORY]\n${recaps.join('\n\n')}\n\n[LONG-TERM CHARACTER MEMORY]\n${characterMemory}\n${dynamicLore}${loreBlock ? '\n' + loreBlock + '\n' : ''}${sceneBlock ? '\n' + sceneBlock + '\n' : ''}\n[CRITICAL OUTPUT RULES]\n1. NEVER speak or act for {{user}} (${active.userPersona.name}).\n${rule2}\n3. Preserve established continuity from supplied memory and recent dialogue.\n4. Never invent relationship changes.\n${rule5}\n6. Wrap EVERY physical action, gesture, expression, or internal thought in single asterisks (*like this*) -- never write action/thought narration as plain unformatted text. Keep asterisked action/thought text separate from spoken dialogue (its own sentence or line), e.g. "*She leans against the doorframe, arms crossed.* You're late." Spoken dialogue itself stays outside asterisks.${loreBlock ? '\n7. ' + loreRuleText(loreBlock) : ''}`;
+    }
+
+    // Gemini story turns: scene state + tagged lorebook appended to the last
+    // user turn (the cached system prompt can't change turn to turn).
+    function buildStoryTurnNote(active) {
+      const lore = buildLorebookContextText(active, 6000);
+      return [buildSceneStateText(active), lore, lore ? '[LOREBOOK RULE] ' + loreRuleText(lore) : ''].filter(Boolean).join('\n\n');
+    }
+    function withTrailingNote(contentsArray, note) {
+      if (!note) return contentsArray;
+      const out = contentsArray.slice();
+      const last = out[out.length - 1];
+      if (last && last.role === 'user') out[out.length - 1] = { ...last, parts: [...(last.parts || []), { text: '\n\n' + note }] };
+      else out.push({ role: 'user', parts: [{ text: note }] });
+      return out;
     }
 
     function buildCachedSystemInstruction() {
@@ -12544,8 +14233,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // itself ever returns non-JSON). See the forLocal comment inside
     // buildSystemInstruction for why the cast sheet/rules are reworded, not
     // just JSON-vs-plain-text swapped, for this path.
-    async function buildSystemInstructionForLocalLLM() {
-      return buildSystemInstruction(false, true);
+    async function buildSystemInstructionForLocalLLM(opts = {}) {
+      return buildSystemInstruction(false, true, { ...opts, includeScene: true });
     }
 
     // Fires TTS generation for a finished speaker block in the background, as
@@ -12559,6 +14248,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // line generates normally, a little later, when its bubble actually
     // plays (renderVnAudioCached's own cache key makes a repeat call free).
     function prewarmVnLineAudio(speakerName, text) {
+      text = stripSceneTagText(text);
       if (!appState.ttsEnabled || !text || !text.trim()) return;
       const engine = getActiveTtsEngine();
       const engineReady = engine === 'chatterbox-laptop' ? chatterboxLaptopReady : kokoroEngineReady;
@@ -12780,8 +14470,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // requested output length (with a small safety margin for estimation
       // error) out of the budget before capping dialogue, so the two pieces
       // actually fit together under the server's real window.
-      const systemText = await buildSystemInstructionForLocalLLM();
       const contextCap = endpointInfo.contextCap || 8192;
+      lastLocalContextCap = contextCap;
+      const systemText = await buildSystemInstructionForLocalLLM({ contextCap });
       // Local generation is running on hardware you own, not a metered API,
       // so there's no cost reason to keep the same conservative 850-token
       // cap Gemini uses -- and a scene with several reacting characters in
@@ -12789,10 +14480,17 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // mid-sentence (mid-action, even) once it's hit. 1536 leaves a local
       // 8192-context model plenty of headroom for a multi-character turn
       // while still leaving most of the window for actual dialogue history.
-      const localMaxOutputTokens = options.maxOutputTokens || 1536;
-      const reserveTokens = estimateTokens(systemText) + localMaxOutputTokens + 200;
+      //
+      // The reserve used for budgeting dialogue is now a leaner 1024 tokens
+      // (LOCAL_OUTPUT_RESERVE); if the finished prompt turns out smaller than
+      // the budget allowed, max_tokens is raised toward LOCAL_OUTPUT_CEILING
+      // using the leftover room, so short histories still get long replies.
+      const outputReserve = options.maxOutputTokens || LOCAL_OUTPUT_RESERVE;
+      const reserveTokens = estimateTokens(systemText) + outputReserve + 160;
       const dialogueBudget = Math.max(500, contextCap - reserveTokens);
       const cappedContents = capContentsToTokenBudget(contentsArray, dialogueBudget);
+      const dialogueTokens = cappedContents.reduce((n, c) => n + estimateTokens((c.parts || []).map(p => p.text || '').join('\n')) + 6, 0);
+      const localMaxOutputTokens = options.maxOutputTokens || Math.max(outputReserve, Math.min(LOCAL_OUTPUT_CEILING, contextCap - estimateTokens(systemText) - dialogueTokens - 160));
       const messages = [{ role: 'system', content: systemText }];
       cappedContents.forEach(c => {
         const text = (c.parts || []).map(p => p.text || '').join('\n').trim();
@@ -13092,8 +14790,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(appState.apiKey)}`;
       let cachedName = '';
       if (model === MODEL_ROUTINE_DEFAULT && options.useCache !== false) cachedName = await ensureContextCache();
+      const sendContents = options.storyTurn ? withTrailingNote(contentsArray, buildStoryTurnNote(getActiveScenario())) : contentsArray;
       const payload = {
-        contents: contentsArray,
+        contents: sendContents,
         safetySettings: buildSafetySettings(),
         ...(cachedName ? {cachedContent: cachedName} : {systemInstruction:{parts:[{text:await buildSystemInstruction(false)}]}}),
         generationConfig: {
@@ -13941,7 +15640,7 @@ REQUIREMENTS:
           role: 'user',
           parts: [{ text: `[System directive: Begin the story. Introduce setting and opening dialogue/actions for characters present as individual character blocks.]` }]
         }];
-        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech: true });
+        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech: true, storyTurn: true });
         showLoading(false);
         // No user turn exists yet at story open, so there's nothing the AI
         // could be speaking "instead of" -- treat like Continue.
@@ -13963,10 +15662,14 @@ REQUIREMENTS:
       if (!appState.usageStats) appState.usageStats = { routineInputTokens: 0, routineOutputTokens: 0, advancedInputTokens: 0, advancedOutputTokens: 0, cachedInputTokens: 0, cacheCreationTokens: 0, cacheHits: 0, apiCalls: 0, storyTurns: 0, images1K: 0, images4K: 0 };
       appState.usageStats.storyTurns = (appState.usageStats.storyTurns || 0) + 1;
       try {
+        const activeNow = getActiveScenario();
+        clockBeginTurn(activeNow);
+        const turnStartCount = activeNow.messages.length;
         const contents = buildApiContents(extraDirective);
-        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech });
+        const replyBlocks = await callGeminiApi(contents, { allowUserPersonaSpeech, storyTurn: true });
         showLoading(false);
         await playSequentialTypewriter(replyBlocks, allowUserPersonaSpeech);
+        clockEndTurn(activeNow, turnStartCount);
       } catch (err) {
         showLoading(false);
         // callGeminiApi() (despite its name) can resolve to either Gemini or
