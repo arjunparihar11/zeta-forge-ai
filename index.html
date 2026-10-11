@@ -565,29 +565,40 @@
     </div>
 
     <!-- Story tracker row: where the scene is + what day/time it is. Chips are tappable. -->
-    <div id="storyTrackerRow" class="relative px-2.5 sm:px-4 pb-2 flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap">
-      <button type="button" onclick="toggleLocationPopover()" id="trackerLocationBtn" class="min-w-0 max-w-[48%] sm:max-w-xs h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm" title="Tap to set where the story is happening">
-        <span class="shrink-0">📍</span><span id="trackerLocationText" class="truncate">Set location</span>
-      </button>
-      <button type="button" onclick="toggleClockPopover()" id="trackerClockBtn" class="min-w-0 h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Tap to set the story day and time">
-        <span id="trackerClockIcon" class="shrink-0">🕒</span><span id="trackerClockText" class="whitespace-nowrap">Set day &amp; time</span><span class="text-[10px] text-zetaGlow shrink-0">▾</span>
-      </button>
-      <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" class="h-7 px-2 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[11px] font-medium flex items-center gap-1 transition active:scale-95 shadow-sm shrink-0" title="Story calendar &amp; events">
-        <span>📅</span><span class="text-[10px] text-zetaGlow"></span>
-      </button>
-      <span id="trackerStoryDay" class="text-[10px] sm:text-[11px] text-slate-500 truncate min-w-0"></span>
-      <span id="trackerSuggestion" class="hidden h-7 pl-2.5 pr-1 rounded-full bg-[#2a223c] border border-zetaAccent/60 text-zetaLight text-[11px] flex items-center gap-1.5 min-w-0 max-w-full">
-        <span class="shrink-0">✨</span><span id="trackerSuggestionText" class="truncate"></span>
-        <button type="button" onclick="applySceneSuggestion()" class="shrink-0 px-2 py-0.5 rounded-full bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-semibold">Apply</button>
-        <button type="button" onclick="dismissSceneSuggestion()" class="shrink-0 px-1.5 text-slate-400 hover:text-white" aria-label="Dismiss">✕</button>
-      </span>
-      <button type="button" onclick="undoClockChange()" id="trackerUndoBtn" class="hidden h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-amber-500/50 text-amber-200 text-[11px] font-medium flex items-center gap-1 transition active:scale-95 shrink-0" title="Undo the last clock change">
-        <span>↶</span><span>Undo</span>
-      </button>
-      <!-- Sound + chat-backdrop quick controls, right-aligned in this row -->
-      <div class="ml-auto flex items-center gap-1.5 shrink-0">
-        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="h-7 w-8 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-[13px] text-slate-200 shadow-sm transition active:scale-95" title="Background music">🎵</button>
-        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden h-7 w-8 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-[13px] text-slate-200 shadow-sm transition active:scale-95" title="Chat background">🖼️</button>
+    <div id="storyTrackerRow" class="relative px-2.5 sm:px-4 pb-2 flex flex-col min-w-0">
+      <!-- Row A: where + when (equal-height chips matching the header buttons) -->
+      <div class="flex items-stretch gap-1.5 sm:gap-2 min-w-0">
+        <button type="button" onclick="toggleLocationPopover()" id="trackerLocationBtn" class="flex-1 min-w-0 h-8 px-3 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm" title="Tap to set where the story is happening">
+          <span class="shrink-0 text-sm leading-none">📍</span><span id="trackerLocationText" class="truncate text-left">Set location</span>
+        </button>
+        <button type="button" onclick="toggleClockPopover()" id="trackerClockBtn" class="h-8 px-3 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Tap to set the story day and time">
+          <span id="trackerClockIcon" class="shrink-0 text-sm leading-none">🕒</span><span id="trackerClockText" class="whitespace-nowrap">Set day &amp; time</span><span class="text-[10px] text-zetaGlow shrink-0">▾</span>
+        </button>
+      </div>
+      <!-- Row B: three equal-width tool buttons spanning the same width as row A, so both rows share left/right edges -->
+      <div class="flex items-stretch gap-1.5 sm:gap-2 min-w-0 mt-1.5">
+        <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" class="relative flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Story calendar &amp; events">
+          <span class="shrink-0 text-sm leading-none">📅</span><span class="truncate">Calendar</span><span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
+        </button>
+        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Background music">
+          <span id="topMusicIcon" class="shrink-0 text-sm leading-none">🎵</span><span class="truncate">Music</span>
+        </button>
+        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Chat background">
+          <span class="shrink-0 text-sm leading-none">🖼️</span><span class="truncate">Backdrop</span>
+        </button>
+      </div>
+      <!-- Caption: day / weather / season. Collapses completely when empty. -->
+      <div id="trackerStoryDay" class="px-1 mt-1.5 text-[11px] leading-tight text-slate-400 truncate empty:hidden"></div>
+      <!-- Row C (only when needed): AI scene suggestion + clock undo. Children carry their own top margin so the row takes no space while both are hidden. -->
+      <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+        <span id="trackerSuggestion" class="hidden mt-1.5 h-8 pl-3 pr-1 rounded-xl bg-[#2a223c] border border-zetaAccent/60 text-zetaLight text-xs flex items-center gap-1.5 min-w-0 max-w-full">
+          <span class="shrink-0 text-sm leading-none">✨</span><span id="trackerSuggestionText" class="truncate"></span>
+          <button type="button" onclick="applySceneSuggestion()" class="shrink-0 px-2.5 py-1 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-[11px] font-semibold">Apply</button>
+          <button type="button" onclick="dismissSceneSuggestion()" class="shrink-0 px-1.5 text-slate-400 hover:text-white" aria-label="Dismiss">✕</button>
+        </span>
+        <button type="button" onclick="undoClockChange()" id="trackerUndoBtn" class="hidden mt-1.5 h-8 px-3 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-amber-500/50 text-amber-200 text-xs font-medium flex items-center gap-1 transition active:scale-95 shrink-0" title="Undo the last clock change">
+          <span>↶</span><span>Undo</span>
+        </button>
       </div>
       <div id="clockPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(23rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
       <div id="locationPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(20rem,calc(100vw-1.25rem))] max-h-[70vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
@@ -809,11 +820,11 @@
               <button onclick="toggleVnAutoPlay()" id="vnAutoPlayBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow">
                 <span>⏩</span> <span id="vnAutoPlayText">Auto: Off</span>
               </button>
-              <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center gap-1 transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
+              <button onclick="toggleTtsEnabled()" id="vnTtsToggleBtn" class="hidden bg-[#1a1622]/80 hover:bg-zetaCard text-slate-300 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center justify-center gap-1 transition active:scale-95 shadow" title="Voice narration: Off (tap to enable)">
                 <span id="vnTtsToggleIcon">🔇</span>
                 <span data-vn-tts-status-dot class="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
               </button>
-              <span id="vnTtsEngineLabel" class="hidden text-[10px] text-slate-400 font-medium whitespace-nowrap"></span>
+              <span id="vnTtsEngineLabel" data-needs-tts-btn class="hidden text-[10px] text-slate-400 font-medium whitespace-nowrap"></span>
             </div>
             <div class="flex items-center gap-1.5">
               <button onclick="editVnLocationTag()" id="vnLocationBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow max-w-[110px] sm:max-w-[160px]" title="Set a location tag to steer backdrop & music selection">
@@ -948,7 +959,7 @@
               id="micBtn"
               onclick="toggleSpeechToText()"
               title="Dictate with your microphone"
-              class="bg-zetaCard hover:bg-zetaBorder text-slate-300 border border-zetaBorder px-3 py-2.5 rounded-xl text-sm flex items-center justify-center transition shrink-0 h-[42px] w-[42px]"
+              class="hidden bg-zetaCard hover:bg-zetaBorder text-slate-300 border border-zetaBorder px-3 py-2.5 rounded-xl text-sm flex items-center justify-center transition shrink-0 h-[42px] w-[42px]"
             >
               🎤
             </button>
@@ -1493,6 +1504,10 @@
               <option value="180000">180k Tokens (~900+ Raw Turns - Max Raw)</option>
             </select>
           </div>
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="showMicButtonToggle" class="w-4 h-4 mt-0.5 accent-zetaAccent" />
+            <span><span class="block font-semibold text-slate-200">Show voice-to-text button</span><span class="block text-[10px] text-slate-500 leading-snug">Adds a 🎤 dictation button next to the text box. Needs a browser that supports speech recognition (Chrome, Edge, Safari).</span></span>
+          </label>
         </div>
 
         <hr class="border-zetaBorder" />
@@ -1623,6 +1638,8 @@
             <div>
               <label class="block text-slate-300 font-semibold mb-1 text-xs">Voice Acting</label>
               <button type="button" id="ttsEnabledToggleBtn" onclick="toggleTtsEnabled()" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔇 Voice Acting: Off</button>
+              <button type="button" id="showTtsButtonToggleBtn" onclick="toggleShowTtsButton()" class="w-full mt-2 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-left">🔘 Voice button on VN stage: Hidden</button>
+              <p class="text-[10px] text-slate-500 mt-1 leading-snug">Shows a quick 🔊/🔇 voice-acting toggle in the VN stage's top bar. Off by default; the switch above always works.</p>
               <label class="block text-slate-300 font-semibold mb-1 mt-3 text-xs">Voice Engine</label>
               <select id="ttsEngineSelect" onchange="changeTtsEngine(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:border-zetaAccent">
                 <option value="auto">⚡ Auto — Chatterbox (Laptop) → Kokoro → Kitten, whichever is available</option>
@@ -2888,9 +2905,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       themeMode: 'dark',
       accentColor: '#7c65e8',
       ttsEnabled: false,
+      showTtsButton: false,   // quick voice toggle on the VN stage bar (off by default; Setup toggles it)
       musicMuted: false,      // top-bar mute: pauses BG music so you can play your own
       chatBgEnabled: true,    // show the backdrop behind the text chat
       chatBgBlur: 8,          // px of gaussian blur for the text-chat backdrop
+      showMicButton: false,   // voice-to-text 🎤 button next to the text box (opt-in, Setup)
       vnReadingSpeed: 1,
       ttsPreloadWindow: 4,   // how many lines each side of the current one to pre-render
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
@@ -3340,6 +3359,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!Number.isFinite(Number(appState.vnReadingSpeed))) appState.vnReadingSpeed = 1;
       appState.ttsPreloadWindow = Math.max(1, Math.min(12, Number(appState.ttsPreloadWindow) || 4));
       appState.relaxSafetyFilters = appState.relaxSafetyFilters !== false;
+      appState.showTtsButton = appState.showTtsButton === true;
       // Was unconditionally forcing 'kokoro' on every load regardless of what
       // was actually saved, silently reverting a Chatterbox/Kitten/Auto
       // choice back to Kokoro on the next reload. Validate against every
@@ -3750,7 +3770,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     function initSpeechToTextUi() {
       const micBtn = document.getElementById('micBtn');
       if (!micBtn) return;
-      if (!SpeechRecognitionCtor) { micBtn.classList.add('hidden'); return; }
+      // Off by default: shown only when "Show voice-to-text button" is on in
+      // Setup AND the browser actually implements speech recognition.
+      const show = !!appState.showMicButton && !!SpeechRecognitionCtor;
+      micBtn.classList.toggle('hidden', !show);
+      if (!show && activeSpeechRecognition) { try { activeSpeechRecognition.stop(); } catch (e) {} }
     }
     function toggleSpeechToText() {
       if (activeSpeechRecognition) { activeSpeechRecognition.stop(); return; }
@@ -6170,7 +6194,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     function renderTopMusicUi() {
       const btn = document.getElementById('topMusicBtn');
       if (btn) {
-        btn.textContent = appState.musicMuted ? '🔇' : '🎵';
+        const icon = document.getElementById('topMusicIcon'); if (icon) icon.textContent = appState.musicMuted ? '🔇' : '🎵';
         btn.title = appState.musicMuted ? 'Background music is muted (tap for controls)' : 'Background music';
         btn.classList.toggle('text-amber-300', !!appState.musicMuted);
       }
@@ -9701,7 +9725,7 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (labelEl) {
         const on = !!appState.ttsEnabled;
         labelEl.innerText = on ? ttsEngineLabel(getActiveTtsEngine()) : '';
-        labelEl.classList.toggle('hidden', !on);
+        labelEl.classList.toggle('hidden', !on || appState.showTtsButton !== true);
       }
       const dot = document.querySelector('#vnTtsToggleBtn [data-vn-tts-status-dot]');
       if (!dot) return;
@@ -10708,6 +10732,21 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
       if (vnBtn) {
         vnBtn.classList.toggle('vn-toggle-active', on);
       }
+      applyTtsButtonVisibility();
+    }
+    function applyTtsButtonVisibility() {
+      const show = appState.showTtsButton === true;
+      const vnBtn = document.getElementById('vnTtsToggleBtn');
+      if (vnBtn) vnBtn.classList.toggle('hidden', !show);
+      const label = document.getElementById('vnTtsEngineLabel');
+      if (label) label.classList.toggle('hidden', !show || !appState.ttsEnabled);
+      const setupBtn = document.getElementById('showTtsButtonToggleBtn');
+      if (setupBtn) setupBtn.innerText = show ? '🔘 Voice button on VN stage: Shown' : '🔘 Voice button on VN stage: Hidden';
+    }
+    function toggleShowTtsButton() {
+      appState.showTtsButton = !appState.showTtsButton;
+      applyTtsButtonVisibility();
+      saveState();
     }
 
     // === Voice Lab (in-app drawer) =========================================
@@ -12092,6 +12131,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
+      { const micTgl = document.getElementById('showMicButtonToggle'); if (micTgl) micTgl.checked = !!appState.showMicButton; }
       const profileSelect = document.getElementById('llmProfileSelect');
       if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
@@ -12282,6 +12322,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
+      { const micTgl = document.getElementById('showMicButtonToggle'); if (micTgl) { appState.showMicButton = micTgl.checked; initSpeechToTextUi(); } }
       appState.themeMode = appState.themeMode || 'dark';
       appState.accentColor = document.getElementById('accentColorPicker')?.value || appState.accentColor || '#7c65e8';
       appState.vnReadingSpeed = Number(document.getElementById('vnSpeedInput')?.value || appState.vnReadingSpeed || 1);
@@ -13390,7 +13431,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const btn = document.getElementById('trackerClockBtn');
       if (btn) btn.title = c.set ? `${describeClock(c)} -- tap to skip ahead or change` : 'Tap to set the story day and time';
       const calBtn = document.getElementById('trackerCalendarBtn');
-      if (calBtn) { const n = getCalendar(active).length; calBtn.querySelector('span:last-child').textContent = n ? String(n) : ''; }
+      if (calBtn) { const n = getCalendar(active).length; const badge = calBtn.querySelector('span:last-child'); badge.textContent = n ? String(n) : ''; badge.classList.toggle('hidden', !n); }
       // AI-suggested update chip
       const sug = document.getElementById('trackerSuggestion');
       if (sug) {
