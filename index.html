@@ -524,9 +524,6 @@
 
       <!-- Right: Controls & Menus -->
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <!-- Background music + chat backdrop quick controls -->
-        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm text-slate-200 shadow transition active:scale-95 shrink-0" title="Background music">🎵</button>
-        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-sm text-slate-200 shadow transition active:scale-95 shrink-0" title="Chat background">🖼️</button>
         <!-- Visual Novel / Chat Mode Switcher Button -->
         <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
           <span id="viewModeIcon">🎭</span>
@@ -587,6 +584,11 @@
       <button type="button" onclick="undoClockChange()" id="trackerUndoBtn" class="hidden h-7 px-2.5 rounded-full bg-zetaCard hover:bg-zetaBorder border border-amber-500/50 text-amber-200 text-[11px] font-medium flex items-center gap-1 transition active:scale-95 shrink-0" title="Undo the last clock change">
         <span>↶</span><span>Undo</span>
       </button>
+      <!-- Sound + chat-backdrop quick controls, right-aligned in this row -->
+      <div class="ml-auto flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="h-7 w-8 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-[13px] text-slate-200 shadow-sm transition active:scale-95" title="Background music">🎵</button>
+        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden h-7 w-8 rounded-full bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-[13px] text-slate-200 shadow-sm transition active:scale-95" title="Chat background">🖼️</button>
+      </div>
       <div id="clockPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(23rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
       <div id="locationPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(20rem,calc(100vw-1.25rem))] max-h-[70vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
     </div>
@@ -882,8 +884,8 @@
             <button onclick="toggleNarrateMode()" id="narrateToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0" title="Toggle Narration Mode (@:)">
               <span>📜</span> <span id="narrateToggleText">Narrate</span>
             </button>
-            <button onclick="generateReplySuggestions()" id="suggestRepliesBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
-              <span>💡</span> <span>Suggest</span>
+            <button onclick="toggleSuggestMenu()" id="suggestRepliesBtn" aria-haspopup="true" aria-expanded="false" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
+              <span>💡</span> <span>Suggest</span> <span class="text-[9px] opacity-60">▾</span>
             </button>
             <button onclick="generateSceneImage()" id="genImageBtn" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder flex items-center gap-1.5 transition active:scale-95 shadow-sm shrink-0">
               <span>🖼️</span> <span>Visualize</span>
@@ -892,6 +894,25 @@
               <span>⏩</span> <span>Continue</span>
             </button>
             <button onclick="toggleMessageSearch(true)" class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder shrink-0 ml-auto" title="Search message history">🔎 Search</button>
+          </div>
+
+          <div id="suggestMenu" class="hidden rounded-xl border border-zetaBorder bg-zetaCard/80 p-1.5 space-y-1">
+            <div class="flex items-center justify-between text-[10px] text-slate-400 px-1.5 pt-0.5">
+              <span class="font-semibold text-zetaLight">What would you like?</span>
+              <button type="button" onclick="closeSuggestMenu()" class="text-slate-500 hover:text-slate-300">&times; Close</button>
+            </div>
+            <button type="button" id="suggestMenuCreate" onclick="chooseSuggestOption('suggest')" class="w-full text-left px-3 py-2 rounded-lg bg-zetaSidebar hover:bg-slate-800 border border-zetaBorder text-xs text-slate-200 transition active:scale-[0.99]">
+              <div class="font-semibold">💡 Create suggestions</div>
+              <div class="text-[10px] text-slate-400">Get 3 different reply ideas based on the scene</div>
+            </button>
+            <button type="button" id="suggestMenuEnhance" onclick="chooseSuggestOption('enhance')" class="w-full text-left px-3 py-2 rounded-lg bg-zetaSidebar hover:bg-slate-800 border border-zetaBorder text-xs text-slate-200 transition active:scale-[0.99]">
+              <div class="font-semibold" id="suggestMenuEnhanceTitle">✨ Enhance draft</div>
+              <div class="text-[10px] text-slate-400" id="suggestMenuEnhanceHint">Turn what you typed into a full, in-story reply</div>
+            </button>
+            <button type="button" id="suggestMenuUndo" onclick="chooseSuggestOption('undo')" class="hidden w-full text-left px-3 py-2 rounded-lg bg-zetaSidebar hover:bg-slate-800 border border-zetaBorder text-xs text-slate-300 transition active:scale-[0.99]">
+              <div class="font-semibold">↩ Undo enhance</div>
+              <div class="text-[10px] text-slate-400">Restore what you originally typed</div>
+            </button>
           </div>
 
           <div id="replySuggestionsContainer" class="hidden space-y-1.5 pt-0.5">
@@ -913,26 +934,6 @@
 
           <div id="mentionAutocomplete" class="hidden fixed z-[75] bg-zetaSidebar border border-zetaBorder rounded-xl shadow-2xl max-h-48 overflow-y-auto scroll-touch py-1"></div>
           <form onsubmit="handleUserSubmit(event)" class="flex gap-2 items-end">
-            <button
-              type="button"
-              id="enhanceBtn"
-              onclick="enhanceUserDraft()"
-              title="Enhance: turn what you typed into a full, in-story reply (tap again for a new take)"
-              aria-label="Enhance my message"
-              class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder px-3 py-2.5 rounded-xl text-sm flex items-center justify-center transition active:scale-95 shrink-0 h-[42px] w-[42px] disabled:opacity-50"
-            >
-              ✨
-            </button>
-            <button
-              type="button"
-              id="enhanceUndoBtn"
-              onclick="undoEnhanceDraft()"
-              title="Undo enhance (restore what you originally typed)"
-              aria-label="Undo enhance"
-              class="hidden bg-zetaCard hover:bg-zetaBorder text-slate-300 border border-zetaBorder px-2 py-2.5 rounded-xl text-sm items-center justify-center transition active:scale-95 shrink-0 h-[42px] w-[36px]"
-            >
-              ↩
-            </button>
             <textarea
               id="userInput"
               rows="1"
@@ -2821,13 +2822,16 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // profile synthesis) always call Gemini directly via MODEL_ADVANCED /
     // MODEL_ROUTINE_DEFAULT regardless of this setting — see callGeminiApi().
     // Cloud (Gemini) is not user-editable; its context cap matches CONTEXT_TOKEN_CAP.
+    // Hardcoded Workstation fallback: used whenever the saved/typed fallback is blank,
+    // so the tunnel address always works even from a fresh or cleared profile.
+    const WORKSTATION_FALLBACK_URL = 'https://zeta.zetaforge.stream/v1';
     const LLM_PROFILE_DEFAULTS = {
       // fallbackUrl is Workstation-only: a public tunnel address (previously
       // ngrok, now the named Cloudflare Tunnel at zeta.zetaforge.stream --
       // see cloudflare_tunnel_core.bat / cloudflare_static_url_guide.md) for
       // the SAME physical laptop, used only when the LAN address doesn't
       // answer -- see resolveWorkstationUrl().
-      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', fallbackUrl: 'https://zeta.zetaforge.stream/v1', model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
+      workstation: { label: 'Workstation (Laptop)', url: 'http://192.168.1.45:1234/v1', fallbackUrl: WORKSTATION_FALLBACK_URL, model: 'magnum-v2-12b', contextCap: 8192, pingMs: 2500, apiKey: '' },
       deviceIphone: { label: 'Oracle Cloud (Stheno 8B)', url: 'https://147-224-186-96.sslip.io/v1', model: 'stheno-v3.2', contextCap: 8192, pingMs: 4000, apiKey: 'zf-oracle-9f83ke2mdx' },
       deviceIpad: { label: 'On-Device (iPad Air)', url: 'http://127.0.0.1:8080/v1', model: 'llama-3.1-8b-stheno-v3.4.Q3_K_M', contextCap: 4096, pingMs: 600, apiKey: '' }
     };
@@ -3354,6 +3358,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           pingMs: Number.isFinite(Number(existing.pingMs)) && Number(existing.pingMs) > 0 ? Number(existing.pingMs) : def.pingMs,
           apiKey: typeof existing.apiKey === 'string' ? existing.apiKey : (def.apiKey || '')
         };
+        if (key === 'workstation') appState.llmProfiles[key].fallbackUrl = (typeof existing.fallbackUrl === 'string' && existing.fallbackUrl.trim()) ? existing.fallbackUrl.trim() : WORKSTATION_FALLBACK_URL;
       });
       if (!Number.isFinite(Number(appState.localTurnsServed))) appState.localTurnsServed = 0;
 
@@ -4056,9 +4061,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     }
 
     function toggleLlmConnectionDrawer(force){const d=document.getElementById('llmConnectionDrawer');if(!d)return;const closed=d.classList.contains('translate-x-full'),open=force!==undefined?force:closed;if(open){toggleMobileSidebar(false);toggleChapterDrawer(false);toggleMenuDrawer(false);syncLlmDrawer();d.classList.remove('translate-x-full');document.getElementById('mobileBackdrop')?.classList.remove('hidden');}else{d.classList.add('translate-x-full');checkBackdrop();}}
-    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs],['Key',c.apiKey]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});if(x==='workstation'){const fb=document.getElementById('llmDrawerFallbackUrl_workstation');if(fb)fb.value=c.fallbackUrl||'';}});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
+    function syncLlmDrawer(){const p=appState.llmProfile||'gemini';const e=document.getElementById('llmDrawerProfileSelect');if(e)e.value=p;const k=document.getElementById('llmDrawerApiKey');if(k)k.value=appState.apiKey||'';const m=document.getElementById('llmDrawerModel');if(m)m.value=appState.model||MODEL_ROUTINE_DEFAULT;['workstation','deviceIphone','deviceIpad'].forEach(x=>{const c=appState.llmProfiles?.[x]||LLM_PROFILE_DEFAULTS[x];[['Url',c.url],['Model',c.model],['Context',c.contextCap],['Ping',c.pingMs],['Key',c.apiKey]].forEach(([n,v])=>{const z=document.getElementById(`llmDrawer${n}_${x}`);if(z)z.value=v||'';});if(x==='workstation'){const fb=document.getElementById('llmDrawerFallbackUrl_workstation');if(fb)fb.value=c.fallbackUrl||WORKSTATION_FALLBACK_URL;}});onLlmDrawerProfileChange(p);renderLlmConnectionGraphic();}
     function onLlmDrawerProfileChange(v){const h=document.getElementById('llmDrawerProfileHint');if(h)h.textContent=({gemini:'Routine turns use Gemini.',workstation:'Routine turns use the laptop — LAN first, then the fallback URL if set. No Gemini fallback.',deviceIphone:'Routine turns use Oracle Cloud Stheno. No Gemini fallback.',deviceIpad:'Routine turns use iPad Stheno. No Gemini fallback.',auto:'Smart Auto-Routing may fall back to Gemini.'})[v]||'';}
-    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10),k=(document.getElementById(`llmDrawerKey_${x}`)?.value||'').trim();appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs,apiKey:k};if(x==='workstation')appState.llmProfiles[x].fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||'').trim();});autoRouteCache={result:null,expiresAt:0};workstationUrlCache={url:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
+    async function saveLlmDrawer(){appState.apiKey=(document.getElementById('llmDrawerApiKey')?.value||'').trim();appState.model=document.getElementById('llmDrawerModel')?.value||MODEL_ROUTINE_DEFAULT;appState.llmProfile=document.getElementById('llmDrawerProfileSelect')?.value||'gemini';if(!appState.llmProfiles)appState.llmProfiles=JSON.parse(JSON.stringify(LLM_PROFILE_DEFAULTS));['workstation','deviceIphone','deviceIpad'].forEach(x=>{const d=LLM_PROFILE_DEFAULTS[x],u=(document.getElementById(`llmDrawerUrl_${x}`)?.value||'').trim(),m=(document.getElementById(`llmDrawerModel_${x}`)?.value||'').trim(),c=parseInt(document.getElementById(`llmDrawerContext_${x}`)?.value,10),g=parseInt(document.getElementById(`llmDrawerPing_${x}`)?.value,10),k=(document.getElementById(`llmDrawerKey_${x}`)?.value||'').trim();appState.llmProfiles[x]={label:d.label,url:u||d.url,model:m||d.model,contextCap:Number.isFinite(c)&&c>0?c:d.contextCap,pingMs:Number.isFinite(g)&&g>0?g:d.pingMs,apiKey:k};if(x==='workstation')appState.llmProfiles[x].fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||'').trim()||WORKSTATION_FALLBACK_URL;});autoRouteCache={result:null,expiresAt:0};workstationUrlCache={url:null,expiresAt:0};await saveState();syncModalForm();if(appState.llmProfile==='gemini')setCurrentLlmConnection('connected','gemini',{label:'Google Gemini',model:appState.model});else await verifyActiveLlmFromDrawer(true);toggleLlmConnectionDrawer(false);}
     async function verifyActiveLlmFromDrawer(silent=false){const p=document.getElementById('llmDrawerProfileSelect')?.value||appState.llmProfile||'gemini';if(p==='gemini'){const has=!!((document.getElementById('llmDrawerApiKey')?.value||appState.apiKey||'').trim());setCurrentLlmConnection(has?'connected':'offline','gemini',{label:'Google Gemini',model:document.getElementById('llmDrawerModel')?.value||appState.model});if(!silent&&!has)zfAlert('Google Gemini is selected, but no API key is configured.','LLM Verification');return has;}let targetProfile=p,url,model,apiKey;
     if(p==='auto'){
       // 'auto' isn't a real endpoint — it's a meta-selector, so there's no
@@ -4082,7 +4087,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if(p==='workstation'){
         // Otherwise this would test only the LAN address and report "offline"
         // even when the fallback URL is what's actually going to answer.
-        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||appState.llmProfiles?.workstation?.fallbackUrl||'').trim();
+        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||appState.llmProfiles?.workstation?.fallbackUrl||WORKSTATION_FALLBACK_URL).trim();
         const resolvedWsUrl=await resolveWorkstationUrl({url,fallbackUrl,apiKey});
         if(resolvedWsUrl)url=resolvedWsUrl;
       }
@@ -4103,7 +4108,7 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       // Same LAN-then-tunnel-fallback story as testLocalEndpoint (the Setup
       // modal's twin of this button) -- only relevant for Workstation.
       if(!result.ok && profileKey==='workstation'){
-        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||cfg.fallbackUrl||'').trim();
+        const fallbackUrl=(document.getElementById('llmDrawerFallbackUrl_workstation')?.value||cfg.fallbackUrl||WORKSTATION_FALLBACK_URL).trim();
         if(fallbackUrl){
           const fallbackResult=await verifyLocalEndpoint(fallbackUrl,model,15000,apiKey);
           if(fallbackResult.ok){result=fallbackResult;usedFallback=true;}
@@ -6761,6 +6766,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         return;
       }
 
+      if (enhanceInFlight) return;
+      closeSuggestMenu();
       const btn = document.getElementById('suggestRepliesBtn');
       const container = document.getElementById('replySuggestionsContainer');
       const list = document.getElementById('replySuggestionsList');
@@ -6772,7 +6779,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       }
 
       btn.disabled = true;
-      btn.innerHTML = `<span>⏳</span> <span>Suggest</span>`;
+      btn.innerHTML = `<span>⏳</span> <span>Suggest</span> <span class="text-[9px] opacity-60">▾</span>`;
 
       try {
         const recentDialogue = active.messages
@@ -6885,7 +6892,7 @@ CRITICAL RULES:
         zfAlert("Reply Suggestion Notice: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<span>💡</span> <span>Suggest</span>`;
+        btn.innerHTML = `<span>💡</span> <span>Suggest</span> <span class="text-[9px] opacity-60">▾</span>`;
       }
     }
 
@@ -6919,12 +6926,47 @@ CRITICAL RULES:
     let enhanceInFlight = false;
 
     function syncEnhanceUndo() {
-      const undoBtn = document.getElementById('enhanceUndoBtn');
       const inputEl = document.getElementById('userInput');
-      if (!undoBtn || !inputEl) return;
+      if (!inputEl) return;
       const stillEnhanced = !!enhanceState.enhanced && inputEl.value === enhanceState.enhanced;
-      undoBtn.classList.toggle('hidden', !stillEnhanced);
-      undoBtn.classList.toggle('flex', stillEnhanced);
+      const undoItem = document.getElementById('suggestMenuUndo');
+      if (undoItem) undoItem.classList.toggle('hidden', !stillEnhanced);
+      const title = document.getElementById('suggestMenuEnhanceTitle');
+      if (title) title.textContent = stillEnhanced ? '🔄 Enhance again' : '✨ Enhance draft';
+      const hint = document.getElementById('suggestMenuEnhanceHint');
+      if (hint) {
+        const empty = !inputEl.value.trim();
+        hint.textContent = stillEnhanced ? 'Get a new take from your original words'
+          : empty ? 'Type a rough idea in the box first, then pick this'
+          : 'Turn what you typed into a full, in-story reply';
+      }
+      const enhItem = document.getElementById('suggestMenuEnhance');
+      if (enhItem) enhItem.classList.toggle('opacity-60', !stillEnhanced && !inputEl.value.trim());
+    }
+
+    // Suggest button menu: "Create suggestions" or "Enhance draft".
+    function openSuggestMenu() {
+      const menu = document.getElementById('suggestMenu');
+      if (!menu) return;
+      hideReplySuggestions();
+      syncEnhanceUndo();
+      menu.classList.remove('hidden');
+      document.getElementById('suggestRepliesBtn')?.setAttribute('aria-expanded', 'true');
+    }
+    function closeSuggestMenu() {
+      document.getElementById('suggestMenu')?.classList.add('hidden');
+      document.getElementById('suggestRepliesBtn')?.setAttribute('aria-expanded', 'false');
+    }
+    function toggleSuggestMenu() {
+      const menu = document.getElementById('suggestMenu');
+      if (!menu) return;
+      if (menu.classList.contains('hidden')) openSuggestMenu(); else closeSuggestMenu();
+    }
+    function chooseSuggestOption(which) {
+      closeSuggestMenu();
+      if (which === 'suggest') generateReplySuggestions();
+      else if (which === 'enhance') enhanceUserDraft();
+      else if (which === 'undo') undoEnhanceDraft();
     }
 
     function resetEnhanceState() {
@@ -7005,8 +7047,9 @@ Rewrite the draft now. Output only the rewritten message.`;
     async function enhanceUserDraft() {
       if (enhanceInFlight) return;
       const inputEl = document.getElementById('userInput');
-      const btn = document.getElementById('enhanceBtn');
+      const btn = document.getElementById('suggestRepliesBtn');
       if (!inputEl || !btn) return;
+      closeSuggestMenu();
 
       // Tapping again on an untouched enhanced reply re-rolls from the
       // player's original words, not from the previous enhancement.
@@ -7028,7 +7071,7 @@ Rewrite the draft now. Output only the rewritten message.`;
       enhanceInFlight = true;
       btn.disabled = true;
       const originalLabel = btn.innerHTML;
-      btn.innerHTML = '⏳';
+      btn.innerHTML = '<span>⏳</span> <span>Enhancing</span>';
       inputEl.readOnly = true;
 
       try {
@@ -12054,7 +12097,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       ['workstation','deviceIphone','deviceIpad'].forEach(key => {
         const cfg = appState.llmProfiles?.[key] || LLM_PROFILE_DEFAULTS[key];
         const urlEl = document.getElementById(`llmUrl_${key}`); if (urlEl) urlEl.value = cfg.url || '';
-        if (key === 'workstation') { const fbEl = document.getElementById('llmFallbackUrl_workstation'); if (fbEl) fbEl.value = cfg.fallbackUrl || ''; }
+        if (key === 'workstation') { const fbEl = document.getElementById('llmFallbackUrl_workstation'); if (fbEl) fbEl.value = cfg.fallbackUrl || WORKSTATION_FALLBACK_URL; }
         const modelEl = document.getElementById(`llmModel_${key}`); if (modelEl) modelEl.value = cfg.model || '';
         const keyEl = document.getElementById(`llmApiKey_${key}`); if (keyEl) keyEl.value = cfg.apiKey || '';
         const capEl = document.getElementById(`llmContextCap_${key}`); if (capEl) capEl.value = cfg.contextCap || LLM_PROFILE_DEFAULTS[key].contextCap;
@@ -12261,7 +12304,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           contextCap: Number.isFinite(capVal) && capVal > 0 ? capVal : def.contextCap,
           pingMs: Number.isFinite(pingVal) && pingVal > 0 ? pingVal : def.pingMs
         };
-        if (key === 'workstation') appState.llmProfiles[key].fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || '').trim();
+        if (key === 'workstation') appState.llmProfiles[key].fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || '').trim() || WORKSTATION_FALLBACK_URL;
       });
       autoRouteCache = { result: null, expiresAt: 0 }; // config changed — re-ping next turn instead of using a stale auto-route
       workstationUrlCache = { url: null, expiresAt: 0 };
@@ -14321,10 +14364,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (workstationUrlCache.url && Date.now() < workstationUrlCache.expiresAt) return workstationUrlCache.url;
       const pingMs = profilePingMs('workstation');
       let resolved = null;
+      const fallbackUrl = (ws.fallbackUrl || '').trim() || WORKSTATION_FALLBACK_URL;
       if (ws.url && await pingLocalEndpoint(ws.url, pingMs, ws.apiKey)) {
         resolved = ws.url;
-      } else if (ws.fallbackUrl && await pingLocalEndpoint(ws.fallbackUrl, pingMs, ws.apiKey)) {
-        resolved = ws.fallbackUrl;
+      } else if (fallbackUrl && fallbackUrl !== ws.url && await pingLocalEndpoint(fallbackUrl, pingMs, ws.apiKey)) {
+        resolved = fallbackUrl;
       }
       if (resolved) workstationUrlCache = { url: resolved, expiresAt: Date.now() + AUTO_ROUTE_CACHE_TTL_MS };
       return resolved;
@@ -14837,7 +14881,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       // if the LAN address didn't answer, test the fallback too so "Test
       // Connection" reports the real story instead of just failing.
       if (!result.ok && profileKey === 'workstation') {
-        const fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || cfg.fallbackUrl || '').trim();
+        const fallbackUrl = (document.getElementById('llmFallbackUrl_workstation')?.value || cfg.fallbackUrl || WORKSTATION_FALLBACK_URL).trim();
         if (fallbackUrl) {
           const fallbackResult = await verifyLocalEndpoint(fallbackUrl, model, 15000, apiKey);
           if (fallbackResult.ok) { result = fallbackResult; usedFallback = true; }
@@ -16375,7 +16419,6 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       const continueBtn = document.getElementById('continueBtn');
       const genImageBtn = document.getElementById('genImageBtn');
       const suggestRepliesBtn = document.getElementById('suggestRepliesBtn');
-      const enhanceBtnEl = document.getElementById('enhanceBtn');
 
       if (show) {
         textEl.innerText = message;
@@ -16384,14 +16427,13 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
         continueBtn.disabled = true;
         if (genImageBtn) genImageBtn.disabled = true;
         if (suggestRepliesBtn) suggestRepliesBtn.disabled = true;
-        if (enhanceBtnEl) enhanceBtnEl.disabled = true;
+        closeSuggestMenu();
       } else {
         indicator.classList.add('hidden');
         sendBtn.disabled = false;
         continueBtn.disabled = false;
         if (genImageBtn) genImageBtn.disabled = false;
-        if (suggestRepliesBtn) suggestRepliesBtn.disabled = false;
-        if (enhanceBtnEl && !enhanceInFlight) enhanceBtnEl.disabled = false;
+        if (suggestRepliesBtn && !enhanceInFlight) suggestRepliesBtn.disabled = false;
       }
     }
 
