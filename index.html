@@ -2273,10 +2273,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         <p id="zfDialogMessage" class="text-xs text-slate-300 leading-relaxed whitespace-pre-line"></p>
         <input id="zfDialogInput" type="text" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden" />
         <select id="zfDialogSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden"></select>
-        <div id="zfDialogExtraWrap" class="hidden space-y-1 pt-1">
-          <label id="zfDialogExtraLabel" for="zfDialogSelect2" class="block text-[11px] font-semibold text-slate-300"></label>
-          <select id="zfDialogSelect2" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent"></select>
-        </div>
+        <div id="zfDialogExtraWrap" class="hidden space-y-2 pt-1"></div>
       </div>
       <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
         <button id="zfDialogCancel" onclick="zfDialogRespond(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel</button>
@@ -3640,11 +3637,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       if (!resolver) return;
       const extraWrap = document.getElementById('zfDialogExtraWrap');
       const extraVisible = extraWrap && !extraWrap.classList.contains('hidden');
-      if (!select.classList.contains('hidden')) resolver(ok ? (extraVisible ? { value: select.value, extra: document.getElementById('zfDialogSelect2').value } : select.value) : null);
+      if (!select.classList.contains('hidden')) resolver(ok ? (extraVisible ? { value: select.value, extras: Object.fromEntries([...extraWrap.querySelectorAll('select[data-extra-key]')].map(el => [el.dataset.extraKey, el.value])) } : select.value) : null);
       else if (!input.classList.contains('hidden')) resolver(ok ? input.value : null);
       else resolver(ok);
     }
-    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null, extraSelect = null }) {
+    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null, extraSelects = null }) {
       const modal = document.getElementById('zfDialog');
       const input = document.getElementById('zfDialogInput');
       const select = document.getElementById('zfDialogSelect');
@@ -3666,13 +3663,11 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       }
       const extraWrap = document.getElementById('zfDialogExtraWrap');
       if (extraWrap) {
-        if (extraSelect && extraSelect.options && extraSelect.options.length) {
-          document.getElementById('zfDialogExtraLabel').textContent = extraSelect.label || '';
-          const sel2 = document.getElementById('zfDialogSelect2');
-          sel2.innerHTML = extraSelect.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-          sel2.value = (extraSelect.value !== undefined && extraSelect.value !== null) ? extraSelect.value : extraSelect.options[0].value;
+        const list = Array.isArray(extraSelects) ? extraSelects.filter(x => x && x.key && x.options && x.options.length) : [];
+        if (list.length) {
+          extraWrap.innerHTML = list.map(x => `<div class="space-y-1"><label class="block text-[11px] font-semibold text-slate-300">${x.label || ''}</label><select data-extra-key="${x.key}" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent">${x.options.map(o => `<option value="${o.value}" ${String(o.value) === String(x.value) ? 'selected' : ''}>${o.label}</option>`).join('')}</select></div>`).join('');
           extraWrap.classList.remove('hidden');
-        } else { extraWrap.classList.add('hidden'); }
+        } else { extraWrap.innerHTML = ''; extraWrap.classList.add('hidden'); }
       }
       modal.classList.remove('hidden'); modal.classList.add('flex');
       if (inputValue !== null) setTimeout(() => { input.focus(); input.select(); }, 30);
@@ -3685,7 +3680,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // engine). Resolves to the selected option's value on OK, or null on
     // Cancel/Escape — never a bare boolean, so callers can tell "cancelled"
     // apart from "confirmed with the first/default option".
-    function zfConfirmSelect(message, title, okText, selectOptions, selectValue, extraSelect = null) { return zfOpenDialog({ title, message, okText, selectOptions, selectValue, extraSelect }); }
+    function zfConfirmSelect(message, title, okText, selectOptions, selectValue, extraSelects = null) { return zfOpenDialog({ title, message, okText, selectOptions, selectValue, extraSelects }); }
     window.addEventListener('keydown', (e) => {
       if (!zfDialogResolver) return;
       if (e.key === 'Escape') { e.preventDefault(); zfDialogRespond(false); }
@@ -4846,9 +4841,33 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       saveState();
     }
 
-    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini', outfitOverride = null) {
+    // What "a real environment" means for a portrait: the tracker's current location (plus its
+    // lorebook description when it has one), the story clock's time of day and weather, and the
+    // scenario setting as a fallback so it still works before any location is set.
+    function describePortraitEnvironment(active) {
+      const clip = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t; };
+      const parts = [];
+      const loc = String(active.currentLocation || '').trim();
+      if (loc) {
+        const entry = (typeof matchLocationEntry === 'function') ? matchLocationEntry(active, loc) : null;
+        parts.push(entry && entry.content ? `${loc} (${clip(entry.content, 180)})` : loc);
+      } else if (active.setting) {
+        parts.push(`a location from this setting: ${clip(active.setting, 200)}`);
+      } else {
+        parts.push('a fitting, atmospheric location for this story');
+      }
+      try {
+        const c = getWorldClock(active);
+        if (c && c.set) parts.push(`${clockPeriod(c.minutes)} lighting`);
+        if (c && c.weather) parts.push(`${weatherLabel(c.weather)} weather`);
+      } catch (e) { /* tracker not available: skip time/weather */ }
+      return parts.join(', ') + '.';
+    }
+
+    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini', outfitOverride = null, backgroundMode = 'neutral') {
       const active = getActiveScenario();
       const outfit = outfitOverride ? `${outfitOverride.name || 'Outfit'}: ${outfitOverride.description || ''}` : getCurrentOutfitDescription(char);
+      const scene = backgroundMode === 'environment' ? describePortraitEnvironment(active) : '';
       if (engine === 'meinamix') {
         // MeinaMix is a raw SD1.5 checkpoint, not a multimodal model that
         // reads "reference image" contextually the way Gemini does -- that
@@ -4859,7 +4878,7 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
         // should be a single portrait. Blunter, more literal single-
         // subject/single-pose language here, since SD-style checkpoints key
         // off keywords rather than intent.
-        return `Solo portrait of exactly one character, one pose only, centered composition, medium shot from the waist up, simple clean background.
+        return `Solo portrait of exactly one character, one pose only, centered composition, medium shot from the waist up, ${scene ? `detailed background: ${scene}` : 'plain white background, simple clean background'}.
 Character: ${char.name || 'Unnamed character'}.
 Persona: ${getCharacterPersona(char)}
 Visual Profile: ${getCharacterVisualProfile(char)}
@@ -4875,7 +4894,7 @@ Visual Profile: ${getCharacterVisualProfile(char)}
 Current Outfit: ${outfit}
 Art Style: ${active.artStyle || 'Anime'}.
 Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
-Preserve the character's described physical identity consistently. Show the full character clearly, with a clean simple background suitable for later sprite-sheet generation. Do not invent contradictory physical traits.`;
+Preserve the character's described physical identity consistently. ${scene ? `Show the full character clearly, standing in a real, fully rendered environment: ${scene} Keep the character the clear focus and readable against the scenery.` : 'Show the full character clearly against a plain white or neutral light-grey studio background (no scenery, no props, no floor texture, no shadows that suggest a room), suitable for later sprite-sheet generation.'} Do not invent contradictory physical traits.`;
     }
 
     // engine: 'gemini' (default) or 'meinamix' — the local start_image_fallback_server.py
@@ -4940,14 +4959,23 @@ Preserve the character's described physical identity consistently. Show the full
       if (!char) return;
       const outfits = (getCharacterOutfits(char) || []).filter(o => o && (o.name || o.description));
       const cur = getCurrentOutfit(char);
-      const extra = outfits.length ? {
-        label: 'Outfits',
+      const extras = [];
+      if (outfits.length) extras.push({
+        key: 'outfits', label: 'Outfits',
         options: [
           { value: 'current', label: cur ? `Current outfit only (${cur.name || 'Outfit'})` : 'Current look only (1 photo)' },
           { value: 'all', label: `One photo per outfit (${outfits.length} photos)` }
         ],
         value: 'current'
-      } : null;
+      });
+      extras.push({
+        key: 'background', label: 'Background',
+        options: [
+          { value: 'neutral', label: 'Plain white / neutral' },
+          { value: 'environment', label: 'Real environment (current location)' }
+        ],
+        value: 'neutral'
+      });
       const choice = await zfConfirmSelect(
         `Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.${outfits.length ? '\nGenerating one photo per outfit uses one image generation per outfit.' : ''}`,
         'Generate Photo', 'Generate',
@@ -4956,11 +4984,12 @@ Preserve the character's described physical identity consistently. Show the full
           { value: 'meinamix', label: 'MeinaMix (local)' }
         ],
         'gemini',
-        extra
+        extras
       );
       if (!choice) return;
       const engine = typeof choice === 'object' ? choice.value : choice;
-      const perOutfit = typeof choice === 'object' && choice.extra === 'all' && outfits.length > 0;
+      const perOutfit = typeof choice === 'object' && choice.extras && choice.extras.outfits === 'all' && outfits.length > 0;
+      const backgroundMode = (typeof choice === 'object' && choice.extras && choice.extras.background === 'environment') ? 'environment' : 'neutral';
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
@@ -4988,7 +5017,7 @@ Preserve the character's described physical identity consistently. Show the full
           const job = jobs[i];
           if (jobs.length > 1) showLoading(true, `Generating ${char.name || 'character'} photo ${i + 1}/${jobs.length} (${job.outfit.name || 'Outfit'})...`);
           try {
-            const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine, job.outfit), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
+            const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine, job.outfit, backgroundMode), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
             const src = await normalizeGeneratedPortrait(generatedSrc);
             if (!Array.isArray(char.photos)) char.photos = [];
             markImagesDirty();
