@@ -1056,10 +1056,13 @@
             <input type="checkbox" id="backdropAutoSelectToggle" onchange="setBackdropAutoSelect(this.checked)" class="w-4 h-4 accent-zetaAccent" />
             Auto-select backdrop from scene context
           </label>
-          <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder cursor-pointer shrink-0 transition active:scale-95">
-            + Add Backdrop
-            <input type="file" accept="image/*" multiple class="hidden" onchange="addBackdropsToLibrary(event)" />
-          </label>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="openPixabayBrowser()" class="bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium px-3 py-1.5 rounded-xl transition active:scale-95">🔎 Pixabay</button>
+            <label class="bg-zetaCard hover:bg-zetaBorder text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-zetaBorder cursor-pointer transition active:scale-95">
+              + Add Backdrop
+              <input type="file" accept="image/*" multiple class="hidden" onchange="addBackdropsToLibrary(event)" />
+            </label>
+          </div>
         </div>
       </div>
 
@@ -1081,7 +1084,7 @@
       </div>
 
       <div class="px-4 sm:px-6 pt-3 pb-3 shrink-0 space-y-2.5 border-b border-zetaBorder bg-zetaCard/40">
-        <p class="text-[10px] text-slate-400 leading-relaxed">Tag each track with a few keywords (places, moods, activities). While auto-select is on, the VN stage compares those keywords — plus your Location tag (📍 on the stage bar), which counts extra — against the recent scene each turn and crossfades to whichever track matches best. Need tracks? <a href="https://pixabay.com/music/" target="_blank" rel="noopener" class="text-zetaAccent underline">Pixabay Music</a> is free, requires no attribution, and allows downloads for exactly this kind of use.</p>
+        <p class="text-[10px] text-slate-400 leading-relaxed">Tag each track with a few keywords (places, moods, activities). While auto-select is on, the VN stage compares those keywords — plus your Location tag (📍 on the stage bar), which counts extra — against the recent scene each turn and crossfades to whichever track matches best. Need tracks? Tap <b>🎼 Find free music</b> below to search Jamendo songs and Freesound ambience without leaving the app.</p>
         <div class="flex items-center gap-2">
           <label class="text-[10px] text-slate-400 shrink-0" for="musicLocationInput">📍 Location:</label>
           <input type="text" id="musicLocationInput" placeholder="e.g. Tavern, Dark Forest, Spaceship Bridge" onchange="updateLocationTagFromModal(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
@@ -1089,6 +1092,10 @@
         <div class="flex items-center gap-2">
           <label class="text-[10px] text-slate-400 shrink-0" for="musicVolumeSlider">🔊 Volume:</label>
           <input type="range" id="musicVolumeSlider" min="0" max="100" value="50" oninput="setMusicVolume(this.value)" class="flex-1 accent-zetaAccent" />
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="openMusicBrowser()" class="px-3 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium transition active:scale-95">🎼 Find free music</button>
+          <span class="text-[10px] text-slate-500 leading-snug">Search Jamendo songs and Freesound ambience right here.</span>
         </div>
         <div class="flex items-center gap-2">
           <button type="button" id="musicMuteBtn" onclick="toggleMusicMute()" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-xs text-slate-200 transition active:scale-95">🔇 Mute</button>
@@ -1179,6 +1186,59 @@
   </div>
 
   <!-- Suggested Locations Modal -->
+  <div id="musicBrowserModal" onclick="closeMusicBrowser(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2"><span class="text-base">🎼</span><h2 class="text-sm sm:text-base font-bold text-white">Find free music</h2></div>
+        <button onclick="closeMusicBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3.5 flex-1 scroll-touch">
+        <div class="flex gap-2">
+          <button type="button" id="pmxTab_jamendo" onclick="pmxSetTab('jamendo')">🎵 Songs · Jamendo</button>
+          <button type="button" id="pmxTab_freesound" onclick="pmxSetTab('freesound')">🌧️ Ambience · Freesound</button>
+        </div>
+        <p id="pmxTabHint" class="text-[10px] text-slate-500 leading-snug"></p>
+        <div id="pmxKeyRow" class="space-y-2"></div>
+        <form onsubmit="event.preventDefault(); pmxRunSearch();" class="flex gap-2">
+          <input id="pmxQuery" type="search" placeholder="Search (e.g. tavern, calm piano, rain)" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2.5 py-2 text-xs text-white" />
+          <button type="submit" class="shrink-0 px-3 py-2 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium active:scale-95 transition">Search</button>
+        </form>
+        <div id="pmxMoods" class="flex flex-wrap gap-1.5"></div>
+        <div id="pmxSuggestions" class="space-y-2.5 p-3 bg-zetaCard/60 border border-zetaBorder rounded-xl"></div>
+        <div id="pmxResults"></div>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 shrink-0 space-y-1.5">
+        <p class="text-[10px] text-slate-500 text-center">Music from <a href="https://www.jamendo.com" target="_blank" rel="noopener" class="underline">Jamendo</a> and <a href="https://freesound.org" target="_blank" rel="noopener" class="underline">Freesound</a>, under Creative Commons licenses. Credits are kept with each track; check a track's license before using it commercially.</p>
+        <button onclick="closeMusicBrowser()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pixabayModal" onclick="closePixabayBrowser(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
+    <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
+        <div class="flex items-center gap-2"><span class="text-base">🔎</span><h2 class="text-sm sm:text-base font-bold text-white">Pixabay backdrops</h2></div>
+        <button onclick="closePixabayBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3.5 flex-1 scroll-touch">
+        <div id="pbxKeyRow" class="space-y-2"></div>
+        <form onsubmit="event.preventDefault(); pbxRunSearch();" class="space-y-2">
+          <div class="flex gap-2">
+            <input id="pbxQuery" type="search" placeholder="Search free photos (e.g. forest night, school hallway)" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2.5 py-2 text-xs text-white" />
+            <button type="submit" class="shrink-0 px-3 py-2 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium active:scale-95 transition">Search</button>
+          </div>
+          <label class="flex items-center gap-2 text-[11px] text-slate-400 select-none"><input type="checkbox" id="pbxSafeToggle" checked class="accent-[#7c5cff]" /> Safe search</label>
+        </form>
+        <div id="pbxSuggestions" class="space-y-2.5 p-3 bg-zetaCard/60 border border-zetaBorder rounded-xl"></div>
+        <div id="pbxResults"></div>
+      </div>
+      <div class="p-3 border-t border-zetaBorder bg-zetaCard/60 shrink-0 space-y-1.5">
+        <p class="text-[10px] text-slate-500 text-center">Photos from <a href="https://pixabay.com" target="_blank" rel="noopener" class="underline">Pixabay</a> (free to use). Added images are saved into your library with a credit link.</p>
+        <button onclick="closePixabayBrowser()" class="w-full bg-zetaCard hover:bg-zetaBorder text-slate-200 py-2 rounded-xl text-xs font-medium transition active:scale-95">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="locationSuggestModal" onclick="closeLocationSuggestions(event)" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
@@ -3983,7 +4043,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
     }
     function isModalOrDrawerOpen() {
-      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','calendarModal','locationSuggestModal','promptPreviewModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal','newScenarioDrawer'];
+      const modalIds = ['avatarManagerModal','characterPhotoModal','characterSpotlightModal','chatAvatarCropModal','exportModal','imageLibraryModal','importModal','lorebookContainerModal','lorebookModal','calendarModal','locationSuggestModal','pixabayModal','musicBrowserModal','promptPreviewModal','setupModal','usageCostModal','imageLightbox','branchHistoryModal','zfDialog','spritePreviewModal','spriteMaskEditModal','voiceLabModal','newScenarioDrawer'];
       if (modalIds.some(id => document.getElementById(id)?.classList.contains('flex'))) return true;
       const chapterDrawer = document.getElementById('chapterDrawer');
       if (chapterDrawer && !chapterDrawer.classList.contains('translate-x-full')) return true;
@@ -11506,7 +11566,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const pinnedUrl = active.manualVnBackground || '';
 
       if (library.length === 0) {
-        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No backdrops saved yet. Upload one with "+ Add Backdrop" above, or generate one with the 🖼️ Backdrop button on the VN stage — generated backdrops land here too.</div>`;
+        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No backdrops saved yet. Browse free photos with "🔎 Pixabay", upload one with "+ Add Backdrop" above, or generate one with the 🖼️ Backdrop button on the VN stage — generated backdrops land here too.</div>`;
         return;
       }
 
@@ -11520,6 +11580,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             <div class="flex-1 min-w-0 space-y-1.5">
               <input type="text" value="${escapeHtml(entry.label || '')}" placeholder="Label (optional)" oninput="updateBackdropLibraryField('${entry.id}','label',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
               <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. forest, night, tavern)" oninput="updateBackdropLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
+              ${entry.credit && entry.credit.pageURL ? `<a href="${escapeHtml(entry.credit.pageURL)}" target="_blank" rel="noopener" class="block text-[9px] text-slate-500 hover:text-slate-300 truncate">📷 ${escapeHtml(entry.credit.user || 'Pixabay')} · Pixabay</a>` : ''}
               <div class="flex items-center gap-1.5 pt-0.5">
                 <button type="button" onclick="pinBackdropFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
                 <button type="button" onclick="deleteBackdropFromLibrary('${entry.id}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
@@ -11535,6 +11596,345 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       active.backdropAutoSelect = !!checked;
       saveState();
       if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // ---- Pixabay browser: search free images and save them straight into the Backdrop Library ----
+    // Pixabay's official API covers images and videos (no music). Per its terms:
+    // results may be shown temporarily, but images must be downloaded and stored
+    // by the app (no permanent hotlinking), API responses should be cached for
+    // 24h, and the source should be credited. Everything below follows that.
+    const PBX_ENDPOINT = 'https://pixabay.com/api/';
+    const PBX_CACHE_KEY = 'zf_pbx_cache_v1';
+    const PBX_CACHE_MS = 24 * 60 * 60 * 1000;
+    let pbxState = { query: '', hits: [], total: 0, loading: false, suggestions: [], suggestRun: 0, aiBusy: false, showKey: false };
+    const pbxHitStore = new Map();   // pixabay id -> hit
+    const pbxHitCtx = new Map();     // pixabay id -> { keywords:[], label }
+
+    const PBX_PLACE_WORDS = new Set(['cafeteria','school','classroom','gym','library','forest','beach','tavern','cave','castle','city','town','village','street','park','house','home','room','bedroom','kitchen','hospital','lab','laboratory','station','harbor','harbour','port','mountain','mountains','lake','river','desert','temple','shrine','market','bar','cafe','restaurant','hotel','office','garden','field','road','bridge','tower','ruins','mansion','island','ship','dungeon','arena','stadium','museum','airport','subway','rooftop','campus','dorm','dormitory','hallway','corridor','courtyard','playground','pool','spa','club','casino','prison','jail','church','cathedral','farm','barn','ranch','swamp','jungle','valley','cliff','canyon','ocean','sea','dock','pier','lighthouse','cabin','cottage','bunker','base','factory','warehouse','alley','plaza','square','mall','shop','store','bakery','theater','theatre','studio','balcony','attic','basement','cellar','palace','throne','fortress','camp','tent','trail','path','meadow','hill','hills','volcano','glacier','tundra','savanna','reef','bay','harbor']);
+    const PBX_MODIFIERS = new Set(['high','middle','elementary','old','ancient','dark','night','abandoned','haunted','royal','grand','main','central','secret','hidden','underground','floating','neon','sunken','frozen']);
+    const PBX_VIBES = [
+      [/\b(cyberpunk|neon|futuristic|sci-?fi|android|megacity|dystopi\w*)\b/i, ['cyberpunk city night', 'futuristic cityscape']],
+      [/\b(space|starship|spaceship|galaxy|alien|orbit|colony)\b/i, ['space nebula', 'spaceship interior']],
+      [/\b(fantasy|magic\w*|wizard|dragon|elf|elves|kingdom|sorcer\w*)\b/i, ['fantasy landscape', 'magical forest']],
+      [/\b(medieval|knight|castle|feudal)\b/i, ['medieval castle', 'old stone village']],
+      [/\b(horror|haunted|ghost|zombie|creepy|eerie)\b/i, ['dark foggy forest', 'abandoned building night']],
+      [/\b(romance|romantic|love story|dating)\b/i, ['romantic sunset', 'cozy cafe']],
+      [/\b(school|academy|student|classmate|campus|high school)\b/i, ['school hallway', 'campus autumn']],
+      [/\b(western|cowboy|frontier|outlaw)\b/i, ['desert canyon sunset', 'old western town']],
+      [/\b(post-?apocalyp\w*|wasteland|ruins|survivor)\b/i, ['post apocalyptic city', 'overgrown ruins']],
+      [/\b(pirate|sailing|naval|seafaring)\b/i, ['ocean sunset ship', 'tropical harbor']],
+      [/\b(noir|detective|mystery|investigat\w*)\b/i, ['rainy city street night', 'dim office window']],
+      [/\b(steampunk|victorian|airship)\b/i, ['victorian street', 'steampunk machinery']],
+      [/\b(pok[eé]mon|adventure|journey|explorer|route)\b/i, ['scenic meadow', 'coastal town']],
+      [/\b(cozy|slice of life|village|farm|countryside)\b/i, ['countryside village', 'cozy interior']]
+    ];
+
+    function pbxKey() { return String(appState.pixabayApiKey || '').trim(); }
+
+    function pbxLoadCache() { try { return JSON.parse(localStorage.getItem(PBX_CACHE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+    function pbxSaveCache(c) {
+      try {
+        const entries = Object.entries(c).sort((a, b) => (b[1].t || 0) - (a[1].t || 0)).slice(0, 40);
+        localStorage.setItem(PBX_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+      } catch (e) { /* storage blocked or full: just skip caching */ }
+    }
+
+    async function pbxSearch(query, { perPage = 12, safe = true, page = 1 } = {}) {
+      const key = pbxKey();
+      if (!key) throw new Error('Add your free Pixabay API key first.');
+      const q = String(query || '').trim().slice(0, 100);
+      if (!q) throw new Error('Type something to search for.');
+      const cacheId = [q.toLowerCase(), perPage, safe ? 1 : 0, page].join('|');
+      const cache = pbxLoadCache();
+      const hit = cache[cacheId];
+      if (hit && Date.now() - hit.t < PBX_CACHE_MS) return hit.data;
+      const url = `${PBX_ENDPOINT}?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&min_width=1000&safesearch=${safe ? 'true' : 'false'}&order=popular&lang=en&per_page=${perPage}&page=${page}`;
+      let res;
+      try { res = await fetch(url); }
+      catch (e) { throw new Error('Could not reach Pixabay (network or browser blocked the request).'); }
+      if (res.status === 429) throw new Error('Pixabay rate limit reached (100 searches/minute). Wait a minute and try again.');
+      if (!res.ok) {
+        const txt = (await res.text().catch(() => '')).slice(0, 120);
+        throw new Error(res.status === 400 ? `Pixabay rejected the request${txt ? ': ' + txt : ''}. Check your API key.` : `Pixabay error ${res.status}.`);
+      }
+      const data = await res.json();
+      const slim = { total: data.totalHits || 0, hits: (data.hits || []).map(h => ({ id: h.id, tags: h.tags, user: h.user, pageURL: h.pageURL, webformatURL: h.webformatURL, largeImageURL: h.largeImageURL, previewURL: h.previewURL, imageWidth: h.imageWidth, imageHeight: h.imageHeight })) };
+      cache[cacheId] = { t: Date.now(), data: slim };
+      pbxSaveCache(cache);
+      return slim;
+    }
+
+    // "Westfield High Cafeteria" -> "school cafeteria"; "Sandgem Town" -> "town"; unknown names stay as written.
+    function pbxQueryForLocation(name) {
+      const raw = String(name || '').replace(/[^\p{L}\p{N}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
+      if (!raw) return '';
+      const tokens = raw.toLowerCase().split(' ');
+      let idx = -1;
+      for (let i = tokens.length - 1; i >= 0; i--) if (PBX_PLACE_WORDS.has(tokens[i])) { idx = i; break; }
+      if (idx === -1) return raw;
+      const prev = tokens[idx - 1];
+      let q = tokens[idx];
+      if (prev && (PBX_PLACE_WORDS.has(prev) || PBX_MODIFIERS.has(prev))) q = (prev === 'high' ? 'school' : prev) + ' ' + q;
+      if (q === 'high school') q = 'school';
+      return q.replace(/^high /, 'school ');
+    }
+
+    function pbxVibeQueries(active) {
+      const text = [active.title, active.setting, active.aesthetic, active.tagline, ...(active.plotArcs || []).slice(0, 3).map(a => `${a.title || ''} ${a.content || ''}`)].filter(Boolean).join(' ').slice(0, 4000);
+      const out = [];
+      for (const [re, qs] of PBX_VIBES) {
+        if (re.test(text)) qs.forEach(q => { if (!out.includes(q)) out.push(q); });
+        if (out.length >= 4) break;
+      }
+      return out.slice(0, 3);
+    }
+
+    function pbxBuildSuggestions() {
+      const active = getActiveScenario();
+      const out = [];
+      const library = active.backdropLibrary || [];
+      const have = name => library.some(e => (e.keywords || []).some(k => looseNameMatch(k, name)) || looseNameMatch(e.label, name));
+      const seenQ = new Set();
+      const names = [];
+      if (active.currentLocation) names.push(active.currentLocation);
+      getLocationLore(active).forEach(e => { if (!names.some(n => looseNameMatch(n, e.title))) names.push(e.title); });
+      names.forEach(name => {
+        if (out.length >= 5) return;
+        const q = pbxQueryForLocation(name);
+        if (!q || seenQ.has(q.toLowerCase()) || have(name)) return;
+        seenQ.add(q.toLowerCase());
+        out.push({ kind: 'location', label: name, query: q, location: name });
+      });
+      pbxVibeQueries(active).forEach(q => {
+        if (seenQ.has(q.toLowerCase())) return;
+        seenQ.add(q.toLowerCase());
+        out.push({ kind: 'vibe', label: 'Vibe: ' + q, query: q, location: '' });
+      });
+      return out;
+    }
+
+    function openPixabayBrowser() {
+      const m = document.getElementById('pixabayModal');
+      if (!m) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      pbxState.showKey = !pbxKey();
+      pbxState.suggestions = pbxBuildSuggestions();
+      pbxRenderAll();
+      pbxLoadSuggestionStrips();
+    }
+    function closePixabayBrowser(event) {
+      if (event && event.target && event.target.id !== 'pixabayModal') return;
+      const m = document.getElementById('pixabayModal');
+      if (!m) return;
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      pbxState.suggestRun++;
+    }
+
+    function pbxSaveKey() {
+      const v = (document.getElementById('pbxKeyInput')?.value || '').trim();
+      if (!v) { showTransientToast('Paste your Pixabay API key first'); return; }
+      appState.pixabayApiKey = v;
+      saveState();
+      pbxState.showKey = false;
+      pbxRenderAll();
+      pbxLoadSuggestionStrips();
+      showTransientToast('Pixabay key saved');
+    }
+    function pbxToggleKey() { pbxState.showKey = !pbxState.showKey; pbxRenderKeyRow(); }
+
+    function pbxRenderKeyRow() {
+      const el = document.getElementById('pbxKeyRow');
+      if (!el) return;
+      const has = !!pbxKey();
+      if (!pbxState.showKey && has) {
+        el.innerHTML = `<div class="flex items-center justify-between gap-2 text-[11px] text-slate-400"><span>🔑 Pixabay key saved</span><button type="button" onclick="pbxToggleKey()" class="underline hover:text-white">Change</button></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <p class="text-[11px] text-slate-400 leading-snug">Pixabay needs a free API key (a quick sign-up). Get one at <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener" class="underline text-[#b9a6ff]">pixabay.com/api/docs</a> -- it shows on that page once you're logged in -- then paste it here. It's stored only in this app on your device.</p>
+        <div class="flex gap-2"><input id="pbxKeyInput" type="password" autocomplete="off" placeholder="Pixabay API key" value="${escapeHtml(pbxKey())}" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2.5 py-1.5 text-xs text-white" /><button type="button" onclick="pbxSaveKey()" class="shrink-0 px-3 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium active:scale-95 transition">Save</button></div>`;
+    }
+
+    function pbxRenderAll() {
+      pbxRenderKeyRow();
+      pbxRenderSuggestions();
+      pbxRenderResults();
+    }
+
+    function pbxCard(h, big) {
+      const added = (getActiveScenario().backdropLibrary || []).some(e => e.pixabayId === h.id);
+      const src = big ? h.webformatURL : h.webformatURL.replace('_640', '_340');
+      return `<div class="relative rounded-xl overflow-hidden border border-zetaBorder bg-slate-950 ${big ? '' : 'w-32 shrink-0'}" data-pbx-card="${h.id}">
+        <button type="button" onclick="openLightbox('${escapeJsString(h.webformatURL)}','${escapeJsString(h.tags || 'Pixabay')}')" class="block w-full"><img src="${escapeHtml(src)}" loading="lazy" referrerpolicy="no-referrer" alt="${escapeHtml(h.tags || '')}" class="w-full ${big ? 'h-28 sm:h-32' : 'h-20'} object-cover" /></button>
+        <div class="p-1.5 flex items-center justify-between gap-1 bg-zetaCard">
+          <span class="text-[9px] text-slate-400 truncate min-w-0">${big ? escapeHtml(h.tags || '') : escapeHtml(h.user || '')}</span>
+          <button type="button" data-pbx-add="${h.id}" onclick="pbxAdd(${h.id})" ${added ? 'disabled' : ''} class="shrink-0 text-[10px] px-2 py-1 rounded-lg ${added ? 'bg-slate-700 text-slate-300' : 'bg-zetaAccent hover:bg-zetaAccentHover text-white'} font-medium active:scale-95 transition">${added ? '✓ Added' : '＋ Add'}</button>
+        </div>
+      </div>`;
+    }
+
+    function pbxRenderResults() {
+      const el = document.getElementById('pbxResults');
+      if (!el) return;
+      if (pbxState.loading) { el.innerHTML = `<div class="text-center text-xs text-slate-400 py-8">Searching Pixabay…</div>`; return; }
+      if (!pbxState.query) { el.innerHTML = ''; return; }
+      if (!pbxState.hits.length) { el.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">No results for “${escapeHtml(pbxState.query)}”. Try simpler words (e.g. “forest”, “city night”).</div>`; return; }
+      el.innerHTML = `<div class="text-[10px] text-slate-500 mb-1.5">${pbxState.total.toLocaleString()} results for “${escapeHtml(pbxState.query)}” -- tap ＋ Add to save it to your backdrops.</div><div class="grid grid-cols-2 gap-2">${pbxState.hits.map(h => pbxCard(h, true)).join('')}</div>`;
+    }
+
+    function pbxRenderSuggestions() {
+      const el = document.getElementById('pbxSuggestions');
+      if (!el) return;
+      const list = pbxState.suggestions;
+      const aiBtn = `<button type="button" id="pbxAiBtn" onclick="pbxAiIdeas()" class="text-[11px] px-2 py-1 rounded-lg border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder active:scale-95 transition">${pbxState.aiBusy ? 'Thinking…' : '🧠 Smarter ideas (AI)'}</button>`;
+      if (!list.length) {
+        el.innerHTML = `<div class="flex items-center justify-between gap-2"><span class="text-[11px] text-slate-400">No suggestions yet -- add locations to your lorebook or try AI ideas.</span>${aiBtn}</div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="flex items-center justify-between gap-2"><span class="text-[11px] font-semibold text-zetaLight">✨ Suggested for your story</span>${aiBtn}</div>
+        ${list.map((s, i) => `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] text-slate-300 truncate">${s.kind === 'location' ? '📍 ' : '🎨 '}${escapeHtml(s.label)}<span class="text-slate-500"> · “${escapeHtml(s.query)}”</span></span>
+              <button type="button" onclick="pbxRunQuery(${i})" class="shrink-0 text-[10px] px-2 py-0.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200">See more</button>
+            </div>
+            <div id="pbxStrip_${i}" class="flex gap-2 overflow-x-auto no-scrollbar pb-1 min-h-[2rem]"><span class="text-[10px] text-slate-500">${pbxKey() ? 'Loading…' : 'Add your API key to see picks'}</span></div>
+          </div>`).join('')}`;
+    }
+
+    async function pbxLoadSuggestionStrips() {
+      if (!pbxKey()) return;
+      const run = ++pbxState.suggestRun;
+      const safe = document.getElementById('pbxSafeToggle')?.checked !== false;
+      const list = pbxState.suggestions.slice(0, 6);
+      for (let i = 0; i < list.length; i++) {
+        if (run !== pbxState.suggestRun) return;
+        const strip = document.getElementById('pbxStrip_' + i);
+        if (!strip) return;
+        try {
+          const r = await pbxSearch(list[i].query, { perPage: 6, safe });
+          if (run !== pbxState.suggestRun) return;
+          const s = list[i];
+          strip.innerHTML = r.hits.length ? r.hits.slice(0, 5).map(h => {
+            pbxHitStore.set(h.id, h);
+            pbxHitCtx.set(h.id, pbxContextFor(s, h));
+            return pbxCard(h, false);
+          }).join('') : `<span class="text-[10px] text-slate-500">Nothing found for this one.</span>`;
+        } catch (e) {
+          strip.innerHTML = `<span class="text-[10px] text-red-300">${escapeHtml(e.message || 'Failed')}</span>`;
+          if (/rate limit|API key|key/i.test(e.message || '')) return;
+        }
+      }
+    }
+
+    function pbxContextFor(s, h) {
+      const tags = String(h.tags || '').split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      const kw = [];
+      if (s && s.location) kw.push(s.location);
+      if (s && s.query) kw.push(...s.query.split(/\s+/).filter(w => w.length > 2));
+      kw.push(...tags);
+      return { keywords: [...new Set(kw.map(k => k.trim()).filter(Boolean))].slice(0, 9), label: (s && s.location) || tags[0] || 'Pixabay backdrop' };
+    }
+
+    async function pbxRunSearch(queryOverride, suggestion) {
+      const input = document.getElementById('pbxQuery');
+      const q = String(queryOverride != null ? queryOverride : (input?.value || '')).trim();
+      if (!q) { showTransientToast('Type something to search for'); return; }
+      if (input) input.value = q;
+      pbxState.query = q; pbxState.loading = true; pbxState.hits = []; pbxRenderResults();
+      try {
+        const safe = document.getElementById('pbxSafeToggle')?.checked !== false;
+        const r = await pbxSearch(q, { perPage: 16, safe });
+        pbxState.hits = r.hits; pbxState.total = r.total;
+        r.hits.forEach(h => { pbxHitStore.set(h.id, h); pbxHitCtx.set(h.id, pbxContextFor(suggestion || { query: q, location: '' }, h)); });
+      } catch (e) {
+        pbxState.hits = []; pbxState.total = 0;
+        showTransientToast(e.message || 'Search failed');
+        if (/key/i.test(e.message || '')) { pbxState.showKey = true; pbxRenderKeyRow(); }
+      } finally {
+        pbxState.loading = false; pbxRenderResults();
+      }
+    }
+    function pbxRunQuery(i) { const s = pbxState.suggestions[i]; if (s) pbxRunSearch(s.query, s); }
+
+    async function pbxAiIdeas() {
+      if (pbxState.aiBusy) return;
+      if (!appState.apiKey) { showTransientToast('Add a Gemini API key in Setup to use AI ideas'); return; }
+      const active = getActiveScenario();
+      pbxState.aiBusy = true; pbxRenderSuggestions();
+      try {
+        const locs = [active.currentLocation, ...getLocationLore(active).map(e => e.title)].filter(Boolean);
+        const material = [`Title: ${active.title || ''}`, `Setting: ${active.setting || ''}`, `Aesthetic: ${active.aesthetic || ''}`, `Known locations: ${[...new Set(locs)].join('; ') || '(none)'}`].join('\n').slice(0, 3500);
+        const prompt = `You pick free stock PHOTOS to use as visual-novel backdrops. From the story info below, return up to 6 Pixabay search ideas: one per important location (translate fictional place names into generic, photo-searchable English terms, e.g. "Westfield High Cafeteria" -> "school cafeteria"), plus 1-2 that capture the overall mood. Each query must be 1-4 plain English words, no names of people or brands.\n\nSTORY INFO:\n${material}\n\nReturn ONLY JSON: {"ideas":[{"label":"short label","query":"search words","location":"exact location name from the list, or empty string"}]}`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } }) });
+        if (!res.ok) throw new Error('AI request failed (' + res.status + ')');
+        const data = await res.json();
+        recordTextUsage(MODEL_ADVANCED, data, prompt, 400);
+        const parsed = parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text, {}) || {};
+        const ideas = (Array.isArray(parsed.ideas) ? parsed.ideas : []).map(x => ({ label: String(x?.label || x?.query || '').trim().slice(0, 50), query: String(x?.query || '').trim().slice(0, 60), location: String(x?.location || '').trim().slice(0, 60) })).filter(x => x.query).slice(0, 6);
+        if (!ideas.length) throw new Error('AI returned no ideas');
+        pbxState.suggestions = ideas.map(x => ({ kind: x.location ? 'location' : 'vibe', label: x.location || x.label || x.query, query: x.query, location: x.location }));
+        pbxState.aiBusy = false;
+        pbxRenderSuggestions();
+        pbxLoadSuggestionStrips();
+      } catch (e) {
+        showTransientToast('AI ideas failed: ' + (e?.message || e));
+      } finally {
+        pbxState.aiBusy = false;
+        pbxRenderSuggestions();
+      }
+    }
+
+    async function pbxAdd(id) {
+      const hit = pbxHitStore.get(id);
+      if (!hit) return;
+      const active = getActiveScenario();
+      if (!Array.isArray(active.backdropLibrary)) active.backdropLibrary = [];
+      if (active.backdropLibrary.some(e => e.pixabayId === id)) { pbxMarkAdded(id); return; }
+      const btns = document.querySelectorAll(`[data-pbx-add="${id}"]`);
+      btns.forEach(b => { b.disabled = true; b.textContent = 'Adding…'; });
+      try {
+        let blob;
+        try {
+          const res = await fetch(hit.largeImageURL || hit.webformatURL);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          blob = await res.blob();
+        } catch (e) {
+          // Browser/CORS refused the download: fall back to Pixabay's own page so the user can still save it manually.
+          showTransientToast('Pixabay blocked the direct download here -- opening its page instead');
+          if (hit.pageURL) window.open(hit.pageURL, '_blank', 'noopener');
+          btns.forEach(b => { b.disabled = false; b.textContent = '＋ Add'; });
+          return;
+        }
+        const file = new File([blob], `pixabay_${id}.jpg`, { type: blob.type || 'image/jpeg' });
+        const dataUrl = await compressImageFile(file, 1600, 0.82);
+        const ctx = pbxHitCtx.get(id) || pbxContextFor(null, hit);
+        active.backdropLibrary.push({
+          id: 'bg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          url: dataUrl,
+          label: ctx.label,
+          keywords: ctx.keywords,
+          source: 'pixabay',
+          pixabayId: id,
+          credit: { user: hit.user || '', pageURL: hit.pageURL || '' },
+          createdAt: Date.now()
+        });
+        markImagesDirty();
+        await saveState();
+        pbxMarkAdded(id);
+        renderBackdropLibrary();
+        showTransientToast('Added to your Backdrop Library');
+        if (active.viewMode === 'vn') renderVnTurn(false); else applyChatBackground(true);
+      } catch (e) {
+        showTransientToast('Could not add that image: ' + (e?.message || e));
+        btns.forEach(b => { b.disabled = false; b.textContent = '＋ Add'; });
+      }
+    }
+    function pbxMarkAdded(id) {
+      document.querySelectorAll(`[data-pbx-add="${id}"]`).forEach(b => { b.disabled = true; b.textContent = '✓ Added'; b.className = 'shrink-0 text-[10px] px-2 py-1 rounded-lg bg-slate-700 text-slate-300 font-medium'; });
     }
 
     async function addBackdropsToLibrary(event) {
@@ -11713,7 +12113,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const pinnedUrl = active.manualVnMusic || '';
 
       if (library.length === 0) {
-        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No tracks saved yet. Upload one with "+ Add Music" above — tracks from <a href="https://pixabay.com/music/" target="_blank" rel="noopener" class="text-zetaAccent underline">Pixabay Music</a> are free to use and don't require attribution.</div>`;
+        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No tracks saved yet. Upload one with "+ Add Music" above — or tap <b>🎼 Find free music</b> to browse free tracks right here.</div>`;
         return;
       }
 
@@ -11725,6 +12125,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
               <input type="text" value="${escapeHtml(entry.label || '')}" placeholder="Label (optional)" oninput="updateMusicLibraryField('${entry.id}','label',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
               <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. tavern, night, battle)" oninput="updateMusicLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
             </div>
+            ${entry.credit && entry.credit.pageURL ? `<a href="${escapeHtml(entry.credit.pageURL)}" target="_blank" rel="noopener" class="block text-[9px] text-slate-500 hover:text-slate-300 truncate">🎵 ${escapeHtml(entry.credit.who || '')} · ${escapeHtml(entry.credit.provider || 'Source')}${entry.credit.license ? ' · ' + escapeHtml(entry.credit.license) : ''}${entry.remote ? ' · streams online' : ''}</a>` : ''}
             <audio controls preload="none" src="${entry.url}" class="w-full h-8"></audio>
             <div class="flex items-center gap-1.5">
               <button type="button" onclick="pinMusicFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
@@ -11770,6 +12171,379 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       renderStoryTracker();
       scheduleChatBackground();
       if (active.viewMode === 'vn') renderVnTurn(false);
+    }
+
+    // ---- Music browser: Jamendo (full songs, streamed) + Freesound (ambience, downloaded) ----
+    // Jamendo's API terms forbid apps built to cache tracks or offer offline access, so Jamendo
+    // tracks are saved to the library as stream links (with credit), not as copies. Freesound
+    // previews may be saved, so those are downloaded into the library like an upload.
+    const PMX_JAMENDO = 'https://api.jamendo.com/v3.0/tracks/';
+    const PMX_FREESOUND = 'https://freesound.org/apiv2/search/text/';
+    const PMX_CACHE_KEY = 'zf_pmx_cache_v1';
+    let pmxState = { tab: 'jamendo', query: '', tracks: [], loading: false, suggestions: [], run: 0, showKey: false, mood: '' };
+    const pmxTrackStore = new Map();   // "src:id" -> normalized track
+    const pmxTrackCtx = new Map();     // "src:id" -> { keywords:[], label }
+    let pmxPreviewAudio = null, pmxPreviewKey = '';
+
+    const PMX_MOODS = ['ambient', 'cinematic', 'calm', 'epic', 'dark', 'piano', 'fantasy', 'electronic', 'lofi', 'romantic', 'mysterious', 'sad'];
+    // location word -> [Jamendo mood/genre words, Freesound ambience search]
+    const PMX_PLACE_MUSIC = {
+      tavern: ['folk medieval', 'tavern crowd'], inn: ['folk medieval', 'tavern crowd'], forest: ['ambient nature', 'forest birds'], jungle: ['ambient world', 'jungle ambience'],
+      cave: ['dark ambient', 'cave dripping'], dungeon: ['dark fantasy', 'dungeon ambience'], school: ['lofi calm', 'school hallway'], classroom: ['lofi calm', 'classroom ambience'],
+      cafeteria: ['lofi calm', 'cafe chatter'], cafe: ['lofi jazz', 'cafe chatter'], restaurant: ['jazz lounge', 'restaurant ambience'], library: ['calm piano', 'library quiet'],
+      beach: ['chill tropical', 'ocean waves'], ocean: ['calm cinematic', 'ocean waves'], sea: ['calm cinematic', 'sea waves'], harbor: ['folk sea', 'harbor seagulls'], dock: ['folk sea', 'harbor seagulls'],
+      city: ['electronic night', 'city traffic night'], street: ['electronic lofi', 'street ambience'], alley: ['dark electronic', 'alley rain'], castle: ['epic medieval', 'castle hall'], palace: ['classical orchestral', 'large hall echo'],
+      hospital: ['calm ambient', 'hospital ambience'], lab: ['sci-fi ambient', 'laboratory hum'], laboratory: ['sci-fi ambient', 'laboratory hum'], station: ['ambient sci-fi', 'train station'],
+      ship: ['cinematic adventure', 'ship creaking'], spaceship: ['space ambient', 'spaceship hum'], desert: ['desert ambient', 'desert wind'], mountain: ['epic cinematic', 'mountain wind'], mountains: ['epic cinematic', 'mountain wind'],
+      garden: ['calm acoustic', 'garden birds'], park: ['calm acoustic', 'park birds'], bedroom: ['calm lofi', 'room tone'], room: ['calm lofi', 'room tone'], home: ['calm acoustic', 'house ambience'], house: ['calm acoustic', 'house ambience'],
+      temple: ['meditative ambient', 'temple bells'], shrine: ['meditative ambient', 'temple bells'], church: ['choir ambient', 'church bells'], cathedral: ['choir ambient', 'cathedral reverb'],
+      market: ['world folk', 'market crowd'], village: ['acoustic folk', 'village ambience'], town: ['acoustic folk', 'town ambience'], gym: ['upbeat electronic', 'gym ambience'], mansion: ['classical piano', 'old house creak'],
+      swamp: ['dark ambient', 'swamp frogs'], arena: ['epic cinematic', 'crowd cheering'], stadium: ['epic cinematic', 'stadium crowd'], rooftop: ['chill electronic', 'wind city'], farm: ['acoustic country', 'farm ambience'],
+      lake: ['calm ambient', 'lake water birds'], river: ['calm ambient', 'river stream'], pool: ['chill electronic', 'pool water'], factory: ['industrial', 'factory machinery'], prison: ['dark ambient', 'prison ambience']
+    };
+    const PMX_VIBES = [
+      [/\b(cyberpunk|neon|futuristic|sci-?fi|android|megacity|dystopi\w*)\b/i, 'cyberpunk synthwave', 'futuristic city hum'],
+      [/\b(space|starship|spaceship|galaxy|alien|orbit|colony)\b/i, 'space ambient', 'spaceship hum'],
+      [/\b(fantasy|magic\w*|wizard|dragon|elf|elves|kingdom|sorcer\w*)\b/i, 'fantasy cinematic', 'magical ambience'],
+      [/\b(medieval|knight|castle|feudal)\b/i, 'medieval epic', 'medieval ambience'],
+      [/\b(horror|haunted|ghost|zombie|creepy|eerie)\b/i, 'dark ambient horror', 'creepy ambience'],
+      [/\b(romance|romantic|love story|dating)\b/i, 'romantic piano', 'soft rain'],
+      [/\b(school|academy|student|classmate|campus|high school)\b/i, 'lofi calm', 'school ambience'],
+      [/\b(western|cowboy|frontier|outlaw)\b/i, 'western acoustic', 'desert wind'],
+      [/\b(post-?apocalyp\w*|wasteland|ruins|survivor)\b/i, 'dark ambient post-apocalyptic', 'wasteland wind'],
+      [/\b(pirate|sailing|naval|seafaring)\b/i, 'sea shanty adventure', 'ocean waves'],
+      [/\b(noir|detective|mystery|investigat\w*)\b/i, 'jazz noir', 'rain night'],
+      [/\b(pok[eé]mon|adventure|journey|explorer|route)\b/i, 'adventure acoustic', 'nature birds'],
+      [/\b(cozy|slice of life|village|farm|countryside)\b/i, 'cozy acoustic', 'countryside ambience']
+    ];
+
+    function pmxKeyName() { return pmxState.tab === 'jamendo' ? 'jamendoClientId' : 'freesoundApiKey'; }
+    function pmxKeyVal(tab) { return String(appState[(tab || pmxState.tab) === 'jamendo' ? 'jamendoClientId' : 'freesoundApiKey'] || '').trim(); }
+    function pmxSrcName(src) { return src === 'jamendo' ? 'Jamendo' : 'Freesound'; }
+    function pmxLicenseLabel(url) {
+      const u = String(url || '').toLowerCase();
+      if (!u) return '';
+      if (u.includes('publicdomain/zero') || u.includes('/cc0')) return 'CC0';
+      const m = u.match(/licenses\/([a-z-]+)\//);
+      return m ? 'CC ' + m[1].toUpperCase() : 'CC';
+    }
+    function pmxFmtDur(sec) { sec = Math.round(Number(sec) || 0); return sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : ''; }
+
+    function pmxLoadCache() { try { return JSON.parse(localStorage.getItem(PMX_CACHE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+    function pmxSaveCache(c) {
+      try { localStorage.setItem(PMX_CACHE_KEY, JSON.stringify(Object.fromEntries(Object.entries(c).sort((a, b) => (b[1].t || 0) - (a[1].t || 0)).slice(0, 40)))); } catch (e) {}
+    }
+
+    async function pmxFetchJson(url, label) {
+      let res;
+      try { res = await fetch(url); }
+      catch (e) { throw new Error(`Could not reach ${label} (network or browser blocked the request).`); }
+      if (res.status === 429) throw new Error(`${label} rate limit reached. Wait a minute and try again.`);
+      if (res.status === 401 || res.status === 403) throw new Error(`${label} rejected the key. Check it and try again.`);
+      if (!res.ok) throw new Error(`${label} error ${res.status}.`);
+      return res.json();
+    }
+
+    async function pmxSearchJamendo(q, { tags = '', limit = 12 } = {}) {
+      const id = pmxKeyVal('jamendo');
+      if (!id) throw new Error('Add your free Jamendo client ID first.');
+      const run = async (extra) => {
+        const url = `${PMX_JAMENDO}?client_id=${encodeURIComponent(id)}&format=json&limit=${limit}&audioformat=mp32&include=musicinfo+licenses&imagesize=100${extra}`;
+        const data = await pmxFetchJson(url, 'Jamendo');
+        const st = data && data.headers;
+        if (st && st.status && st.status !== 'success') throw new Error(`Jamendo: ${st.error_message || 'request failed'}`);
+        return (data.results || []).filter(t => t && t.audio).map(t => ({
+          src: 'jamendo', id: String(t.id), title: t.name || 'Untitled', artist: t.artist_name || 'Unknown artist', duration: t.duration,
+          streamUrl: t.audio, pageURL: t.shareurl || (t.id ? `https://www.jamendo.com/track/${t.id}` : ''), license: pmxLicenseLabel(t.license_ccurl), image: t.image || '',
+          tags: [...(t.musicinfo?.tags?.genres || []), ...(t.musicinfo?.tags?.vartags || [])].map(x => String(x).toLowerCase()).slice(0, 8)
+        }));
+      };
+      const words = String(q || '').trim();
+      const tagParam = tags ? `&tags=${encodeURIComponent(tags.split(/\s+/).join('+'))}` : '';
+      let tracks = await run(`${words ? '&search=' + encodeURIComponent(words) : ''}${tagParam}${words ? '' : '&order=popularity_month'}`);
+      if (!tracks.length && words) {
+        const fuzzy = words.toLowerCase().split(/\s+/).filter(w => w.length > 2).slice(0, 3).join('+');
+        if (fuzzy) tracks = await run(`&fuzzytags=${encodeURIComponent(fuzzy)}&order=popularity_month`);
+      }
+      return tracks;
+    }
+
+    async function pmxSearchFreesound(q, { limit = 12 } = {}) {
+      const key = pmxKeyVal('freesound');
+      if (!key) throw new Error('Add your free Freesound API key first.');
+      const words = String(q || '').trim();
+      if (!words) throw new Error('Type something to search for.');
+      const url = `${PMX_FREESOUND}?query=${encodeURIComponent(words)}&token=${encodeURIComponent(key)}&fields=id,name,tags,username,license,previews,duration,url&filter=${encodeURIComponent('duration:[15 TO 300]')}&sort=rating_desc&page_size=${limit}`;
+      const data = await pmxFetchJson(url, 'Freesound');
+      return (data.results || []).filter(r => r && r.previews && (r.previews['preview-hq-mp3'] || r.previews['preview-lq-mp3'])).map(r => ({
+        src: 'freesound', id: String(r.id), title: r.name || 'Untitled', artist: r.username || 'Unknown', duration: r.duration,
+        streamUrl: r.previews['preview-hq-mp3'] || r.previews['preview-lq-mp3'], pageURL: r.url || `https://freesound.org/s/${r.id}/`, license: pmxLicenseLabel(r.license), image: '',
+        tags: (r.tags || []).map(x => String(x).toLowerCase()).slice(0, 8)
+      }));
+    }
+
+    async function pmxSearch(tab, q, opts = {}) {
+      const cacheId = [tab, String(q || '').toLowerCase(), opts.tags || '', opts.limit || 12].join('|');
+      const cache = pmxLoadCache();
+      const hit = cache[cacheId];
+      if (hit && Date.now() - hit.t < 24 * 60 * 60 * 1000) return hit.data;
+      const data = tab === 'jamendo' ? await pmxSearchJamendo(q, opts) : await pmxSearchFreesound(q, opts);
+      cache[cacheId] = { t: Date.now(), data };
+      pmxSaveCache(cache);
+      return data;
+    }
+
+    function pmxBuildSuggestions() {
+      const active = getActiveScenario();
+      const out = [];
+      const library = active.musicLibrary || [];
+      const have = name => library.some(e => (e.keywords || []).some(k => looseNameMatch(k, name)) || looseNameMatch(e.label, name));
+      const names = [];
+      if (active.currentLocation) names.push(active.currentLocation);
+      getLocationLore(active).forEach(e => { if (!names.some(n => looseNameMatch(n, e.title))) names.push(e.title); });
+      const seen = new Set();
+      names.forEach(name => {
+        if (out.length >= 5 || have(name)) return;
+        const q = pbxQueryForLocation(name);
+        const noun = q.split(' ').reverse().find(w => PMX_PLACE_MUSIC[w]);
+        const pair = noun ? PMX_PLACE_MUSIC[noun] : [q, q + ' ambience'];
+        const key = pair.join('|');
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ kind: 'location', label: name, jamendo: pair[0], freesound: pair[1], location: name });
+      });
+      const text = [active.title, active.setting, active.aesthetic, active.tagline, ...(active.plotArcs || []).slice(0, 3).map(a => `${a.title || ''} ${a.content || ''}`)].filter(Boolean).join(' ').slice(0, 4000);
+      let vibes = 0;
+      for (const [re, jam, fs] of PMX_VIBES) {
+        if (vibes >= 2) break;
+        if (re.test(text) && !seen.has(jam + '|' + fs)) { seen.add(jam + '|' + fs); out.push({ kind: 'vibe', label: 'Vibe: ' + jam, jamendo: jam, freesound: fs, location: '' }); vibes++; }
+      }
+      return out;
+    }
+
+    function openMusicBrowser() {
+      const m = document.getElementById('musicBrowserModal');
+      if (!m) return;
+      m.classList.remove('hidden'); m.classList.add('flex');
+      pmxState.showKey = !pmxKeyVal();
+      pmxState.suggestions = pmxBuildSuggestions();
+      pmxRenderAll();
+      pmxLoadStrips();
+    }
+    function closeMusicBrowser(event) {
+      if (event && event.target && event.target.id !== 'musicBrowserModal') return;
+      const m = document.getElementById('musicBrowserModal');
+      if (!m) return;
+      m.classList.add('hidden'); m.classList.remove('flex');
+      pmxState.run++;
+      pmxStopPreview();
+    }
+    function pmxSetTab(tab) {
+      if (tab === pmxState.tab) return;
+      pmxStopPreview();
+      pmxState.tab = tab; pmxState.tracks = []; pmxState.query = ''; pmxState.mood = '';
+      pmxState.showKey = !pmxKeyVal();
+      const q = document.getElementById('pmxQuery'); if (q) q.value = '';
+      pmxRenderAll();
+      pmxLoadStrips();
+    }
+    function pmxSaveKey() {
+      const v = (document.getElementById('pmxKeyInput')?.value || '').trim();
+      if (!v) { showTransientToast('Paste your key first'); return; }
+      appState[pmxKeyName()] = v;
+      saveState();
+      pmxState.showKey = false;
+      pmxRenderAll(); pmxLoadStrips();
+      showTransientToast(pmxSrcName(pmxState.tab) + ' key saved');
+    }
+    function pmxToggleKey() { pmxState.showKey = !pmxState.showKey; pmxRenderKeyRow(); }
+    function pmxPickMood(m) {
+      pmxState.mood = pmxState.mood === m ? '' : m;
+      pmxRenderMoods();
+      pmxRunSearch();
+    }
+
+    function pmxRenderTabs() {
+      ['jamendo', 'freesound'].forEach(t => {
+        const b = document.getElementById('pmxTab_' + t);
+        if (!b) return;
+        const on = pmxState.tab === t;
+        b.className = `flex-1 px-3 py-2 rounded-lg text-xs font-medium transition active:scale-95 border ${on ? 'bg-zetaAccent text-white border-zetaAccent' : 'bg-zetaCard text-slate-300 border-zetaBorder hover:bg-zetaBorder'}`;
+      });
+      const hint = document.getElementById('pmxTabHint');
+      if (hint) hint.textContent = pmxState.tab === 'jamendo'
+        ? 'Full songs by mood and genre. Added tracks stream from Jamendo (needs internet); nothing is copied to your device, per Jamendo\'s terms.'
+        : 'Ambience, soundscapes and loops. Added clips are downloaded into your library so they work offline.';
+    }
+    function pmxRenderMoods() {
+      const el = document.getElementById('pmxMoods');
+      if (!el) return;
+      if (pmxState.tab !== 'jamendo') { el.innerHTML = ''; el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      el.innerHTML = PMX_MOODS.map(m => `<button type="button" onclick="pmxPickMood('${m}')" class="text-[10px] px-2 py-1 rounded-full border transition active:scale-95 ${pmxState.mood === m ? 'bg-zetaAccent text-white border-zetaAccent' : 'bg-zetaCard text-slate-300 border-zetaBorder hover:bg-zetaBorder'}">${m}</button>`).join('');
+    }
+    function pmxRenderKeyRow() {
+      const el = document.getElementById('pmxKeyRow');
+      if (!el) return;
+      const tab = pmxState.tab, name = pmxSrcName(tab), has = !!pmxKeyVal();
+      if (!pmxState.showKey && has) {
+        el.innerHTML = `<div class="flex items-center justify-between gap-2 text-[11px] text-slate-400"><span>🔑 ${name} key saved</span><button type="button" onclick="pmxToggleKey()" class="underline hover:text-white">Change</button></div>`;
+        return;
+      }
+      const help = tab === 'jamendo'
+        ? `Jamendo needs a free client ID: sign up at <a href="https://devportal.jamendo.com/" target="_blank" rel="noopener" class="underline text-[#b9a6ff]">devportal.jamendo.com</a>, create an application, and paste its client ID here. Free for non-commercial use.`
+        : `Freesound needs a free API key: sign up at <a href="https://freesound.org/apiv2/apply" target="_blank" rel="noopener" class="underline text-[#b9a6ff]">freesound.org/apiv2/apply</a> and paste the key here.`;
+      el.innerHTML = `<p class="text-[11px] text-slate-400 leading-snug">${help} It's stored only in this app on your device.</p>
+        <div class="flex gap-2"><input id="pmxKeyInput" type="password" autocomplete="off" placeholder="${tab === 'jamendo' ? 'Jamendo client ID' : 'Freesound API key'}" value="${escapeHtml(pmxKeyVal())}" class="flex-1 min-w-0 bg-zetaInput border border-zetaBorder rounded-lg px-2.5 py-1.5 text-xs text-white" /><button type="button" onclick="pmxSaveKey()" class="shrink-0 px-3 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-medium active:scale-95 transition">Save</button></div>`;
+    }
+    function pmxRenderAll() { pmxRenderTabs(); pmxRenderMoods(); pmxRenderKeyRow(); pmxRenderSuggestions(); pmxRenderResults(); }
+
+    function pmxTrackRow(t) {
+      const key = t.src + ':' + t.id;
+      pmxTrackStore.set(key, t);
+      const added = (getActiveScenario().musicLibrary || []).some(e => e.sourceId === key);
+      const meta = [t.artist, pmxFmtDur(t.duration), t.license].filter(Boolean).join(' · ');
+      return `<div class="flex items-center gap-2 p-2 bg-zetaCard border border-zetaBorder rounded-xl">
+        ${t.image ? `<img src="${escapeHtml(t.image)}" referrerpolicy="no-referrer" loading="lazy" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0 bg-slate-950" />` : `<div class="w-10 h-10 rounded-lg bg-slate-900 border border-zetaBorder flex items-center justify-center text-base shrink-0">🎵</div>`}
+        <div class="min-w-0 flex-1"><div class="text-xs text-slate-200 truncate">${escapeHtml(t.title)}</div><div class="text-[10px] text-slate-500 truncate">${escapeHtml(meta)}</div></div>
+        <button type="button" data-pmx-play="${escapeHtml(key)}" onclick="pmxPreview('${escapeHtml(key)}')" class="shrink-0 w-8 h-8 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-xs text-slate-200 active:scale-95 transition" aria-label="Preview">${pmxPreviewKey === key ? '⏸' : '▶'}</button>
+        <button type="button" data-pmx-add="${escapeHtml(key)}" onclick="pmxAdd('${escapeHtml(key)}')" ${added ? 'disabled' : ''} class="shrink-0 text-[10px] px-2 py-1.5 rounded-lg font-medium active:scale-95 transition ${added ? 'bg-slate-700 text-slate-300' : 'bg-zetaAccent hover:bg-zetaAccentHover text-white'}">${added ? '✓ Added' : '＋ Add'}</button>
+      </div>`;
+    }
+    function pmxRenderResults() {
+      const el = document.getElementById('pmxResults');
+      if (!el) return;
+      if (pmxState.loading) { el.innerHTML = `<div class="text-center text-xs text-slate-400 py-8">Searching…</div>`; return; }
+      if (!pmxState.query && !pmxState.mood) { el.innerHTML = ''; return; }
+      if (!pmxState.tracks.length) { el.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">Nothing found. Try simpler words${pmxState.tab === 'jamendo' ? ' or pick a mood' : ' (e.g. “rain”, “tavern crowd”)'}.</div>`; return; }
+      el.innerHTML = `<div class="space-y-1.5">${pmxState.tracks.map(pmxTrackRow).join('')}</div>`;
+    }
+    function pmxRenderSuggestions() {
+      const el = document.getElementById('pmxSuggestions');
+      if (!el) return;
+      const list = pmxState.suggestions;
+      if (!list.length) { el.innerHTML = `<span class="text-[11px] text-slate-400">No suggestions yet -- add locations to your lorebook, or just search above.</span>`; return; }
+      el.innerHTML = `<div class="text-[11px] font-semibold text-zetaLight">✨ Suggested for your story</div>${list.map((s, i) => `
+        <div class="space-y-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] text-slate-300 truncate">${s.kind === 'location' ? '📍 ' : '🎨 '}${escapeHtml(s.label)}<span class="text-slate-500"> · “${escapeHtml(pmxState.tab === 'jamendo' ? s.jamendo : s.freesound)}”</span></span>
+            <button type="button" onclick="pmxRunSuggestion(${i})" class="shrink-0 text-[10px] px-2 py-0.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200">See more</button>
+          </div>
+          <div id="pmxStrip_${i}" class="space-y-1.5"><span class="text-[10px] text-slate-500">${pmxKeyVal() ? 'Loading…' : 'Add your key to see picks'}</span></div>
+        </div>`).join('')}`;
+    }
+    function pmxCtxFor(s, t, q) {
+      const kw = [];
+      if (s && s.location) kw.push(s.location);
+      String(q || '').split(/\s+/).filter(w => w.length > 2).forEach(w => kw.push(w));
+      kw.push(...(t.tags || []));
+      return { keywords: [...new Set(kw.map(k => k.trim().toLowerCase()).filter(Boolean))].slice(0, 9), label: `${t.title}${t.artist ? ' — ' + t.artist : ''}`.slice(0, 80) };
+    }
+    async function pmxLoadStrips() {
+      if (!pmxKeyVal()) return;
+      const run = ++pmxState.run;
+      const tab = pmxState.tab;
+      const list = pmxState.suggestions.slice(0, 5);
+      for (let i = 0; i < list.length; i++) {
+        if (run !== pmxState.run) return;
+        const strip = document.getElementById('pmxStrip_' + i);
+        if (!strip) return;
+        const q = tab === 'jamendo' ? list[i].jamendo : list[i].freesound;
+        try {
+          const tracks = await pmxSearch(tab, q, { limit: 3 });
+          if (run !== pmxState.run) return;
+          strip.innerHTML = tracks.length ? tracks.slice(0, 3).map(t => { pmxTrackCtx.set(t.src + ':' + t.id, pmxCtxFor(list[i], t, q)); return pmxTrackRow(t); }).join('') : `<span class="text-[10px] text-slate-500">Nothing found for this one.</span>`;
+        } catch (e) {
+          strip.innerHTML = `<span class="text-[10px] text-red-300">${escapeHtml(e.message || 'Failed')}</span>`;
+          if (/rate limit|key|client/i.test(e.message || '')) return;
+        }
+      }
+    }
+    async function pmxRunSearch(queryOverride, suggestion) {
+      const input = document.getElementById('pmxQuery');
+      const q = String(queryOverride != null ? queryOverride : (input?.value || '')).trim();
+      if (!q && !pmxState.mood) { showTransientToast('Type something or pick a mood'); return; }
+      if (input && queryOverride != null) input.value = q;
+      pmxState.query = q; pmxState.loading = true; pmxState.tracks = []; pmxRenderResults();
+      try {
+        const tab = pmxState.tab;
+        if (tab === 'freesound' && !q) throw new Error('Type something to search for.');
+        const tracks = await pmxSearch(tab, q, { limit: 15, tags: tab === 'jamendo' ? pmxState.mood : '' });
+        pmxState.tracks = tracks;
+        tracks.forEach(t => pmxTrackCtx.set(t.src + ':' + t.id, pmxCtxFor(suggestion || null, t, q || pmxState.mood)));
+      } catch (e) {
+        pmxState.tracks = [];
+        showTransientToast(e.message || 'Search failed');
+        if (/key|client/i.test(e.message || '')) { pmxState.showKey = true; pmxRenderKeyRow(); }
+      } finally { pmxState.loading = false; pmxRenderResults(); }
+    }
+    function pmxRunSuggestion(i) {
+      const s = pmxState.suggestions[i]; if (!s) return;
+      pmxState.mood = ''; pmxRenderMoods();
+      pmxRunSearch(pmxState.tab === 'jamendo' ? s.jamendo : s.freesound, s);
+    }
+
+    function pmxStopPreview() {
+      if (pmxPreviewAudio) { try { pmxPreviewAudio.pause(); } catch (e) {} pmxPreviewAudio.src = ''; }
+      const prev = pmxPreviewKey; pmxPreviewKey = '';
+      if (prev) document.querySelectorAll(`[data-pmx-play="${CSS.escape(prev)}"]`).forEach(b => { b.textContent = '▶'; });
+    }
+    function pmxPreview(key) {
+      const t = pmxTrackStore.get(key);
+      if (!t) return;
+      if (pmxPreviewKey === key) { pmxStopPreview(); return; }
+      pmxStopPreview();
+      if (!pmxPreviewAudio) { pmxPreviewAudio = new Audio(); pmxPreviewAudio.addEventListener('ended', pmxStopPreview); pmxPreviewAudio.addEventListener('error', () => { if (pmxPreviewKey) { showTransientToast('Could not play that preview'); pmxStopPreview(); } }); }
+      pmxPreviewKey = key;
+      pmxPreviewAudio.src = t.streamUrl;
+      pmxPreviewAudio.volume = 0.8;
+      pmxPreviewAudio.play().catch(() => { showTransientToast('Could not play that preview'); pmxStopPreview(); });
+      document.querySelectorAll(`[data-pmx-play="${CSS.escape(key)}"]`).forEach(b => { b.textContent = '⏸'; });
+    }
+
+    async function pmxAdd(key) {
+      const t = pmxTrackStore.get(key);
+      if (!t) return;
+      const active = getActiveScenario();
+      if (!Array.isArray(active.musicLibrary)) active.musicLibrary = [];
+      if (active.musicLibrary.some(e => e.sourceId === key)) { pmxMarkAdded(key); return; }
+      const btns = document.querySelectorAll(`[data-pmx-add="${CSS.escape(key)}"]`);
+      btns.forEach(b => { b.disabled = true; b.textContent = 'Adding…'; });
+      try {
+        let url = t.streamUrl, remote = true;
+        if (t.src === 'freesound') {
+          try {
+            const res = await fetch(t.streamUrl);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            let blob = await res.blob();
+            if (!String(blob.type).startsWith('audio/')) blob = new Blob([blob], { type: 'audio/mpeg' });
+            url = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(blob); });
+            remote = false;
+          } catch (e) {
+            showTransientToast('Browser blocked the download -- saved as a stream link instead');
+          }
+        }
+        const ctx = pmxTrackCtx.get(key) || pmxCtxFor(null, t, '');
+        active.musicLibrary.push({
+          id: 'mu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          url, label: ctx.label, keywords: ctx.keywords,
+          source: t.src, sourceId: key, remote,
+          credit: { who: t.artist || '', pageURL: t.pageURL || '', license: t.license || '', provider: pmxSrcName(t.src) },
+          createdAt: Date.now()
+        });
+        markImagesDirty();
+        await saveState();
+        pmxMarkAdded(key);
+        renderMusicLibrary();
+        showTransientToast('Added to your Music Library');
+        if (active.viewMode === 'vn') renderVnTurn(false); else applyChatBackground(true);
+      } catch (e) {
+        showTransientToast('Could not add that track: ' + (e?.message || e));
+        btns.forEach(b => { b.disabled = false; b.textContent = '＋ Add'; });
+      }
+    }
+    function pmxMarkAdded(key) {
+      document.querySelectorAll(`[data-pmx-add="${CSS.escape(key)}"]`).forEach(b => { b.disabled = true; b.textContent = '✓ Added'; b.className = 'shrink-0 text-[10px] px-2 py-1.5 rounded-lg font-medium bg-slate-700 text-slate-300'; });
     }
 
     async function addMusicToLibrary(event) {
