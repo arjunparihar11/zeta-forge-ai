@@ -2273,6 +2273,10 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         <p id="zfDialogMessage" class="text-xs text-slate-300 leading-relaxed whitespace-pre-line"></p>
         <input id="zfDialogInput" type="text" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden" />
         <select id="zfDialogSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent hidden"></select>
+        <div id="zfDialogExtraWrap" class="hidden space-y-1 pt-1">
+          <label id="zfDialogExtraLabel" for="zfDialogSelect2" class="block text-[11px] font-semibold text-slate-300"></label>
+          <select id="zfDialogSelect2" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent"></select>
+        </div>
       </div>
       <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
         <button id="zfDialogCancel" onclick="zfDialogRespond(false)" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium transition active:scale-95">Cancel</button>
@@ -3634,11 +3638,13 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       zfDialogResolver = null;
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (!resolver) return;
-      if (!select.classList.contains('hidden')) resolver(ok ? select.value : null);
+      const extraWrap = document.getElementById('zfDialogExtraWrap');
+      const extraVisible = extraWrap && !extraWrap.classList.contains('hidden');
+      if (!select.classList.contains('hidden')) resolver(ok ? (extraVisible ? { value: select.value, extra: document.getElementById('zfDialogSelect2').value } : select.value) : null);
       else if (!input.classList.contains('hidden')) resolver(ok ? input.value : null);
       else resolver(ok);
     }
-    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null }) {
+    function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null, extraSelect = null }) {
       const modal = document.getElementById('zfDialog');
       const input = document.getElementById('zfDialogInput');
       const select = document.getElementById('zfDialogSelect');
@@ -3658,6 +3664,16 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         select.value = (selectValue !== null && selectValue !== undefined) ? selectValue : selectOptions[0].value;
         select.classList.remove('hidden');
       }
+      const extraWrap = document.getElementById('zfDialogExtraWrap');
+      if (extraWrap) {
+        if (extraSelect && extraSelect.options && extraSelect.options.length) {
+          document.getElementById('zfDialogExtraLabel').textContent = extraSelect.label || '';
+          const sel2 = document.getElementById('zfDialogSelect2');
+          sel2.innerHTML = extraSelect.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+          sel2.value = (extraSelect.value !== undefined && extraSelect.value !== null) ? extraSelect.value : extraSelect.options[0].value;
+          extraWrap.classList.remove('hidden');
+        } else { extraWrap.classList.add('hidden'); }
+      }
       modal.classList.remove('hidden'); modal.classList.add('flex');
       if (inputValue !== null) setTimeout(() => { input.focus(); input.select(); }, 30);
       return new Promise(resolve => { zfDialogResolver = resolve; });
@@ -3669,7 +3685,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // engine). Resolves to the selected option's value on OK, or null on
     // Cancel/Escape — never a bare boolean, so callers can tell "cancelled"
     // apart from "confirmed with the first/default option".
-    function zfConfirmSelect(message, title, okText, selectOptions, selectValue) { return zfOpenDialog({ title, message, okText, selectOptions, selectValue }); }
+    function zfConfirmSelect(message, title, okText, selectOptions, selectValue, extraSelect = null) { return zfOpenDialog({ title, message, okText, selectOptions, selectValue, extraSelect }); }
     window.addEventListener('keydown', (e) => {
       if (!zfDialogResolver) return;
       if (e.key === 'Escape') { e.preventDefault(); zfDialogRespond(false); }
@@ -4830,9 +4846,9 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       saveState();
     }
 
-    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini') {
+    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini', outfitOverride = null) {
       const active = getActiveScenario();
-      const outfit = getCurrentOutfitDescription(char);
+      const outfit = outfitOverride ? `${outfitOverride.name || 'Outfit'}: ${outfitOverride.description || ''}` : getCurrentOutfitDescription(char);
       if (engine === 'meinamix') {
         // MeinaMix is a raw SD1.5 checkpoint, not a multimodal model that
         // reads "reference image" contextually the way Gemini does -- that
@@ -4922,19 +4938,36 @@ Preserve the character's described physical identity consistently. Show the full
       const active = getActiveScenario();
       const char = target === 'user' ? active.userPersona : (target && typeof target === 'object' ? target : active.characters[Number(target)]);
       if (!char) return;
-      const engine = await zfConfirmSelect(
-        `Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.`,
+      const outfits = (getCharacterOutfits(char) || []).filter(o => o && (o.name || o.description));
+      const cur = getCurrentOutfit(char);
+      const extra = outfits.length ? {
+        label: 'Outfits',
+        options: [
+          { value: 'current', label: cur ? `Current outfit only (${cur.name || 'Outfit'})` : 'Current look only (1 photo)' },
+          { value: 'all', label: `One photo per outfit (${outfits.length} photos)` }
+        ],
+        value: 'current'
+      } : null;
+      const choice = await zfConfirmSelect(
+        `Generate a new photo for ${char.name || 'this character'}? This uses image generation tokens.${outfits.length ? '\nGenerating one photo per outfit uses one image generation per outfit.' : ''}`,
         'Generate Photo', 'Generate',
         [
           { value: 'gemini', label: 'Gemini (default)' },
           { value: 'meinamix', label: 'MeinaMix (local)' }
         ],
-        'gemini'
+        'gemini',
+        extra
       );
-      if (!engine) return;
+      if (!choice) return;
+      const engine = typeof choice === 'object' ? choice.value : choice;
+      const perOutfit = typeof choice === 'object' && choice.extra === 'all' && outfits.length > 0;
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
+      const jobs = perOutfit ? outfits.map(o => ({ outfit: o })) : [{ outfit: null }];
+      let done = 0;
+      let firstErr = null;
+      let avatarSrc = '';
       showLoading(true, `Generating ${char.name || 'character'} photo...`);
       try {
         // MeinaMix has no reference-photo input the way Gemini does, so
@@ -4950,18 +4983,37 @@ Preserve the character's described physical identity consistently. Show the full
         if (engine === 'meinamix' && !Number.isInteger(char.meinamixSeed)) {
           char.meinamixSeed = Math.floor(Math.random() * 2147483647);
         }
-        const meinamixPortraitOpts = { width: 512, height: 768, negativePrompt: 'reference sheet, character sheet, turnaround, multiple views, multiple poses, split screen, comparison, collage, grid, 2koma, multiple panels, inset, multiple characters, duplicate, side by side', seed: char.meinamixSeed };
-        const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
-        const src = await normalizeGeneratedPortrait(generatedSrc);
-        if (!Array.isArray(char.photos)) char.photos = [];
-        markImagesDirty();
-        char.photos.unshift({ src, caption: 'Default' });
-        char.avatar = src;
-        if (!active.characters.includes(char) && !char.isUser) { if (!active.sideCharacterProfiles) active.sideCharacterProfiles = {}; active.sideCharacterProfiles[(char.name || '').toLowerCase()] = char; }
-        await saveState();
-        renderAllUi();
-        syncModalForm();
-        if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (char.name || '').toLowerCase()) openCharacterSpotlight(char.name);
+        const meinamixPortraitOpts = { width: 512, height: 768, negativePrompt: 'reference sheet, character sheet, turnaround, multiple views, multiple poses, split screen, comparison, collage, grid, 2koma, multiple panels, inset, multiple characters, duplicat' };
+        for (let i = 0; i < jobs.length; i++) {
+          const job = jobs[i];
+          if (jobs.length > 1) showLoading(true, `Generating ${char.name || 'character'} photo ${i + 1}/${jobs.length} (${job.outfit.name || 'Outfit'})...`);
+          try {
+            const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine, job.outfit), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
+            const src = await normalizeGeneratedPortrait(generatedSrc);
+            if (!Array.isArray(char.photos)) char.photos = [];
+            markImagesDirty();
+            char.photos.unshift({ src, caption: job.outfit ? (job.outfit.name || 'Outfit') : 'Default' });
+            done++;
+            // The avatar follows the character's current outfit when it was one of the batch; otherwise the first photo generated.
+            if (!job.outfit || job.outfit.id === char.currentOutfitId || !avatarSrc) avatarSrc = src;
+          } catch (err) {
+            if (!firstErr) firstErr = err;
+            if (jobs.length === 1) throw err;
+            // Keep going: one failed outfit shouldn't throw away the ones that worked.
+          }
+        }
+        if (avatarSrc) char.avatar = avatarSrc;
+        if (done > 0) {
+          if (!active.characters.includes(char) && !char.isUser) { if (!active.sideCharacterProfiles) active.sideCharacterProfiles = {}; active.sideCharacterProfiles[(char.name || '').toLowerCase()] = char; }
+          await saveState();
+          renderAllUi();
+          syncModalForm();
+          if (currentSpotlightCharName && currentSpotlightCharName.toLowerCase() === (char.name || '').toLowerCase()) openCharacterSpotlight(char.name);
+        }
+        if (jobs.length > 1) {
+          if (firstErr) zfAlert(`Generated ${done} of ${jobs.length} outfit photos for ${char.name || 'this character'}.\n\nFirst error: ${firstErr.message}`, 'Some Photos Failed');
+          else showTransientToast(`Generated ${done} outfit photos for ${char.name || 'this character'}`);
+        }
       } catch (err) { zfAlert('Character photo error: ' + err.message); }
       finally { showLoading(false); }
     }
