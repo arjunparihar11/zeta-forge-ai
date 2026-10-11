@@ -1520,7 +1520,10 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between px-1">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Character Photo Library</span>
-            <span id="avatarManagerCount" class="text-[10px] text-zetaLight font-mono">0 Photos</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="removeAllPhotoBackgrounds()" class="text-[10px] font-bold px-2 py-1 rounded border border-slate-600 text-slate-300 hover:border-zetaLight hover:text-white transition" title="Remove the background from every photo that doesn't already have a transparent one">✂️ Remove all backgrounds</button>
+              <span id="avatarManagerCount" class="text-[10px] text-zetaLight font-mono">0 Photos</span>
+            </div>
           </div>
           <div id="avatarManagerGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           </div>
@@ -2491,7 +2494,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
         const people = [sc.userPersona, ...(sc.characters || []), ...Object.values(sc.sideCharacterProfiles || {})].filter(Boolean);
         for (const p of people) {
           if (isInline(p.avatar) || isInline(p.chatAvatar)) return true;
-          for (const ph of (p.photos || [])) if (ph && isInline(ph.src)) return true;
+          for (const ph of (p.photos || [])) if (ph && (isInline(ph.src) || isInline(ph.original))) return true;
           for (const sp of (p.sprites || [])) if (sp && isInline(sp.src)) return true;
         }
         for (const m of (sc.messages || [])) if (m && isInline(m.imageUrl)) return true;
@@ -2560,10 +2563,17 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
     // Pass 1 (mutates live state): data: URLs -> blob: URLs backed by the store.
     async function externalizeLiveImages(stateObj) {
       if (!assetStoreAvailable) return;
+      // Identical data: URLs (e.g. a new portrait that is both photos[0].src and
+      // the avatar) must map to ONE blob URL; otherwise avatar !== photo.src and
+      // the library re-adds the avatar as a duplicate "Default" photo.
+      const seen = new Map();
       await walkStateImages(stateObj, async (value) => {
         if (typeof value !== 'string' || !(value.startsWith('data:image') || value.startsWith('data:audio'))) return value;
         try {
-          return await internalizeDataUrl(value);
+          if (seen.has(value)) return seen.get(value);
+          const url = await internalizeDataUrl(value);
+          seen.set(value, url);
+          return url;
         } catch (e) {
           console.warn('Asset store write failed, keeping image inline:', e?.message || e);
           assetStoreAvailable = false;
@@ -2685,7 +2695,7 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
           p.avatar = await transform(p.avatar);
           if (p.chatAvatar) p.chatAvatar = await transform(p.chatAvatar);
           if (Array.isArray(p.photos)) {
-            for (const ph of p.photos) { if (ph && ph.src) ph.src = await transform(ph.src); }
+            for (const ph of p.photos) { if (ph && ph.src) ph.src = await transform(ph.src); if (ph && ph.original) ph.original = await transform(ph.original); }
           }
           if (Array.isArray(p.sprites)) {
             for (const sp of p.sprites) { if (sp && sp.src) sp.src = await transform(sp.src); }
@@ -4553,7 +4563,9 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
     function normalizePhoto(p) {
       if (!p) return { src: '', caption: '' };
       if (typeof p === 'string') return { src: p, caption: '' };
-      return { src: p.src || '', caption: p.caption || '' };
+      const out = { src: p.src || '', caption: p.caption || '' };
+      if (p.original) out.original = p.original;
+      return out;
     }
 
     // Client-Side Image Compression Engine. Heavy decode/resize/encode work is
@@ -4593,12 +4605,20 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       });
     }
 
+    // True when two image refs point at the same stored asset (blob URLs of the same asset id count as equal).
+    function sameImageRef(a, b) {
+      if (a === b) return true;
+      if (!a || !b) return false;
+      const ia = assetUrlToId.get(a), ib = assetUrlToId.get(b);
+      return !!(ia && ib && ia === ib);
+    }
+
     function getPhotoTargetObject() {
       const active = getActiveScenario();
       if (currentAvatarManagerTarget === 'user') {
         if (!active.userPersona.photos) active.userPersona.photos = [];
         active.userPersona.photos = active.userPersona.photos.map(normalizePhoto);
-        if (active.userPersona.avatar && !active.userPersona.photos.some(p => p.src === active.userPersona.avatar)) {
+        if (active.userPersona.avatar && !active.userPersona.photos.some(p => sameImageRef(p.src, active.userPersona.avatar))) {
           active.userPersona.photos.unshift({ src: active.userPersona.avatar, caption: 'Default' });
         }
         return active.userPersona;
@@ -4608,7 +4628,7 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
         if (char) {
           if (!char.photos) char.photos = [];
           char.photos = char.photos.map(normalizePhoto);
-          if (char.avatar && !char.photos.some(p => p.src === char.avatar)) {
+          if (char.avatar && !char.photos.some(p => sameImageRef(p.src, char.avatar))) {
             char.photos.unshift({ src: char.avatar, caption: 'Default' });
           }
           return char;
@@ -4686,6 +4706,10 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
               class="w-full bg-zetaInput border border-slate-700/80 rounded px-1.5 py-1 text-[11px] text-indigo-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
             />
 
+            <div class="flex gap-1">
+              <button type="button" onclick="removePhotoBackground(${pIdx})" class="flex-1 bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[10px] font-semibold py-1 rounded-lg transition active:scale-95" title="Cut the background out of this photo">✂️ Remove BG</button>
+              ${photo.original ? `<button type="button" onclick="restorePhotoOriginal(${pIdx})" class="shrink-0 px-2 bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-amber-300 text-[10px] font-semibold py-1 rounded-lg transition active:scale-95" title="Put back the original photo">↩ Original</button>` : ''}
+            </div>
             <div class="pt-0.5">
               ${!isDefault ? `
                 <button type="button" onclick="setDefaultAvatar('${escapeJsString(photo.src)}')" class="w-full bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-semibold py-1 rounded-lg transition shadow active:scale-95">
@@ -4698,6 +4722,195 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
           </div>
         `;
       }).join('');
+    }
+
+    // ---- Remove background from a photo already in a character's library ----
+    // Reuses the sprite-sheet machinery (AI segmentation / heuristic) and the sprite mask editor for
+    // touch-ups. The untouched original is kept on the photo (photo.original) so it can be restored.
+    function photoHasTransparency(img) {
+      const c = document.createElement('canvas'); c.width = Math.min(64, img.naturalWidth); c.height = Math.min(64, img.naturalHeight);
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      let clear = 0; for (let i = 3; i < d.length; i += 4) if (d[i] < 200) clear++;
+      return clear > (c.width * c.height) * 0.05;
+    }
+
+    // Flood-fills inward from the image border over pixels close to the background colour, so a white
+    // shirt or eye highlight inside the character is kept (a plain colour key would punch holes in them).
+    function removeBackgroundFloodFromEdges(px, w, h, key, tol = 40) {
+      const total = w * h, seen = new Uint8Array(total), queue = new Int32Array(total);
+      let head = 0, tail = 0;
+      const near = (i) => { const o = i * 4; return Math.abs(px[o] - key[0]) + Math.abs(px[o + 1] - key[1]) + Math.abs(px[o + 2] - key[2]) <= tol * 3 * 0.8; };
+      const push = (i) => { if (!seen[i] && near(i)) { seen[i] = 1; queue[tail++] = i; } };
+      for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+      for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+      while (head < tail) {
+        const i = queue[head++], x = i % w, y = (i / w) | 0;
+        if (x > 0) push(i - 1); if (x < w - 1) push(i + 1); if (y > 0) push(i - w); if (y < h - 1) push(i + w);
+      }
+      for (let i = 0; i < total; i++) if (seen[i]) px[i * 4 + 3] = 0;
+      // Soften the cut edge one pixel so it isn't jagged.
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        if (seen[i]) continue;
+        if (seen[i - 1] || seen[i + 1] || seen[i - w] || seen[i + w]) {
+          const o = i * 4, dist = Math.abs(px[o] - key[0]) + Math.abs(px[o + 1] - key[1]) + Math.abs(px[o + 2] - key[2]);
+          px[o + 3] = Math.max(60, Math.min(255, Math.round(dist * 255 / (tol * 3 * 1.6))));
+        }
+      }
+    }
+
+    function sampleCornerColor(px, w, h) {
+      const pts = [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3], [w >> 1, 2], [w >> 1, h - 3]];
+      const chans = [[], [], []];
+      pts.forEach(([x, y]) => { const o = (Math.max(0, Math.min(h - 1, y)) * w + Math.max(0, Math.min(w - 1, x))) * 4; for (let k = 0; k < 3; k++) chans[k].push(px[o + k]); });
+      return chans.map(a => a.sort((p, q) => p - q)[a.length >> 1]);
+    }
+
+    function loadImageEl(src) {
+      return new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(new Error('Could not load that photo')); im.src = src; });
+    }
+
+    // Runs removal on one photo and returns a PNG data URL (full resolution).
+    async function removeBackgroundFromPhotoSrc(src, method) {
+      const img = await loadImageEl(src);
+      const MAX = 2048, scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h);
+      if (method === 'plain') removeBackgroundFloodFromEdges(data.data, w, h, sampleCornerColor(data.data, w, h), appState.spriteKeyColorTolerance || 40);
+      else if (method === 'legacy') await removeBackgroundFromPixelDataWorker(data.data, w, h);
+      else await removeBackgroundWithAI(data.data, w, h);
+      ctx.putImageData(data, 0, 0);
+      return { dataUrl: canvas.toDataURL('image/png'), w, h };
+    }
+
+    // The mask editor works on a <=360px canvas, so keep the full-resolution result and only carry over
+    // the places the user actually painted (restore -> opaque, erase -> transparent).
+    async function applyMaskEditsToFullRes(fullDataUrl, baseDataUrl, editedDataUrl) {
+      const [fullImg, baseImg, editImg] = await Promise.all([loadImageEl(fullDataUrl), loadImageEl(baseDataUrl), loadImageEl(editedDataUrl)]);
+      const ew = editImg.naturalWidth, eh = editImg.naturalHeight;
+      const mk = (im, w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h); return x.getImageData(0, 0, w, h); };
+      const base = mk(baseImg, ew, eh), edit = mk(editImg, ew, eh);
+      const W = fullImg.naturalWidth, H = fullImg.naturalHeight;
+      const full = mk(fullImg, W, H);
+      let changed = false;
+      for (let y = 0; y < H; y++) {
+        const sy = Math.min(eh - 1, Math.floor(y * eh / H));
+        for (let x = 0; x < W; x++) {
+          const sx = Math.min(ew - 1, Math.floor(x * ew / W)), si = (sy * ew + sx) * 4 + 3;
+          const diff = edit.data[si] - base.data[si];
+          if (diff > 100) { full.data[(y * W + x) * 4 + 3] = 255; changed = true; }
+          else if (diff < -100) { full.data[(y * W + x) * 4 + 3] = 0; changed = true; }
+        }
+      }
+      if (!changed) return fullDataUrl;
+      const out = document.createElement('canvas'); out.width = W; out.height = H;
+      out.getContext('2d').putImageData(full, 0, 0);
+      return out.toDataURL('image/png');
+    }
+
+    async function removePhotoBackground(pIdx) {
+      const targetObj = getPhotoTargetObject();
+      const photo = targetObj && targetObj.photos && targetObj.photos[pIdx];
+      if (!photo || !photo.src) return;
+      const choice = await zfConfirmSelect(
+        'Remove the background from this photo? The original is kept, so you can restore it afterward.',
+        'Remove Background', 'Remove',
+        [
+          { value: 'ai', label: 'AI cutout (works on any background)' },
+          { value: 'plain', label: 'Plain background (uses the corner color)' },
+          { value: 'legacy', label: 'Light / neutral background (legacy)' }
+        ],
+        'ai',
+        [{ key: 'touchup', label: 'Touch up afterward', options: [{ value: 'yes', label: 'Yes, let me paint fixes' }, { value: 'no', label: 'No, just apply it' }], value: 'yes' }]
+      );
+      if (!choice) return;
+      const method = typeof choice === 'object' ? choice.value : choice;
+      const touchup = typeof choice === 'object' && choice.extras && choice.extras.touchup === 'yes';
+      const original = photo.original || photo.src;
+      showLoading(true, 'Removing background…');
+      try {
+        const result = await removeBackgroundFromPhotoSrc(photo.src, method);
+        let finalSrc = result.dataUrl;
+        if (touchup) {
+          showLoading(false);
+          // Baseline at the editor's own display size so only the user's strokes are applied later.
+          const edited = await openSpriteMaskEditor([{ src: result.dataUrl, caption: photo.caption || 'Photo' }]);
+          const editedSrc = edited && edited[0] && edited[0].src;
+          if (editedSrc) finalSrc = await applyMaskEditsToFullRes(result.dataUrl, result.dataUrl, editedSrc);
+          showLoading(true, 'Saving…');
+        }
+        const oldSrc = photo.src;
+        photo.original = original;
+        photo.src = finalSrc;
+        if (targetObj.avatar === oldSrc) targetObj.avatar = finalSrc;
+        markImagesDirty();
+        await saveState();
+        renderAvatarManagerGallery();
+        renderCharacterCardsSetup();
+        renderSidebar();
+        showTransientToast('Background removed');
+      } catch (err) {
+        zfAlert('Background removal failed: ' + (err?.message || err));
+      } finally { showLoading(false); }
+    }
+
+    async function restorePhotoOriginal(pIdx) {
+      const targetObj = getPhotoTargetObject();
+      const photo = targetObj && targetObj.photos && targetObj.photos[pIdx];
+      if (!photo || !photo.original) return;
+      const oldSrc = photo.src;
+      photo.src = photo.original;
+      delete photo.original;
+      if (targetObj.avatar === oldSrc) targetObj.avatar = photo.src;
+      markImagesDirty();
+      await saveState();
+      renderAvatarManagerGallery();
+      renderCharacterCardsSetup();
+      renderSidebar();
+      showTransientToast('Original restored');
+    }
+
+    async function removeAllPhotoBackgrounds() {
+      const targetObj = getPhotoTargetObject();
+      if (!targetObj || !targetObj.photos || !targetObj.photos.length) return;
+      const choice = await zfConfirmSelect(
+        `Remove the background from all ${targetObj.photos.length} photos? Photos that are already cut out are skipped, and originals are kept so each can be restored.`,
+        'Remove All Backgrounds', 'Remove all',
+        [
+          { value: 'ai', label: 'AI cutout (works on any background)' },
+          { value: 'plain', label: 'Plain background (uses the corner color)' },
+          { value: 'legacy', label: 'Light / neutral background (legacy)' }
+        ],
+        'ai'
+      );
+      if (!choice) return;
+      let done = 0, skipped = 0, failed = 0;
+      const photos = targetObj.photos;
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        if (!photo || !photo.src) continue;
+        showLoading(true, `Removing backgrounds ${i + 1}/${photos.length}…`);
+        try {
+          const img = await loadImageEl(photo.src);
+          if (photoHasTransparency(img)) { skipped++; continue; }
+          const result = await removeBackgroundFromPhotoSrc(photo.src, choice);
+          const oldSrc = photo.src;
+          photo.original = photo.original || oldSrc;
+          photo.src = result.dataUrl;
+          if (targetObj.avatar === oldSrc) targetObj.avatar = result.dataUrl;
+          done++;
+        } catch (e) { failed++; }
+      }
+      try {
+        if (done) { markImagesDirty(); await saveState(); }
+        renderAvatarManagerGallery(); renderCharacterCardsSetup(); renderSidebar();
+      } finally { showLoading(false); }
+      showTransientToast(`Backgrounds removed: ${done}${skipped ? `, ${skipped} already transparent` : ''}${failed ? `, ${failed} failed` : ''}`);
     }
 
     function updatePhotoCaption(pIdx, newCaption) {
@@ -4864,8 +5077,19 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       return parts.join(', ') + '.';
     }
 
-    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini', outfitOverride = null, backgroundMode = 'neutral') {
+    // Framing choices for generated character photos.
+    // framing = how the subject is cropped; sd = short keyword phrase for SD-style checkpoints.
+    const PORTRAIT_SHOT_SIZES = {
+      full:   { label: 'Full Body', sd: 'full body shot, head to toe, entire body and feet visible', framing: 'a full-body shot: the whole character from head to toe, feet included, with a little space around them' },
+      threeQuarter: { label: '3/4 (head to knees)', sd: 'cowboy shot, three-quarter length, framed from head to the knees', framing: 'a three-quarter-length ("cowboy") shot: framed from the top of the head down to about the knees or mid-thigh' },
+      half:   { label: 'Half Body (waist up)', sd: 'medium shot, half body, framed from the waist up', framing: 'a half-body medium shot: framed from the top of the head down to the waist' },
+      bust:   { label: 'Bust (chest up)', sd: 'bust shot, upper body, framed from the chest up, head and shoulders', framing: 'a bust shot: framed from the top of the head down to the chest, showing head, shoulders and upper chest' },
+      headshot: { label: 'Headshot (face)', sd: 'headshot, close-up portrait, face fills the frame, head and neck only', framing: 'a headshot: a close-up of the face and head with just the neck and top of the shoulders, the face filling most of the frame' }
+    };
+
+    function buildCharacterVisualGenerationPrompt(char, rawLogs = '', engine = 'gemini', outfitOverride = null, backgroundMode = 'neutral', shotSize = 'full') {
       const active = getActiveScenario();
+      const shot = PORTRAIT_SHOT_SIZES[shotSize] || PORTRAIT_SHOT_SIZES.full;
       const outfit = outfitOverride ? `${outfitOverride.name || 'Outfit'}: ${outfitOverride.description || ''}` : getCurrentOutfitDescription(char);
       const scene = backgroundMode === 'environment' ? describePortraitEnvironment(active) : '';
       if (engine === 'meinamix') {
@@ -4878,14 +5102,14 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
         // should be a single portrait. Blunter, more literal single-
         // subject/single-pose language here, since SD-style checkpoints key
         // off keywords rather than intent.
-        return `Solo portrait of exactly one character, one pose only, centered composition, medium shot from the waist up, ${scene ? `detailed background: ${scene}` : 'plain white background, simple clean background'}.
+        return `Solo portrait of exactly one character, one pose only, centered composition, ${shot.sd}, ${scene ? `detailed background: ${scene}` : 'plain white background, simple clean background'}.
 Character: ${char.name || 'Unnamed character'}.
 Persona: ${getCharacterPersona(char)}
 Visual Profile: ${getCharacterVisualProfile(char)}
 Current Outfit: ${outfit}
 Art Style: ${active.artStyle || 'Anime'}.
 Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
-Preserve the character's described physical identity consistently. Do not invent contradictory physical traits. Exactly one full figure of this one character, nothing else in the frame -- no reference sheet, no character sheet, no turnaround, no multiple views or angles, no split screen, no comparison panels, no separate headshot inset, no grid layout, no collage.`;
+Preserve the character's described physical identity consistently. Do not invent contradictory physical traits. Exactly one figure of this one character, nothing else in the frame -- no reference sheet, no character sheet, no turnaround, no multiple views or angles, no split screen, no comparison panels, no separate headshot inset, no grid layout, no collage.`;
       }
       return `Create a single high-quality character portrait/reference image for the visual novel scenario "${active.title}".
 Character: ${char.name || 'Unnamed character'}.
@@ -4894,7 +5118,7 @@ Visual Profile: ${getCharacterVisualProfile(char)}
 Current Outfit: ${outfit}
 Art Style: ${active.artStyle || 'Anime'}.
 Story/log evidence for this character: ${rawLogs || 'No raw logs available.'}
-Preserve the character's described physical identity consistently. ${scene ? `Show the full character clearly, standing in a real, fully rendered environment: ${scene} Keep the character the clear focus and readable against the scenery.` : 'Show the full character clearly against a plain white or neutral light-grey studio background (no scenery, no props, no floor texture, no shadows that suggest a room), suitable for later sprite-sheet generation.'} Do not invent contradictory physical traits.`;
+Preserve the character's described physical identity consistently. Frame the image as ${shot.framing}. ${scene ? `Show the character clearly in a real, fully rendered environment: ${scene} Keep the character the clear focus and readable against the scenery.` : `Show the character clearly against a plain white or neutral light-grey studio background (no scenery, no props, no floor texture, no shadows that suggest a room)${shotSize === 'full' ? ', suitable for later sprite-sheet generation' : ''}.`} Do not invent contradictory physical traits.`;
     }
 
     // engine: 'gemini' (default) or 'meinamix' — the local start_image_fallback_server.py
@@ -4969,6 +5193,11 @@ Preserve the character's described physical identity consistently. ${scene ? `Sh
         value: 'current'
       });
       extras.push({
+        key: 'shot', label: 'Shot size',
+        options: Object.entries(PORTRAIT_SHOT_SIZES).map(([value, v]) => ({ value, label: v.label })),
+        value: 'full'
+      });
+      extras.push({
         key: 'background', label: 'Background',
         options: [
           { value: 'neutral', label: 'Plain white / neutral' },
@@ -4990,6 +5219,7 @@ Preserve the character's described physical identity consistently. ${scene ? `Sh
       const engine = typeof choice === 'object' ? choice.value : choice;
       const perOutfit = typeof choice === 'object' && choice.extras && choice.extras.outfits === 'all' && outfits.length > 0;
       const backgroundMode = (typeof choice === 'object' && choice.extras && choice.extras.background === 'environment') ? 'environment' : 'neutral';
+      const shotSize = (typeof choice === 'object' && choice.extras && PORTRAIT_SHOT_SIZES[choice.extras.shot]) ? choice.extras.shot : 'full';
       const sideName = typeof target === 'string' && target !== 'user' ? target : '';
       let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
@@ -5017,7 +5247,7 @@ Preserve the character's described physical identity consistently. ${scene ? `Sh
           const job = jobs[i];
           if (jobs.length > 1) showLoading(true, `Generating ${char.name || 'character'} photo ${i + 1}/${jobs.length} (${job.outfit.name || 'Outfit'})...`);
           try {
-            const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine, job.outfit, backgroundMode), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
+            const generatedSrc = await generateCharacterImageData(buildCharacterVisualGenerationPrompt(char, rawLogs, engine, job.outfit, backgroundMode, shotSize), getCharacterReferencePhotos(char), { aspectRatio: '1:1', imageSize: '1K' }, engine, engine === 'meinamix' ? meinamixPortraitOpts : null);
             const src = await normalizeGeneratedPortrait(generatedSrc);
             if (!Array.isArray(char.photos)) char.photos = [];
             markImagesDirty();
@@ -13100,7 +13330,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         if (!char.photos) char.photos = [];
         char.photos = char.photos.map(normalizePhoto);
 
-        if (char.avatar && !char.photos.some(p => p.src === char.avatar)) {
+        if (char.avatar && !char.photos.some(p => sameImageRef(p.src, char.avatar))) {
           char.photos.unshift({ src: char.avatar, caption: 'Default' });
         }
 
