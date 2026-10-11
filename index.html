@@ -247,6 +247,14 @@
     .hover\:border-zetaAccent:hover { border-color: var(--zeta-accent) !important; }
     .theme-color-input { width: 54px; height: 34px; padding: 2px; border-radius: 10px; cursor: pointer; background: var(--zeta-card); border: 1px solid var(--zeta-border); }
     .vn-bg-fade { animation: vnBackdropFade .55s ease both; }
+    /* Text-chat backdrop: sits behind the message list (main is isolated, so
+       the negative z-index stays inside it). The inner layer is oversized so
+       the blur never fades to transparent at the edges. */
+    #chatBackgroundWrap { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    #chatBackgroundLayer { position: absolute; inset: -48px; background-size: cover; background-position: center; transition: filter .25s ease; }
+    #chatBackgroundDim { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(12,10,16,.55), rgba(12,10,16,.68)); }
+    .chat-bg-fade { animation: chatBgFade .6s ease both; }
+    @keyframes chatBgFade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes vnBackdropFade { from { opacity: .15; transform: scale(1.015); } to { opacity: .6; transform: scale(1); } }
     .vn-progress-track { height: 3px; border-radius: 999px; background: rgb(255 255 255 / .12); overflow: hidden; }
     .vn-progress-fill { height: 100%; border-radius: inherit; background: var(--zeta-accent); transition: width .35s ease; }
@@ -516,6 +524,9 @@
 
       <!-- Right: Controls & Menus -->
       <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <!-- Background music + chat backdrop quick controls -->
+        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm text-slate-200 shadow transition active:scale-95 shrink-0" title="Background music">🎵</button>
+        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-sm text-slate-200 shadow transition active:scale-95 shrink-0" title="Chat background">🖼️</button>
         <!-- Visual Novel / Chat Mode Switcher Button -->
         <button onclick="toggleStoryViewMode()" id="viewModeToggleBtn" class="bg-zetaCard hover:bg-zetaBorder text-zetaLight border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1.5 shadow transition active:scale-95" title="Switch Story Presentation">
           <span id="viewModeIcon">🎭</span>
@@ -579,6 +590,8 @@
       <div id="clockPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(23rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
       <div id="locationPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(20rem,calc(100vw-1.25rem))] max-h-[70vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
     </div>
+    <div id="musicPopover" class="hidden absolute right-2.5 sm:right-4 top-full mt-1 w-[min(21rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
+    <div id="backdropPopover" class="hidden absolute right-2.5 sm:right-4 top-full mt-1 w-[min(21rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
   </header>
 
   <!-- Main Viewport -->
@@ -750,7 +763,9 @@
     </div>
 
     <!-- Center Canvas -->
-    <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0" onclick="skipTypewriter()">
+    <main class="flex-1 flex flex-col bg-zetaBg relative overflow-hidden min-h-0 isolate" onclick="skipTypewriter()">
+      <!-- Text-chat background (same backdrop the VN stage uses, blurred) -->
+      <div id="chatBackgroundWrap" class="hidden"><div id="chatBackgroundLayer"></div><div id="chatBackgroundDim"></div></div>
       
       <!-- MODE A: Standard Chat Messages Container -->
       <div id="messageSearchBar" class="hidden px-3 sm:px-6 pt-2 max-w-4xl mx-auto w-full shrink-0">
@@ -2869,6 +2884,9 @@ Me: "Glad you made it."" class="w-full bg-zetaInput border border-zetaBorder rou
       themeMode: 'dark',
       accentColor: '#7c65e8',
       ttsEnabled: false,
+      musicMuted: false,      // top-bar mute: pauses BG music so you can play your own
+      chatBgEnabled: true,    // show the backdrop behind the text chat
+      chatBgBlur: 8,          // px of gaussian blur for the text-chat backdrop
       vnReadingSpeed: 1,
       ttsPreloadWindow: 4,   // how many lines each side of the current one to pre-render
       relaxSafetyFilters: true,  // mature interactive fiction; see buildSafetySettings()
@@ -6074,6 +6092,159 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       applyViewModeLayout();
     }
 
+    // ── Text-chat backdrop + top-bar sound/backdrop controls ─────────────
+    // Same backdrop precedence as the VN stage: scene-matched library image,
+    // then the pinned backdrop, the generated one, and finally the cover.
+    function getCurrentBackdropUrl(active) {
+      const auto = (active.backdropAutoSelect !== false) ? pickAutoBackdrop(active) : null;
+      return (auto && auto.url) || active.manualVnBackground || active.vnBackground || active.cover || '';
+    }
+    let lastChatBgUrl = null;
+    let chatBgRaf = null;
+    function scheduleChatBackground() {
+      if (chatBgRaf) return;
+      chatBgRaf = requestAnimationFrame(() => { chatBgRaf = null; applyChatBackground(); });
+    }
+    function applyChatBackground(force = false) {
+      const wrap = document.getElementById('chatBackgroundWrap');
+      const layer = document.getElementById('chatBackgroundLayer');
+      if (!wrap || !layer) return;
+      const active = getActiveScenario();
+      const textMode = !!active && active.viewMode !== 'vn';
+      const backdropBtn = document.getElementById('topBackdropBtn');
+      if (backdropBtn) { backdropBtn.classList.toggle('hidden', !textMode); backdropBtn.classList.toggle('flex', textMode); }
+      if (!textMode) {
+        wrap.classList.add('hidden');
+        if (document.getElementById('backdropPopover') && !document.getElementById('backdropPopover').classList.contains('hidden')) closeTopPopovers();
+        // music keeps following the scene in VN mode via renderVnTurn
+        return;
+      }
+      applyVnMusic(active);
+      const url = appState.chatBgEnabled === false ? '' : getCurrentBackdropUrl(active);
+      if (!url) { wrap.classList.add('hidden'); lastChatBgUrl = null; return; }
+      wrap.classList.remove('hidden');
+      const blur = Math.max(0, Math.min(30, Number(appState.chatBgBlur ?? 8) || 0));
+      layer.style.filter = `blur(${blur}px)`;
+      if (force || url !== lastChatBgUrl) {
+        layer.style.backgroundImage = `url('${url}')`;
+        if (url !== lastChatBgUrl) { layer.classList.remove('chat-bg-fade'); void layer.offsetWidth; layer.classList.add('chat-bg-fade'); }
+        lastChatBgUrl = url;
+      }
+    }
+
+    function getCurrentMusicInfo(active) {
+      const auto = (active.musicAutoSelect !== false) ? pickAutoMusic(active) : null;
+      const pinned = active.manualVnMusic || '';
+      const url = (auto && auto.url) || pinned || '';
+      const entry = (active.musicLibrary || []).find(e => e.url === url) || null;
+      return { url, entry, mode: auto && auto.url ? 'scene match' : (pinned ? 'pinned' : 'none') };
+    }
+
+    function closeTopPopovers() {
+      document.getElementById('musicPopover')?.classList.add('hidden');
+      document.getElementById('backdropPopover')?.classList.add('hidden');
+    }
+    function toggleTopPopover(which) {
+      const pop = document.getElementById(which === 'music' ? 'musicPopover' : 'backdropPopover');
+      if (!pop) return;
+      const open = pop.classList.contains('hidden');
+      closeTopPopovers();
+      closeTrackerPopovers();
+      if (!open) return;
+      if (which === 'music') renderMusicPopover(); else renderBackdropPopover();
+      pop.classList.remove('hidden');
+    }
+    document.addEventListener('click', e => {
+      const path = e.composedPath ? e.composedPath() : [];
+      const ids = ['musicPopover', 'topMusicBtn', 'backdropPopover', 'topBackdropBtn'];
+      if (ids.some(id => path.includes(document.getElementById(id)))) return;
+      closeTopPopovers();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTopPopovers(); });
+
+    function renderTopMusicUi() {
+      const btn = document.getElementById('topMusicBtn');
+      if (btn) {
+        btn.textContent = appState.musicMuted ? '🔇' : '🎵';
+        btn.title = appState.musicMuted ? 'Background music is muted (tap for controls)' : 'Background music';
+        btn.classList.toggle('text-amber-300', !!appState.musicMuted);
+      }
+      const pop = document.getElementById('musicPopover');
+      if (pop && !pop.classList.contains('hidden')) renderMusicPopover();
+    }
+    function renderMusicPopover() {
+      const pop = document.getElementById('musicPopover');
+      if (!pop) return;
+      const active = getActiveScenario();
+      const muted = !!appState.musicMuted;
+      const info = getCurrentMusicInfo(active);
+      const vol = Math.round(((typeof active.musicVolume === 'number') ? active.musicVolume : 0.5) * 100);
+      const libN = (active.musicLibrary || []).length;
+      const trackName = info.entry ? (info.entry.label || (info.entry.keywords || []).join(', ') || 'Untitled track') : '';
+      pop.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-zetaLight">🎵 Background music</span>
+          <button type="button" onclick="closeTopPopovers()" class="text-slate-400 hover:text-white text-sm leading-none px-1" aria-label="Close">✕</button>
+        </div>
+        <button type="button" onclick="toggleMusicMute()" class="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition active:scale-[0.98] ${muted ? 'bg-amber-500/15 border-amber-500/50 text-amber-100' : 'bg-zetaCard border-zetaBorder text-slate-100 hover:bg-zetaBorder'}">
+          <span class="text-xs font-semibold">${muted ? '🔇 Muted' : '🔊 Music on'}</span>
+          <span class="text-[10px] ${muted ? 'text-amber-200/80' : 'text-slate-400'}">${muted ? 'Paused -- play your own music. Tap to resume.' : 'Tap to mute'}</span>
+        </button>
+        <div class="rounded-xl bg-zetaCard border border-zetaBorder px-2.5 py-2">
+          <div class="text-[10px] uppercase tracking-wide text-slate-500">Now playing</div>
+          <div class="text-xs font-semibold text-white truncate">${info.url ? escapeHtml(trackName || 'Selected track') : 'Nothing selected'}</div>
+          <div class="text-[10px] text-slate-400">${info.url ? (muted ? 'Paused (muted) · ' : '') + info.mode : (libN ? 'No track matches this scene yet' : 'Your music library is empty')}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-[11px] text-slate-400 shrink-0" for="topMusicVolume">Volume</label>
+          <input type="range" id="topMusicVolume" min="0" max="100" value="${vol}" oninput="setMusicVolume(this.value); document.getElementById('topMusicVolumeLabel').textContent=this.value+'%'" class="flex-1 accent-zetaAccent" />
+          <span id="topMusicVolumeLabel" class="text-[10px] text-slate-400 w-8 text-right">${vol}%</span>
+        </div>
+        <label class="flex items-center gap-2 text-[11px] text-slate-300 select-none"><input type="checkbox" ${active.musicAutoSelect !== false ? 'checked' : ''} onchange="setMusicAutoSelect(this.checked)" class="accent-[#7c5cff]" /> Pick tracks to match the scene</label>
+        <button type="button" onclick="closeTopPopovers(); openMusicLibraryModal()" class="w-full px-2 py-1.5 rounded-lg text-[11px] font-medium border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder">🎼 Music library${libN ? ` (${libN})` : ''}</button>`;
+    }
+    function toggleMusicMute() {
+      appState.musicMuted = !appState.musicMuted;
+      saveState();
+      applyVnMusic(getActiveScenario());
+      renderTopMusicUi();
+    }
+
+    function renderBackdropPopover() {
+      const pop = document.getElementById('backdropPopover');
+      if (!pop) return;
+      const active = getActiveScenario();
+      const url = getCurrentBackdropUrl(active);
+      const on = appState.chatBgEnabled !== false;
+      const blur = Math.max(0, Math.min(30, Number(appState.chatBgBlur ?? 8) || 0));
+      pop.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-zetaLight">🖼️ Chat background</span>
+          <button type="button" onclick="closeTopPopovers()" class="text-slate-400 hover:text-white text-sm leading-none px-1" aria-label="Close">✕</button>
+        </div>
+        <label class="flex items-center gap-2 text-[11px] text-slate-300 select-none"><input type="checkbox" ${on ? 'checked' : ''} onchange="setChatBgEnabled(this.checked)" class="accent-[#7c5cff]" /> Show the backdrop behind the text chat</label>
+        <div class="${on ? '' : 'opacity-50 pointer-events-none'}">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1"><label for="chatBgBlurSlider">Blur</label><span id="chatBgBlurLabel">${blur}px</span></div>
+          <input type="range" id="chatBgBlurSlider" min="0" max="30" step="1" value="${blur}" oninput="previewChatBgBlur(this.value)" onchange="commitChatBgBlur()" class="w-full accent-zetaAccent" />
+        </div>
+        ${url ? `<div class="h-16 rounded-xl border border-zetaBorder bg-cover bg-center" style="background-image:url('${url}')"></div>` : '<p class="text-[11px] text-slate-400 leading-snug">No backdrop yet. Add images to the backdrop library, or generate a scene image, and it will show up here.</p>'}
+        <p class="text-[10px] text-slate-500 leading-snug">Uses the same backdrop as the VN stage: a scene-matched library image first, then your pinned or generated backdrop, then the cover. Only affects text chat.</p>
+        <button type="button" onclick="closeTopPopovers(); openBackdropLibraryModal()" class="w-full px-2 py-1.5 rounded-lg text-[11px] font-medium border bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder">🖼️ Backdrop library</button>`;
+    }
+    function setChatBgEnabled(on) {
+      appState.chatBgEnabled = !!on;
+      saveState();
+      applyChatBackground(true);
+      renderBackdropPopover();
+    }
+    function previewChatBgBlur(v) {
+      appState.chatBgBlur = Math.max(0, Math.min(30, Number(v) || 0));
+      const lbl = document.getElementById('chatBgBlurLabel');
+      if (lbl) lbl.textContent = appState.chatBgBlur + 'px';
+      applyChatBackground();
+    }
+    function commitChatBgBlur() { saveState(); }
+
     function applyViewModeLayout() {
       const active = getActiveScenario();
       const chatContainer = document.getElementById('messagesContainer');
@@ -6088,6 +6259,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         vnContainer.classList.add('flex');
         viewModeIcon.innerText = '💬';
         viewModeText.innerText = 'Chat View';
+        applyChatBackground(true);
         
         const validTurns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider);
         currentVnIndex = Math.max(0, validTurns.length - 1);
@@ -6100,6 +6272,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         viewModeText.innerText = 'VN View';
         if (isVnAutoPlaying) toggleVnAutoPlay();
         renderMessages();
+        applyChatBackground(true);
       }
     }
 
@@ -11453,14 +11626,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const active = getActiveScenario();
       active.musicAutoSelect = !!checked;
       saveState();
-      if (active.viewMode === 'vn') renderVnTurn(false);
+      applyVnMusic(active);
+      renderTopMusicUi();
     }
 
     function setMusicVolume(value) {
       const active = getActiveScenario();
       active.musicVolume = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
       saveState();
-      if (active.viewMode === 'vn') renderVnTurn(false);
+      applyVnMusic(active);
     }
 
     // Shared by the Music Library modal's inline field and the 📍 stage
@@ -11470,6 +11644,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       active.currentLocation = String(value || '').trim();
       saveState();
       renderStoryTracker();
+      scheduleChatBackground();
       if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
@@ -11480,6 +11655,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       active.currentLocation = next.trim();
       await saveState();
       renderStoryTracker();
+      scheduleChatBackground();
       if (active.viewMode === 'vn') renderVnTurn(false);
     }
 
@@ -11570,8 +11746,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const start = performance.now();
       const clampedTo = Math.max(0, Math.min(1, toVolume));
       function step(now) {
-        const t = Math.min(1, (now - start) / ms);
-        el.volume = from + (clampedTo - from) * t;
+        const t = Math.max(0, Math.min(1, (now - start) / ms));
+        el.volume = Math.max(0, Math.min(1, from + (clampedTo - from) * t));
         if (t < 1) {
           vnMusicFadeRAF = requestAnimationFrame(step);
         } else {
@@ -11587,6 +11763,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // renderVnTurn() alongside the backdrop pick — same trigger point, same
     // pinned > auto-selected precedence pattern.
     let currentVnMusicUrl = '';
+    let vnMusicSwapping = false;   // true while the old track fades out before the new one starts
     function applyVnMusic(active) {
       const player = document.getElementById('vnMusicPlayer');
       if (!player) return;
@@ -11595,11 +11772,28 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const nextUrl = (autoEntry && autoEntry.url) || pinnedUrl || '';
       const targetVol = (typeof active.musicVolume === 'number') ? active.musicVolume : 0.5;
 
+      // Top-bar mute: stop (pause, not just silence) so the page gives up the
+      // audio session and the user's own music player is left alone. The
+      // remembered URL is cleared so unmuting starts the right track fresh.
+      if (appState.musicMuted) {
+        if (vnMusicFadeRAF) { cancelAnimationFrame(vnMusicFadeRAF); vnMusicFadeRAF = null; }
+        try { player.pause(); } catch (e) {}
+        currentVnMusicUrl = '';
+        vnMusicSwapping = false;
+        return;
+      }
+
       if (nextUrl === currentVnMusicUrl) {
+        if (vnMusicSwapping) return;   // a track change is mid-crossfade; don't cancel it
         // Nothing changed track-wise — still keep volume in sync with the
-        // slider (e.g. the user just dragged it) without restarting.
-        if (!player.paused) fadeVnMusicElement(player, targetVol, 300);
-        else player.volume = targetVol;
+        // slider (e.g. the user just dragged it) without restarting. If the
+        // browser blocked autoplay earlier, retry now (this runs on every
+        // render, and many of those follow a tap).
+        if (!player.paused) { if (Math.abs(player.volume - targetVol) > 0.02) fadeVnMusicElement(player, targetVol, 300); }
+        else {
+          player.volume = targetVol;
+          if (nextUrl) { const rp = player.play(); if (rp && typeof rp.catch === 'function') rp.catch(() => {}); }
+        }
         return;
       }
       currentVnMusicUrl = nextUrl;
@@ -11610,6 +11804,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       }
 
       const swapAndPlay = () => {
+        vnMusicSwapping = false;
         player.src = nextUrl;
         player.volume = 0;
         // Autoplay can be blocked before the user has interacted with the
@@ -11622,6 +11817,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         fadeVnMusicElement(player, targetVol, 700);
       };
       if (!player.paused && player.volume > 0.02) {
+        vnMusicSwapping = true;
         fadeVnMusicElement(player, 0, 450, swapAndPlay);
       } else {
         swapAndPlay();
@@ -13117,6 +13313,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // Everything that should react to a clock/place/weather change.
     function afterClockChange(active) {
       renderStoryTracker();
+      scheduleChatBackground();
       if (active && active.viewMode === 'vn') renderVnTurn(false);
     }
 
@@ -16527,7 +16724,7 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       }
       if(messageSearchQuery&&explicitIndices?.length){const first=document.getElementById(`msg-${explicitIndices[0]}`);if(first)first.scrollIntoView({block:'center'});}
     }
-    function renderMessages(){renderVirtualMessages(true);}
+    function renderMessages(){renderVirtualMessages(true);scheduleChatBackground();}
 
     // getSpriteBackgroundWorker()/spriteWorkerPromise were removed here during
     // an audit pass — a cached-worker variant that duplicated the exact worker
