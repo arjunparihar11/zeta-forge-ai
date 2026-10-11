@@ -575,20 +575,21 @@
           <span id="trackerClockIcon" class="shrink-0 text-sm leading-none">🕒</span><span id="trackerClockText" class="whitespace-nowrap">Set day &amp; time</span><span class="text-[10px] text-zetaGlow shrink-0">▾</span>
         </button>
       </div>
-      <!-- Row B: three equal-width tool buttons spanning the same width as row A, so both rows share left/right edges -->
-      <div class="flex items-stretch gap-1.5 sm:gap-2 min-w-0 mt-1.5">
-        <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" class="relative flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Story calendar &amp; events">
-          <span class="shrink-0 text-sm leading-none">📅</span><span class="truncate">Calendar</span><span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
-        </button>
-        <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" class="flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Background music">
-          <span id="topMusicIcon" class="shrink-0 text-sm leading-none">🎵</span><span class="truncate">Music</span>
-        </button>
-        <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" class="hidden flex-1 min-w-0 h-8 px-2 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center gap-1.5 text-xs font-medium text-slate-200 shadow-sm transition active:scale-95" title="Chat background">
-          <span class="shrink-0 text-sm leading-none">🖼️</span><span class="truncate">Backdrop</span>
-        </button>
+      <!-- Row B: caption (day / weather / season) fills the left, the three tool buttons sit on the right in the remaining space -->
+      <div id="trackerToolsRow" class="flex items-center gap-1.5 sm:gap-2 min-w-0 mt-1.5">
+        <div id="trackerStoryDay" class="flex-1 min-w-0 px-1 text-[11px] leading-tight text-slate-400 line-clamp-2"></div>
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
+          <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" aria-label="Story calendar" class="relative h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Story calendar &amp; events">
+            <span>📅</span><span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
+          </button>
+          <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" aria-label="Background music" class="h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Background music">
+            <span id="topMusicIcon">🎵</span>
+          </button>
+          <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" aria-label="Chat background" class="hidden h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Chat background">
+            <span>🖼️</span>
+          </button>
+        </div>
       </div>
-      <!-- Caption: day / weather / season. Collapses completely when empty. -->
-      <div id="trackerStoryDay" class="px-1 mt-1.5 text-[11px] leading-tight text-slate-400 truncate empty:hidden"></div>
       <!-- Row C (only when needed): AI scene suggestion + clock undo. Children carry their own top margin so the row takes no space while both are hidden. -->
       <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
         <span id="trackerSuggestion" class="hidden mt-1.5 h-8 pl-3 pr-1 rounded-xl bg-[#2a223c] border border-zetaAccent/60 text-zetaLight text-xs flex items-center gap-1.5 min-w-0 max-w-full">
@@ -836,6 +837,9 @@
               <button onclick="openBackdropLibraryModal()" id="vnBackdropLibraryBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Manage your backdrop library and keywords">
                 <span>📂</span> <span class="hidden sm:inline">Library</span>
               </button>
+              <button onclick="openCalendarModal()" id="vnCalendarBtn" class="relative bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Story calendar &amp; events">
+                <span>📅</span> <span class="hidden sm:inline">Calendar</span><span id="vnCalendarBadge" class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
+              </button>
               <button onclick="openMusicLibraryModal()" id="vnMusicLibraryBtn" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder text-xs px-2.5 py-1.5 rounded-xl font-medium flex items-center gap-1 transition active:scale-95 shadow" title="Manage your background music library">
                 <span>🎵</span> <span class="hidden sm:inline">Music</span>
               </button>
@@ -1082,6 +1086,10 @@
         <div class="flex items-center gap-2">
           <label class="text-[10px] text-slate-400 shrink-0" for="musicVolumeSlider">🔊 Volume:</label>
           <input type="range" id="musicVolumeSlider" min="0" max="100" value="50" oninput="setMusicVolume(this.value)" class="flex-1 accent-zetaAccent" />
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="musicMuteBtn" onclick="toggleMusicMute()" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-xs text-slate-200 transition active:scale-95">🔇 Mute</button>
+          <span class="text-[10px] text-slate-500 leading-snug">Pauses background music so you can play your own.</span>
         </div>
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
@@ -6134,7 +6142,25 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       if (chatBgRaf) return;
       chatBgRaf = requestAnimationFrame(() => { chatBgRaf = null; applyChatBackground(); });
     }
+    // Top-bar tool buttons depend on the view: in VN Stage the stage bar already
+    // has Music (library) and now Calendar, so the top-bar copies are hidden to
+    // avoid duplicates; in text chat the top bar carries them.
+    function syncTrackerToolButtons() {
+      const active = getActiveScenario();
+      const isVn = !!active && active.viewMode === 'vn';
+      ['trackerCalendarBtn', 'topMusicBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', isVn); });
+      const day = document.getElementById('trackerStoryDay');
+      const row = document.getElementById('trackerToolsRow');
+      // In VN there are no buttons left in this row (backdrop is text-mode only), so drop the row when it has no caption either.
+      if (row) row.classList.toggle('hidden', isVn && !(day && day.textContent.trim()));
+      if (isVn && typeof closeTopPopovers === 'function') {
+        const mp = document.getElementById('musicPopover');
+        if (mp && !mp.classList.contains('hidden')) closeTopPopovers();
+      }
+    }
+
     function applyChatBackground(force = false) {
+      syncTrackerToolButtons();
       const wrap = document.getElementById('chatBackgroundWrap');
       const layer = document.getElementById('chatBackgroundLayer');
       if (!wrap || !layer) return;
@@ -6198,6 +6224,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         btn.title = appState.musicMuted ? 'Background music is muted (tap for controls)' : 'Background music';
         btn.classList.toggle('text-amber-300', !!appState.musicMuted);
       }
+      const muteBtn = document.getElementById('musicMuteBtn');
+      if (muteBtn) { muteBtn.textContent = appState.musicMuted ? '🔊 Unmute' : '🔇 Mute'; muteBtn.classList.toggle('text-amber-300', !!appState.musicMuted); }
       const pop = document.getElementById('musicPopover');
       if (pop && !pop.classList.contains('hidden')) renderMusicPopover();
     }
@@ -13431,7 +13459,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const btn = document.getElementById('trackerClockBtn');
       if (btn) btn.title = c.set ? `${describeClock(c)} -- tap to skip ahead or change` : 'Tap to set the story day and time';
       const calBtn = document.getElementById('trackerCalendarBtn');
-      if (calBtn) { const n = getCalendar(active).length; const badge = calBtn.querySelector('span:last-child'); badge.textContent = n ? String(n) : ''; badge.classList.toggle('hidden', !n); }
+      if (calBtn) { const n = getCalendar(active).length; const badge = calBtn.querySelector('span:last-child'); badge.textContent = n ? String(n) : ''; badge.classList.toggle('hidden', !n); const vb = document.getElementById('vnCalendarBadge'); if (vb) { vb.textContent = n ? String(n) : ''; vb.classList.toggle('hidden', !n); } }
+      syncTrackerToolButtons();
       // AI-suggested update chip
       const sug = document.getElementById('trackerSuggestion');
       if (sug) {
