@@ -575,21 +575,6 @@
           <span id="trackerClockIcon" class="shrink-0 text-sm leading-none">🕒</span><span id="trackerClockText" class="whitespace-nowrap">Set day &amp; time</span><span class="text-[10px] text-zetaGlow shrink-0">▾</span>
         </button>
       </div>
-      <!-- Row B: caption (day / weather / season) fills the left, the three tool buttons sit on the right in the remaining space -->
-      <div id="trackerToolsRow" class="flex items-center gap-1.5 sm:gap-2 min-w-0 mt-1.5">
-        <div id="trackerStoryDay" class="flex-1 min-w-0 px-1 text-[11px] leading-tight text-slate-400 line-clamp-2"></div>
-        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
-          <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" aria-label="Story calendar" class="relative h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Story calendar &amp; events">
-            <span>📅</span><span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
-          </button>
-          <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" aria-label="Background music" class="h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder flex items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Background music">
-            <span id="topMusicIcon">🎵</span>
-          </button>
-          <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" aria-label="Chat background" class="hidden h-8 w-8 rounded-xl bg-zetaCard hover:bg-zetaBorder border border-zetaBorder items-center justify-center text-sm leading-none text-slate-200 shadow-sm transition active:scale-95" title="Chat background">
-            <span>🖼️</span>
-          </button>
-        </div>
-      </div>
       <!-- Row C (only when needed): AI scene suggestion + clock undo. Children carry their own top margin so the row takes no space while both are hidden. -->
       <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
         <span id="trackerSuggestion" class="hidden mt-1.5 h-8 pl-3 pr-1 rounded-xl bg-[#2a223c] border border-zetaAccent/60 text-zetaLight text-xs flex items-center gap-1.5 min-w-0 max-w-full">
@@ -604,8 +589,6 @@
       <div id="clockPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(23rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
       <div id="locationPopover" class="hidden absolute left-2.5 sm:left-4 top-full mt-1 w-[min(20rem,calc(100vw-1.25rem))] max-h-[70vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
     </div>
-    <div id="musicPopover" class="hidden absolute right-2.5 sm:right-4 top-full mt-1 w-[min(21rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
-    <div id="backdropPopover" class="hidden absolute right-2.5 sm:right-4 top-full mt-1 w-[min(21rem,calc(100vw-1.25rem))] max-h-[75vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
   </header>
 
   <!-- Main Viewport -->
@@ -781,6 +764,26 @@
       <!-- Text-chat background (same backdrop the VN stage uses, blurred) -->
       <div id="chatBackgroundWrap" class="hidden"><div id="chatBackgroundLayer"></div><div id="chatBackgroundDim"></div></div>
       
+      <!-- Chat scene bar (text mode): caption + tool buttons, styled like the VN stage's top bar so it reads as part of the chat area, not the app header -->
+      <div id="trackerToolsRow" class="relative z-20 shrink-0 px-3 sm:px-6 pt-2.5 max-w-4xl mx-auto w-full" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between gap-2 min-w-0">
+          <div id="trackerStoryDay" class="min-w-0 max-w-full bg-[#1a1622]/80 border border-zetaBorder text-slate-300 text-xs px-2.5 py-1.5 rounded-xl shadow truncate empty:hidden"></div>
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+            <button type="button" onclick="openCalendarModal()" id="trackerCalendarBtn" aria-label="Story calendar" class="relative bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder h-8 w-8 rounded-xl flex items-center justify-center text-sm leading-none shadow transition active:scale-95" title="Story calendar &amp; events">
+              <span>📅</span><span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full bg-zetaAccent text-white text-[9px] font-semibold leading-[14px] text-center hidden"></span>
+            </button>
+            <button type="button" onclick="toggleTopPopover('music')" id="topMusicBtn" aria-label="Background music" class="bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder h-8 w-8 rounded-xl flex items-center justify-center text-sm leading-none shadow transition active:scale-95" title="Background music">
+              <span id="topMusicIcon">🎵</span>
+            </button>
+            <button type="button" onclick="toggleTopPopover('backdrop')" id="topBackdropBtn" aria-label="Chat background" class="hidden bg-[#1a1622]/80 hover:bg-zetaCard text-slate-200 border border-zetaBorder h-8 w-8 rounded-xl items-center justify-center text-sm leading-none shadow transition active:scale-95" title="Chat background">
+              <span>🖼️</span>
+            </button>
+          </div>
+        </div>
+        <div id="musicPopover" class="hidden absolute right-3 sm:right-6 top-full mt-1 w-[min(21rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
+        <div id="backdropPopover" class="hidden absolute right-3 sm:right-6 top-full mt-1 w-[min(21rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl z-50 p-3 space-y-3"></div>
+      </div>
+
       <!-- MODE A: Standard Chat Messages Container -->
       <div id="messageSearchBar" class="hidden px-3 sm:px-6 pt-2 max-w-4xl mx-auto w-full shrink-0">
         <div class="flex items-center gap-2"><input id="messageSearchInput" type="search" placeholder="🔎 Search current history by speaker or keyword..." oninput="filterMessageArchive(this.value)" class="flex-1 bg-zetaInput border border-zetaBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-zetaAccent" /><button type="button" id="globalSearchToggle" onclick="toggleGlobalSearchMode()" class="shrink-0 text-[10px] bg-zetaCard border border-zetaBorder text-slate-300 px-2 py-1.5 rounded-lg hover:border-zetaAccent transition">📄 This scenario</button><button onclick="toggleMessageSearch(false)" class="text-[10px] text-slate-500 hover:text-white">Close</button></div>
