@@ -332,20 +332,13 @@
       padding-top: env(safe-area-inset-top, 12px);
     }
 
-    /* Text-chat "floating top bars": the header and the scene row lose their solid
-       background and sit over the chat, so messages scroll visibly BETWEEN the
-       buttons and only the pills themselves cover them. JS (syncChatOverlay)
-       measures the header/row and sets --zf-hdr-h / --zf-row-h. */
-    body.chat-overlay header { background: transparent !important; background-color: transparent !important; border-bottom-color: transparent !important; box-shadow: none !important; pointer-events: none; }
-    body.chat-overlay header :is(button, a, input, select, textarea, label, [onclick], [id$="Popover"]) { pointer-events: auto; }
-    body.chat-overlay header #headerScenarioTitle,
-    body.chat-overlay header h1, body.chat-overlay header h2 { text-shadow: 0 1px 6px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.8); }
-    body.chat-overlay #appContentRow { margin-top: calc(-1 * var(--zf-hdr-h, 0px)); }
-    body.chat-overlay #trackerToolsRow { position: absolute; top: var(--zf-hdr-h, 0px); left: 0; right: 0; margin-left: auto; margin-right: auto; pointer-events: none; }
+    /* Text chat: the header (title + location/clock rows) stays solid; only the scene row
+       (caption + calendar/music/backdrop) floats over the chat so messages scroll visibly
+       between its pills. JS (syncChatOverlay) measures the row into --zf-row-h. */
+    body.chat-overlay #trackerToolsRow { position: absolute; top: 0; left: 0; right: 0; margin-left: auto; margin-right: auto; pointer-events: none; }
     body.chat-overlay #trackerToolsRow :is(button, [id$="Popover"]) { pointer-events: auto; }
-    body.chat-overlay #messageSearchBar { position: absolute; top: calc(var(--zf-hdr-h, 0px) + var(--zf-row-h, 0px)); left: 0; right: 0; margin-left: auto; margin-right: auto; z-index: 20; background: rgba(19,17,24,.92); padding-bottom: .25rem; }
-    body.chat-overlay #messagesContainer { padding-top: calc(var(--zf-hdr-h, 0px) + var(--zf-row-h, 0px) + .75rem); }
-    @media (min-width: 768px) { body.chat-overlay #sidebar { padding-top: var(--zf-hdr-h, 0px); } }
+    body.chat-overlay #messageSearchBar { position: absolute; top: var(--zf-row-h, 0px); left: 0; right: 0; margin-left: auto; margin-right: auto; z-index: 20; background: rgba(19,17,24,.92); padding-bottom: .25rem; }
+    body.chat-overlay #messagesContainer { padding-top: calc(var(--zf-row-h, 0px) + .75rem); }
 
     .bottom-safe {
       padding-bottom: env(safe-area-inset-bottom, 8px);
@@ -607,7 +600,7 @@
   </header>
 
   <!-- Main Viewport -->
-  <div id="appContentRow" class="flex-1 flex overflow-hidden relative min-h-0">
+  <div class="flex-1 flex overflow-hidden relative min-h-0">
 
     <div id="mobileBackdrop" onclick="closeAllDrawers()" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity backdrop-blur-xs"></div>
 
@@ -6530,22 +6523,19 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     // Top-bar tool buttons depend on the view: in VN Stage the stage bar already
     // has Music (library) and now Calendar, so the top-bar copies are hidden to
     // avoid duplicates; in text chat the top bar carries them.
-    // Floating top bars in text chat (see the body.chat-overlay CSS): measure the header and scene row.
+    // Floating scene row in text chat (see the body.chat-overlay CSS): measure the row.
     function syncChatOverlay() {
       const body = document.getElementById('appBody');
       if (!body) return;
       const active = getActiveScenario();
       const on = !!active && active.viewMode !== 'vn';
       body.classList.toggle('chat-overlay', on);
-      const header = document.querySelector('body > header');
       const row = document.getElementById('trackerToolsRow');
       const root = document.documentElement.style;
-      root.setProperty('--zf-hdr-h', (on && header ? header.offsetHeight : 0) + 'px');
       root.setProperty('--zf-row-h', (on && row ? row.offsetHeight : 0) + 'px');
-      if (!syncChatOverlay._ro && typeof ResizeObserver === 'function' && header) {
+      if (!syncChatOverlay._ro && typeof ResizeObserver === 'function' && row) {
         syncChatOverlay._ro = new ResizeObserver(() => syncChatOverlay());
-        syncChatOverlay._ro.observe(header);
-        if (row) syncChatOverlay._ro.observe(row);
+        syncChatOverlay._ro.observe(row);
         window.addEventListener('resize', () => syncChatOverlay());
       }
     }
