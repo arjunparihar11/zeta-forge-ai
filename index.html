@@ -1440,6 +1440,11 @@
           <textarea id="spotlightEditPersona" rows="3" placeholder="Personality, motivations, history, lore important to the story..." oninput="autoSaveSpotlightField('persona', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
         </div>
         <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">Stats &amp; abilities <span class="font-normal text-slate-500">(optional, sent to the AI every turn)</span></label>
+          <textarea id="spotlightEditStatusSheet" rows="3" placeholder="One fact per line, e.g.&#10;Species: Eevee&#10;Level: 12&#10;Moves: Tackle, Sand Attack, Bite" oninput="autoSaveSpotlightField('statusSheet', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent resize-none"></textarea>
+          <button type="button" id="spotlightRevertChapterUpdate" onclick="revertCharacterChapterUpdate(currentSpotlightCharName)" class="hidden text-[10px] text-zetaGlow hover:underline">Undo the last chapter-end update to this character</button>
+        </div>
+        <div class="space-y-1">
           <label class="text-[11px] font-semibold text-slate-400">Visual Profile</label>
           <textarea id="spotlightEditVisualProfile" rows="3" placeholder="Hair, eyes, face, body, clothing, physical traits... Used for visual generation." oninput="autoSaveSpotlightField('visualProfile', this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
         </div>
@@ -1459,6 +1464,7 @@
           <label class="text-[11px] font-semibold text-slate-400">Weekly routine <span class="font-normal text-slate-500">(used with the story clock)</span></label>
           <textarea id="spotlightEditSchedule" rows="3" placeholder="One per line, e.g.&#10;weekdays 9am-5pm Pokémon Center&#10;sat,sun 10:00-14:00 City Park&#10;daily 10pm-6am Home" oninput="autoSaveSpotlightField('schedule', this.value); refreshSpotlightSchedulePreview()" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white focus:border-zetaAccent"></textarea>
           <p id="spotlightSchedulePreview" class="text-[10px] text-slate-500"></p>
+          <button type="button" id="spotlightReleaseStory" onclick="releaseStoryLocation(currentSpotlightCharName)" class="hidden text-[10px] text-zetaGlow hover:underline">Release from the story location (use their routine again)</button>
         </div>
         <div class="space-y-1"><label class="text-[11px] font-semibold text-slate-400">Voice</label><button type="button" id="spotlightVoiceLabBtn" onclick="openVoiceLab('spotlight')" class="w-full bg-zetaInput border border-zetaBorder rounded-lg p-2 text-xs text-white text-left hover:border-zetaAccent transition">🎙️ Voice Off — Voice Lab</button></div>
         <p class="text-[10px] text-slate-500 border-t border-zetaBorder pt-2">Changes save automatically while typing.</p>
@@ -1623,6 +1629,19 @@
               <option value="120000" selected>120k Tokens (~600 Raw Turns - Optimal)</option>
               <option value="180000">180k Tokens (~900+ Raw Turns - Max Raw)</option>
             </select>
+          </div>
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="chapterEndPromptsToggle" class="w-4 h-4 mt-0.5 accent-zetaAccent" />
+            <span><span class="block font-semibold text-slate-200">Offer to end a chapter when its plot is finished</span><span class="block text-[10px] text-slate-500 leading-snug">Works with Plot Points set to "Start at Chapter #". The AI is told what the current chapter is planned around and can flag when it is done. You then get a small card with End chapter or Not yet. It never ends a chapter by itself.</span></span>
+          </label>
+ <div>
+            <label class="block font-semibold text-slate-200 mb-1">Character updates at chapter end</label>
+            <select id="chapterCharUpdatesSelect" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white focus:border-zetaAccent">
+              <option value="review" selected>Ask me first (recommended)</option>
+              <option value="auto">Apply automatically</option>
+              <option value="off">Off</option>
+            </select>
+            <p class="text-[10px] text-slate-500 leading-snug mt-1">After a chapter ends, the AI may propose a few lasting changes to a character's look, personality or stats (a new scar, an evolution, a new move). At most 5 per chapter and 3 per character. Costs one extra model call per chapter, and only when the chapter text mentions something that could qualify.</p>
           </div>
           <label class="flex items-start gap-2.5 cursor-pointer select-none">
             <input type="checkbox" id="showMicButtonToggle" class="w-4 h-4 mt-0.5 accent-zetaAccent" />
@@ -3058,6 +3077,8 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       model: MODEL_ROUTINE_DEFAULT,
       temperature: 0.85,
       tokenThreshold: 120000,
+      chapterEndPrompts: true,        // offer to end a chapter when its planned (chapter-gated) plot arcs are finished
+      chapterCharUpdates: 'review',   // 'review' | 'auto' | 'off': end-of-chapter character sheet updates
       removeSpriteSheetBackground: true,
       themeMode: 'dark',
       accentColor: '#7c65e8',
@@ -6779,6 +6800,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
                 <option value="chapter" ${isChapterMode ? 'selected' : ''}>Start at Chapter #</option>
               </select>
               ${isChapterMode ? `<input type="number" min="1" step="1" value="${Number(arc.chapter) || 1}" oninput="getActiveScenario().plotArcs[${index}].chapter = Math.max(1, parseInt(this.value)||1); saveState()" class="w-16 bg-zetaInput border border-slate-700 rounded px-2 py-1 text-[11px] text-white" />` : ''}
+              ${isChapterMode ? `<span class="text-[10px] text-slate-500">The AI can offer to end this chapter once this plot has played out.</span>` : ''}
             </div>
           </div>`;
       }).join('');
@@ -7505,6 +7527,8 @@ All 16 sprites must be generated on a single clean image with a fully transparen
         document.getElementById('spotlightEditMood').value = charObj.mood || 'Neutral';
         document.getElementById('spotlightEditPersona').value = getCharacterPersona(charObj);
         document.getElementById('spotlightEditVisualProfile').value = getCharacterVisualProfile(charObj);
+        document.getElementById('spotlightEditStatusSheet').value = charObj.statusSheet || '';
+        refreshChapterUpdateRevertButton();
         const outfitSelect = document.getElementById('spotlightEditOutfit');
         outfitSelect.innerHTML = `<option value="">No specific outfit</option>` + getCharacterOutfits(charObj).map(o => `<option value="${escapeHtml(o.id)}" ${charObj.currentOutfitId === o.id ? 'selected' : ''}>${escapeHtml(o.name || 'Outfit')}</option>`).join('');
         document.getElementById('spotlightEditRelationship').value = charObj.relationship || '';
@@ -7531,13 +7555,17 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       if (!ch) { el.textContent = ''; return; }
       const n = parseScheduleText(ch.schedule).length;
       const total = String(ch.schedule || '').split('\n').filter(l => l.trim()).length;
-      const c = getWorldClock(getActiveScenario());
-      const w = getCharacterWhereabouts(ch, c);
+      const activeSc = getActiveScenario();
+      const c = getWorldClock(activeSc);
+      const w = getCharacterWhereabouts(ch, c, activeSc);
       const parts = [];
       if (total) parts.push(`${n} of ${total} line${total === 1 ? '' : 's'} understood`);
-      if (c.set) parts.push(w ? `right now: ${w.place}` : 'right now: no routine matches');
+      if (w && w.story) parts.push(`right now: ${w.place} (${w.withUser ? 'with you, ' : ''}from the story)`);
+      else if (c.set) parts.push(w ? `right now: ${w.place}` : 'right now: no routine matches');
       else if (total) parts.push('set the story clock to use routines');
       el.textContent = parts.join(' · ');
+      const rel = document.getElementById('spotlightReleaseStory');
+      if (rel) rel.classList.toggle('hidden', !(w && w.story));
     }
     // Called on input from each spotlight edit field. Writes the value onto the character at once
     // and saves 500 ms after the last keystroke. The persona field also mirrors into personality.
@@ -8958,6 +8986,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
     async function switchScenario(id) {
       const target = appState.scenarios.find(s => s.id === id);
       if (!target) return;
+      document.getElementById('chapterEndCard')?.remove();
 
       if (id === appState.activeScenarioId) {
         toggleMenuDrawer(false);
@@ -9608,6 +9637,7 @@ Rules:
                   <div class="flex items-center gap-1.5">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
                     <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 rounded font-medium">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                    ${storyLocationBadge(member)}
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -9651,6 +9681,7 @@ Rules:
                   <div class="flex items-center gap-1.5 min-w-0">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
                     <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 rounded font-medium shrink-0">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                    ${storyLocationBadge(member)}
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -13341,6 +13372,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // button (editVnLocationTag, below) — either one updates the same tag.
     function updateLocationTagFromModal(value) {
       const active = getActiveScenario();
+      pinStoryLocationsBeforeMove(active, String(value || '').trim());
       active.currentLocation = String(value || '').trim();
       saveState();
       renderStoryTracker();
@@ -13353,6 +13385,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const active = getActiveScenario();
       const next = await zfPrompt('Where are the characters right now? The AI is told this location every turn, and it is weighted heavily when auto-selecting a backdrop and music (e.g. "Tavern", "Dark Forest", "Spaceship Bridge"). Leave it blank to clear it.', active.currentLocation || '', 'Set Location Tag');
       if (next === null) return;
+      pinStoryLocationsBeforeMove(active, next.trim());
       active.currentLocation = next.trim();
       await saveState();
       renderStoryTracker();
@@ -14196,6 +14229,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       document.getElementById('tempInput').value = appState.temperature || 0.85;
       document.getElementById('tempValue').innerText = appState.temperature || 0.85;
       document.getElementById('tokenThresholdSelect').value = appState.tokenThreshold || 120000;
+      { const ce = document.getElementById('chapterEndPromptsToggle'); if (ce) ce.checked = appState.chapterEndPrompts !== false; }
+      { const cu = document.getElementById('chapterCharUpdatesSelect'); if (cu) cu.value = ['review', 'auto', 'off'].includes(appState.chapterCharUpdates) ? appState.chapterCharUpdates : 'review'; }
       { const micTgl = document.getElementById('showMicButtonToggle'); if (micTgl) micTgl.checked = !!appState.showMicButton; }
       const profileSelect = document.getElementById('llmProfileSelect');
       if (profileSelect) { profileSelect.value = appState.llmProfile || 'gemini'; onLlmProfileSelectChange(profileSelect.value); }
@@ -14395,6 +14430,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       appState.model = document.getElementById('modelSelect').value;
       appState.temperature = parseFloat(document.getElementById('tempInput').value);
       appState.tokenThreshold = parseInt(document.getElementById('tokenThresholdSelect').value) || 120000;
+      { const ce = document.getElementById('chapterEndPromptsToggle'); if (ce) appState.chapterEndPrompts = ce.checked; }
+      { const cu = document.getElementById('chapterCharUpdatesSelect'); if (cu && ['review', 'auto', 'off'].includes(cu.value)) appState.chapterCharUpdates = cu.value; }
       { const micTgl = document.getElementById('showMicButtonToggle'); if (micTgl) { appState.showMicButton = micTgl.checked; initSpeechToTextUi(); } }
       appState.themeMode = appState.themeMode || 'dark';
       appState.accentColor = document.getElementById('accentColorPicker')?.value || appState.accentColor || '#7c65e8';
@@ -14880,12 +14917,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (emptyState) emptyState.remove();
 
       const active = getActiveScenario();
+      // Messages from this index onward belong to this reply (used by scanStoryPresence).
+      const storyScanFrom = active.messages.length;
 
       // Pull the optional [SCENE: place | time | weather] line out of the
       // reply before anything is shown, then offer/apply it to the tracker.
       const sceneExtract = extractSceneTags(replyBlocks);
       replyBlocks = sceneExtract.blocks;
       if (sceneExtract.tag) setTimeout(() => handleSceneTag(sceneExtract.tag), 0);
+      const chapterFlagged = sceneExtract.chapterDone;
 
       // The system prompt already tells the model never to speak/act as the
       // user's own persona, but it doesn't always listen -- this is the hard
@@ -15058,6 +15098,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       }
 
       active.activeChapterArcs = null;
+      // Who spoke or was named beside a known place in this reply.
+      scanStoryPresence(active, storyScanFrom);
+      // The AI flagged the chapter's planned events as finished.
+      const showChapterCard = chapterFlagged && chapterEndPromptAllowed(active);
       await saveState();
       renderMessages();
       // renderMessages() rebuilds the virtualized list (real nodes swapped for
@@ -15071,6 +15115,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         renderVnTurn(false);
         prefetchNextVnLine();
       }
+      if (showChapterCard && getActiveScenario() === active) showChapterEndCard(active);
       runBatchedBackgroundMaintenance();
     }
 
@@ -15143,7 +15188,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return chars.map(c => {
         const head = `- ${c.name}, role: ${c.role || 'Companion'}, currently feeling: ${c.mood || 'Neutral'}`;
         const rel = `Relationship to ${user}: ${c.relationship || 'Companion'}.`;
-        const persona = getCharacterPersona(c);
+        const persona = getCharacterPersona(c) + (c.statusSheet ? ` Stats: ${String(c.statusSheet).trim().replace(/\n+/g, '; ')}.` : '');
         return full.has(c.name)
           ? `${head}. ${clipText(persona, CAST_FULL_PERSONA_CHARS)} ${rel}`
           : `${head}. ${clipText(persona, CAST_COMPACT_PERSONA_CHARS)} ${rel.replace('Relationship to ', 'To ')}`;
@@ -15319,9 +15364,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     // ── Clock text parsing (for the AI's [SCENE] line) ───────────────────
     const SCENE_TAG_RE = /\[SCENE:\s*([^\]\n]*)\]/gi;
-    // Removes every [SCENE: ...] tag from text and tidies the blank lines left behind.
+    // The AI's flag that the chapter's planned events are finished (see buildChapterEndInstruction).
+    const CHAPTER_TAG_RE = /\[CHAPTER[_ ]COMPLETE\]/gi;
+    // Removes every [SCENE: ...] and [CHAPTER_COMPLETE] tag from text and tidies the blank lines left behind.
     function stripSceneTagText(text) {
-      return String(text || '').replace(SCENE_TAG_RE, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+      return String(text || '').replace(SCENE_TAG_RE, '').replace(CHAPTER_TAG_RE, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
     }
     // Time-of-day words to minutes after midnight. Order matters because the first
     // word found in the text wins, so "late night" must come before "night" and
@@ -15398,32 +15445,200 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         return { days, start, end, place: m[4].trim() };
       }).filter(Boolean);
     }
-    // Where a character is right now. A manual whereabouts note always wins.
-    // Otherwise the schedule is checked against the clock (a block that ends before
-    // it starts runs overnight into the next day). Returns { place, manual } or null.
-    function getCharacterWhereabouts(char, c) {
+    // Where a character is right now. Order of priority:
+    //   1. a manual whereabouts note,
+    //   2. where the story last put them (see getStoryLocation), when active is given,
+    //   3. the weekly schedule checked against the clock (a block that ends before
+    //      it starts runs overnight into the next day).
+    // Returns { place, manual, story, withUser } or null.
+    function getCharacterWhereabouts(char, c, active) {
       const manual = String(char.whereabouts || '').trim();
-      if (manual) return { place: manual, manual: true };
+      if (manual) return { place: manual, manual: true, story: false, withUser: false };
+      const st = active ? getStoryLocation(char, active) : null;
+      if (st) return { place: st.place, manual: false, story: true, withUser: st.withUser };
       if (!c || !c.set || !String(char.schedule || '').trim()) return null;
       const dow = clockDow(c), prev = (dow + 6) % 7, min = c.minutes;
       for (const e of parseScheduleText(char.schedule)) {
         const hit = e.start <= e.end
           ? (e.days.includes(dow) && min >= e.start && min < e.end)
           : ((e.days.includes(dow) && min >= e.start) || (e.days.includes(prev) && min < e.end));
-        if (hit) return { place: e.place, manual: false };
+        if (hit) return { place: e.place, manual: false, story: false, withUser: false };
       }
       return null;
     }
     // Prompt text listing up to 8 characters with a known location right now.
-    // Returns '' when nobody has one.
+    // Places the story set come first under their own heading, because they
+    // outrank the routine lines below them. Returns '' when nobody has one.
     function buildWhereaboutsText(active) {
       const c = active.worldClock;
-      const lines = (active.characters || []).map(ch => {
-        const w = getCharacterWhereabouts(ch, c);
-        return w ? `- ${ch.name}: ${clipText(w.place, 70)}${w.manual ? '' : ' (usual routine)'}` : '';
-      }).filter(Boolean).slice(0, 8);
-      if (!lines.length) return '';
-      return `Where people usually are right now (someone elsewhere should only appear if the scene brings them there):\n${lines.join('\n')}`;
+      const storyLines = [], routineLines = [];
+      (active.characters || []).forEach(ch => {
+        const w = getCharacterWhereabouts(ch, c, active);
+        if (!w) return;
+        if (w.story) storyLines.push(`- ${ch.name}: ${w.withUser ? 'with the user at ' : ''}${clipText(w.place, 70)}`);
+        else routineLines.push(`- ${ch.name}: ${clipText(w.place, 70)}${w.manual ? '' : ' (usual routine)'}`);
+      });
+      const parts = [];
+      let room = 8;
+      if (storyLines.length) {
+        const take = storyLines.slice(0, room); room -= take.length;
+        parts.push(`Where the story has put people (follow this, it outranks any routine):\n${take.join('\n')}`);
+      }
+      if (routineLines.length && room > 0) {
+        parts.push(`Where other people usually are right now (a default from their routine or notes). If the story so far has put someone somewhere else, or has them with the user, follow the story and ignore this line for them:\n${routineLines.slice(0, room).join('\n')}`);
+      }
+      return parts.join('\n');
+    }
+
+    // ── Story locations: where the story itself puts a character ─────────
+    // A character who speaks is with the user. A character named in narration
+    // beside a known place (a Codex location) is at that place. Both are stored
+    // on the character as storyLocation = { place, msgId, abs }. An empty place
+    // means "with the user wherever the scene is". msgId is the message that set
+    // it, so deleting or retrying that message cancels it. abs is the story
+    // clock in minutes (null when the clock is off). The record outranks the
+    // weekly schedule and is outranked only by a manual whereabouts note.
+    const STORY_LOC_FRESH_MESSAGES = 4;      // a companion counts as still following if seen this recently
+    const STORY_LOC_EXPIRE_MESSAGES = 30;    // after this many messages the record lapses
+    const STORY_LOC_EXPIRE_MINUTES = 720;    // or after 12 story hours
+    // Absolute story time in minutes, or null when the clock is not set.
+    function storyAbsMinutes(active) {
+      const c = active && active.worldClock;
+      return c && c.set ? (c.storyDay * 1440 + c.minutes) : null;
+    }
+    // Returns { place, withUser } for a character whose story location is still valid, else null.
+    function getStoryLocation(char, active) {
+      const sl = char && char.storyLocation;
+      if (!sl || !active || !Array.isArray(active.messages)) return null;
+      const idx = active.messages.findIndex(m => m.id === sl.msgId);
+      if (idx < 0) return null;
+      if (active.messages.length - 1 - idx > STORY_LOC_EXPIRE_MESSAGES) return null;
+      const now = storyAbsMinutes(active);
+      if (now != null && sl.abs != null && now - sl.abs > STORY_LOC_EXPIRE_MINUTES) return null;
+      const here = String(active.currentLocation || '').trim();
+      const place = sl.place || here;
+      if (!place) return null;
+      return { place, withUser: !sl.place || (!!here && looseNameMatch(sl.place, here)) };
+    }
+    // True when the character was placed by the last few messages.
+    function storyLocationIsFresh(char, active) {
+      const sl = char && char.storyLocation;
+      if (!sl) return false;
+      const idx = active.messages.findIndex(m => m.id === sl.msgId);
+      return idx >= 0 && active.messages.length - 1 - idx <= STORY_LOC_FRESH_MESSAGES;
+    }
+    // Call before the scene location changes. Anyone who is with the user but was not
+    // placed by the latest messages is left at the old location. Fresh companions
+    // keep following. Saves nothing by itself.
+    function pinStoryLocationsBeforeMove(active, newPlace) {
+      const oldLoc = String(active.currentLocation || '').trim();
+      if (looseNameMatch(oldLoc, newPlace) && oldLoc) return;
+      (active.characters || []).forEach(ch => {
+        const sl = ch.storyLocation;
+        if (!sl || sl.place) return;
+        if (storyLocationIsFresh(ch, active)) return;
+        if (oldLoc) sl.place = oldLoc; else delete ch.storyLocation;
+      });
+    }
+    // Lets the user clear a story location so the routine applies again.
+    async function releaseStoryLocation(name) {
+      const active = getActiveScenario();
+      const ch = (active.characters || []).find(x => String(x.name).toLowerCase() === String(name || '').toLowerCase());
+      if (!ch || !ch.storyLocation) return;
+      delete ch.storyLocation;
+      await saveState();
+      refreshSpotlightSchedulePreview();
+      renderStoryTracker();
+      renderSidebar();
+      scheduleChatBackground();
+    }
+
+    // Small pill for a cast card: where the story put this character, or '' if it did not.
+    function storyLocationBadge(member) {
+      const st = member ? getStoryLocation(member, getActiveScenario()) : null;
+      if (!st) return '';
+      const label = st.withUser ? 'with you' : st.place;
+      return `<span class="text-[9px] bg-slate-800 text-sky-300 border border-slate-700 px-1.5 rounded font-medium truncate" title="Placed here by the story: ${escapeHtml(st.place)}">📍 ${escapeHtml(label)}</span>`;
+    }
+
+    // Wording that makes a sentence unreliable as proof of where someone is.
+    const STORY_LOC_UNSURE_RE = /\b(will|would|might|may|maybe|perhaps|probably|could|should|if|whether|wonder(?:s|ed)?|imagin\w+|remember\w*|recall\w*|used to|had been|had gone|planning|plans? to|going to|wants? to|wanted to|hopes? to|heard|rumou?r\w*|told|said|asked|thinks?|thought|never|not|no longer|yesterday|ago|last (?:night|week|month|year))\b|n't/i;
+    // Wording that says a character is, or is going to be, in a place.
+    const STORY_LOC_AT_RE = /\b(at|in|into|inside|within|to|toward|towards|through|enters?|entered|arrives?|arrived|reach(?:es|ed)?|heads?|headed|goes|went|walks?|walked|steps?|stepped|ducks?|ducked|slips?|slipped|sits?|sat|waits?|waited|stands?|stood|leans?|leaned|meets?|met|joins?|joined|stays?|stayed|works?|worked|studies|studied)\b/i;
+    // Wording that says a character is coming along with the user.
+    const STORY_LOC_FOLLOW_RE = /\b(follows?|followed|accompan\w+|comes? along|came along|tags? along|tagged along|walks? with (?:me|you|us)|(?:stays?|stayed|sits?|sat|stands?|stood) (?:with|beside|next to) (?:me|you|us)|beside (?:me|you)|next to (?:me|you)|at (?:my|your) side|in tow|trails? behind|trailing)\b/i;
+    // Wording that says a character left the scene without saying where to.
+    const STORY_LOC_LEAVE_RE = /\b(leaves?|left|departs?|departed|goes? home|went home|walks? away|walked away|storms? out|stormed out|exits?|exited)\b/i;
+    // Removes quoted speech, asterisks and brackets so only narration is left.
+    function storyNarrationOnly(text) {
+      return String(text || '')
+        .replace(/"[^"]*"|“[^”]*”|«[^»]*»/g, ' ')
+        .replace(/\[[^\]]*\]/g, ' ')
+        .replace(/[*_~`]/g, '');
+    }
+    function storyEscapeRe(str) { return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+    // Name forms used to find a character in text: the full name and the first name.
+    function storyNameForms(char) {
+      const full = String(char.name || '').trim();
+      if (!full) return [];
+      const forms = [full];
+      const first = full.split(/\s+/)[0];
+      if (first && first.length >= 3 && first !== full) forms.push(first);
+      return forms;
+    }
+    function storyMentions(sentenceLower, char) {
+      return storyNameForms(char).some(f => new RegExp('(^|[^a-z0-9])' + storyEscapeRe(f.toLowerCase()) + '(?![a-z0-9])').test(sentenceLower));
+    }
+    // The location entry mentioned last in a sentence, or null.
+    function storyLastPlaceIn(sentenceLower, locations) {
+      let best = null, bestPos = -1;
+      locations.forEach(e => {
+        const keys = loreKeywordList(e).filter(k => k.length >= 3);
+        keys.forEach(k => {
+          const re = new RegExp('(^|[^a-z0-9])' + storyEscapeRe(k) + '(?![a-z0-9])', 'g');
+          let m, pos = -1;
+          while ((m = re.exec(sentenceLower))) pos = m.index + m[1].length;
+          if (pos > bestPos) { bestPos = pos; best = e; }
+        });
+      });
+      return best;
+    }
+    // Reads the messages from startIndex onward and updates each main character's
+    // storyLocation. Skipped when the AI tracker setting is off. Returns true if anything changed.
+    function scanStoryPresence(active, startIndex) {
+      if (!active || (active.sceneAuto || 'suggest') === 'off') return false;
+      const chars = active.characters || [];
+      if (!chars.length) return false;
+      const locations = getLocationLore(active);
+      const abs = storyAbsMinutes(active);
+      const userName = String(active.userPersona?.name || '').trim().toLowerCase();
+      let changed = false;
+      const set = (ch, place, msgId) => { ch.storyLocation = { place, msgId, abs }; changed = true; };
+      const clear = ch => { if (ch.storyLocation) { delete ch.storyLocation; changed = true; } };
+      for (let i = Math.max(0, startIndex || 0); i < active.messages.length; i++) {
+        const m = active.messages[i];
+        if (!m || m.isImage || m.isChapterDivider || !m.id) continue;
+        const speaker = String(m.speakerName || '').trim();
+        const speakerLower = speaker.toLowerCase();
+        const isNarrator = !speaker || speakerLower === 'narrator' || speakerLower === 'scene';
+        const speakerChar = (m.role === 'model' && !isNarrator && speakerLower !== userName)
+          ? chars.find(ch => String(ch.name || '').trim().toLowerCase() === speakerLower) : null;
+        if (speakerChar) set(speakerChar, '', m.id);
+        const sentences = storyNarrationOnly(m.text).split(/(?<=[.!?…])\s+|\n+/).map(x => x.trim()).filter(Boolean);
+        for (const sentence of sentences) {
+          const low = sentence.toLowerCase();
+          if (STORY_LOC_UNSURE_RE.test(low)) continue;
+          let who = chars.filter(ch => storyMentions(low, ch));
+          // In a character's own block a sentence with no name in it is about that character.
+          if (!who.length && speakerChar) who = [speakerChar];
+          if (!who.length) continue;
+          const place = locations.length && STORY_LOC_AT_RE.test(low) ? storyLastPlaceIn(low, locations) : null;
+          if (place) { who.forEach(ch => set(ch, place.title, m.id)); continue; }
+          if (STORY_LOC_FOLLOW_RE.test(low)) { who.forEach(ch => set(ch, '', m.id)); continue; }
+          if (STORY_LOC_LEAVE_RE.test(low)) who.forEach(clear);
+        }
+      }
+      return changed;
     }
 
     // ── Calendar ─────────────────────────────────────────────────────────
@@ -15645,18 +15860,21 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     // ---- AI-driven tracker updates ([SCENE: place | time | weather]) ----
     // Strips [SCENE: ...] tags from every block and drops blocks left empty.
-    // The last tag with a real change wins. Returns { blocks, tag } where tag is
-    // the inner text of the chosen tag or null.
+    // The last tag with a real change wins. Returns { blocks, tag, chapterDone } where tag is
+    // the inner text of the chosen tag or null and chapterDone says a [CHAPTER_COMPLETE] flag was found.
     function extractSceneTags(blocks) {
-      let tag = null;
+      let tag = null, chapterDone = false;
       const cleaned = (blocks || []).map(b => {
         const raw = String(b.text || '');
+        CHAPTER_TAG_RE.lastIndex = 0;
+        if (CHAPTER_TAG_RE.test(raw)) chapterDone = true;
+        CHAPTER_TAG_RE.lastIndex = 0;
         SCENE_TAG_RE.lastIndex = 0;
         let m; while ((m = SCENE_TAG_RE.exec(raw))) { if (!tag || m[1].split('|').some(x => !isNoneToken(x))) tag = m[1]; }
         SCENE_TAG_RE.lastIndex = 0;
         return { ...b, text: stripSceneTagText(raw) };
       }).filter(b => b.text);
-      return { blocks: cleaned, tag };
+      return { blocks: cleaned, tag, chapterDone };
     }
 
     // Turns the inner text of a [SCENE: place | time | weather] tag into a pending
@@ -15705,7 +15923,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!s || s.scenarioId !== active.id) { renderStoryTracker(); return; }
       const c = getWorldClock(active);
       const before = clockSnapshot(active);
-      if (s.place) active.currentLocation = s.place;
+      if (s.place) { pinStoryLocationsBeforeMove(active, s.place); active.currentLocation = s.place; }
       if (s.delta > 0) { advanceClock(c, s.delta); c.autoSnap = null; }
       if (s.weather) c.weather = s.weather;
       logClockChange(active, 'scene', 'AI update: ' + s.label.replace(/\s+/g, ' '), before, null);
@@ -16068,6 +16286,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // Clears the current location and saves.
     async function clearLocation() {
       const active = getActiveScenario();
+      pinStoryLocationsBeforeMove(active, '');
       active.currentLocation = '';
       closeTrackerPopovers();
       await saveState();
@@ -16102,6 +16321,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const from = active.currentLocation || '';
       const travel = getTravelMinutes(active, from, entry.title);
       const before = clockSnapshot(active);
+      pinStoryLocationsBeforeMove(active, entry.title);
       active.currentLocation = entry.title;
       closeTrackerPopovers();
       let narrationId = null;
@@ -16389,7 +16609,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // Background + prompt block: where and when the scene is right now.
     const SCENE_TAG_INSTRUCTION = 'Only if the place, time of day, or weather clearly changed during this reply, end your reply with one final line like [SCENE: place | Weekday h:mm AM/PM | weather] -- write - for any part that did not change. Otherwise leave the line out. Never mention or explain it.';
     // Builds the [CURRENT TIME & PLACE] prompt block: location, clock, weather,
-    // season, whereabouts, calendar and the [SCENE] tag instruction. Returns '' if empty.
+    // season, whereabouts, calendar and the [SCENE] tag instruction, plus the
+    // [CHAPTER PLAN] block when the current chapter has planned plot arcs. Returns '' if empty.
     function buildSceneStateText(active) {
       const lines = [];
       const loc = (active.currentLocation || '').trim();
@@ -16406,8 +16627,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (cal) lines.push(cal);
       if (lines.length) lines.push('Keep lighting, weather cues, who is awake or working, and which places are open consistent with this. Time only moves when the story moves it; do not announce the clock unless it is natural.');
       if ((active.sceneAuto || 'suggest') !== 'off') lines.push(SCENE_TAG_INSTRUCTION);
-      if (!lines.length) return '';
-      return `[CURRENT TIME & PLACE]\n${lines.join('\n')}`;
+      const chapterPlan = buildChapterEndInstruction(active);
+      if (!lines.length) return chapterPlan;
+      return `[CURRENT TIME & PLACE]\n${lines.join('\n')}` + (chapterPlan ? `\n\n${chapterPlan}` : '');
     }
 
     // ── Lorebook categories ──────────────────────────────────────────────
@@ -16581,7 +16803,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const loreMaxChars = Math.max(600, Math.min(4500, Math.round(contextCap * 0.2)));
       const charListStr = forLocal
         ? buildLocalCastSheet(active)
-        : (active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
+        : (active.characters||[]).map(c=>`\n- Name: ${c.name}\n  Role: ${c.role||'Companion'}\n  Current Mood: ${c.mood||'Neutral'}\n  Persona: ${getCharacterPersona(c)}${c.statusSheet ? `\n  Stats & abilities: ${String(c.statusSheet).trim().replace(/\n+/g, '; ')}` : ''}\n  Relationship to ${active.userPersona.name}: ${c.relationship||'Companion'}`).join('\n');
       const memoryIndex=active.localMemoryIndex||{};
       const recaps=(memoryIndex.chapterRecaps||active.archivedRecaps||[]).map(r=>typeof r==='string'?r:(r.milestoneSummary||'')).filter(Boolean);
       const characterMemory=Object.entries(memoryIndex.characterMemory||{}).map(([name,note])=>note?`- ${name}: ${note}`:'').filter(Boolean).join('\n');
@@ -16592,8 +16814,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const sceneBlock = opts.includeScene ? buildSceneStateText(active) : '';
       const loreBlock = opts.includeScene ? buildLorebookContextText(active, loreMaxChars) : '';
       const userPersonaBlock = forLocal
-        ? `${active.userPersona.name}, role: ${active.userPersona.role||'Protagonist'}, currently feeling: ${active.userPersona.mood||'Focused'}. ${getCharacterPersona(active.userPersona)||'Main character'}`
-        : `Name: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}`;
+        ? `${active.userPersona.name}, role: ${active.userPersona.role||'Protagonist'}, currently feeling: ${active.userPersona.mood||'Focused'}. ${getCharacterPersona(active.userPersona)||'Main character'}${active.userPersona.statusSheet ? ` Stats: ${String(active.userPersona.statusSheet).trim().replace(/\n+/g, '; ')}.` : ''}`
+        : `Name: ${active.userPersona.name}\nRole: ${active.userPersona.role||'Protagonist'}\nCurrent Mood: ${active.userPersona.mood||'Focused'}\nPersona: ${getCharacterPersona(active.userPersona)||'Main character'}${active.userPersona.statusSheet ? `\nStats & abilities: ${String(active.userPersona.statusSheet).trim().replace(/\n+/g, '; ')}` : ''}`;
       const rule2 = forLocal
         ? '2. Every reacting character must have a distinct turn. Convey their current mood only through their actions, dialogue, and tone -- NEVER as a written label, tag, or parenthetical (e.g. never write "Name: Maria (Skeptical caution)" or "Current Mood: ...") -- the cast sheet above is background information for you only, never to be echoed or restated in your output.'
         : '2. Every reacting character must have a distinct turn with exact speaker name and current mood.';
@@ -16637,7 +16859,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const compactRecaps = (memoryIndex.chapterRecaps || active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).filter(Boolean);
       const characterMemoryStr = Object.entries(memoryIndex.characterMemory || {}).map(([name,note]) => note ? `- ${name}: ${note}` : '').filter(Boolean).join('\n');
       const lore = (memoryIndex.lorebook || active.lorebook || []).slice(-20).map(e => `- ${e.title}: ${e.content}`).join('\n');
-      const charListStr = (active.characters || []).map(c => `- ${c.name} (${c.role || 'Companion'}): Persona=${getCharacterPersona(c)}; Relationship=${c.relationship || 'Companion'}`).join('\n');
+      const charListStr = (active.characters || []).map(c => `- ${c.name} (${c.role || 'Companion'}): Persona=${getCharacterPersona(c)}${c.statusSheet ? `; Stats=${String(c.statusSheet).trim().replace(/\n+/g, '; ')}` : ''}; Relationship=${c.relationship || 'Companion'}`).join('\n');
       return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role || 'Protagonist'}\nPersona: ${getCharacterPersona(active.userPersona) || 'Main character'}\n\n[MAIN CAST]\n${charListStr || 'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD]\n${buildWorldContextText(active)}\n\n[PAST CHAPTER MEMORY]\n${compactRecaps.join('\n\n')}\n\n[CHARACTER MEMORY]\n${characterMemoryStr}\n\n[LOREBOOK MEMORY]\n${lore}\n\n[OUTPUT RULES]\nNever speak for the user. Preserve continuity. Each reacting character gets a separate turn. Wrap every physical action, gesture, expression, or internal thought in single asterisks (*like this*), kept separate from spoken dialogue -- never write action/thought narration as plain unformatted text. Output only JSON using compact keys s=speaker, m=mood, t=text.`;
     }
 
@@ -17667,8 +17889,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // API key exists, otherwise a stub), adds a divider message and advances currentChapter.
     // Saves an undo snapshot in active.lastChapterArchive.
     async function archiveCurrentChapterManually(){
+      document.getElementById('chapterEndCard')?.remove();
       const active=getActiveScenario(); const turns=(active.messages||[]).filter(m=>!m.isImage&&!m.isChapterDivider); if(!turns.length){zfAlert('There are no turns to archive yet.');return;}
       const shouldGenerate=!!appState.apiKey;
+      let chapterEnd=null;
       showLoading(true,'Archiving current chapter...');
       try{
         let recap={milestoneSummary:`Chapter ${active.currentChapter||1} concluded.`,characterArcs:active.activeChapterArcs||{}};
@@ -17684,9 +17908,11 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         // this one action — a wrong tap on 📚 Archive otherwise loses the
         // chapter's own character-arc data (activeChapterArcs is nulled
         // below) with no way back short of editing saved state by hand.
-        const priorChapterNum=active.currentChapter; const priorActiveChapterArcs=active.activeChapterArcs; const dividerId='msg_'+Date.now();
+        const priorChapterNum=active.currentChapter; const priorActiveChapterArcs=active.activeChapterArcs; const dividerId='msg_'+Date.now(); chapterEnd={num:priorChapterNum,dividerId};
         active.archivedRecaps=active.archivedRecaps||[]; active.archivedRecapsRaw=active.archivedRecapsRaw||[]; const completed={chapterNum:active.currentChapter,milestoneSummary:recap.milestoneSummary||`Chapter ${active.currentChapter} concluded.`,characterArcs:recap.characterArcs||{}}; active.archivedRecaps.push(completed);active.archivedRecapsRaw.push(JSON.parse(JSON.stringify(completed)));active.activeChapterArcs=null;active.messages.push({id:dividerId,isChapterDivider:true,chapterNum:active.currentChapter,text:`Chapter ${active.currentChapter} Archived • Starting Chapter ${active.currentChapter+1}`,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});active.currentChapter=(active.currentChapter||1)+1;active.lastChapterArchive={dividerMessageId:dividerId,priorChapterNum,priorActiveChapterArcs};await saveState(true);renderAllUi();populateChapterChronicle();
       }catch(e){zfAlert('Manual archive notice: '+e.message)}finally{showLoading(false)}
+      // Offer character updates for the chapter that just ended.
+      if(chapterEnd) await proposeChapterCharacterUpdates(active,chapterEnd.num,chapterEnd.dividerId);
     }
 
     // Reverses whichever chapter archive (manual 📚 Archive tap, or an
@@ -17849,7 +18075,9 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const threshold = appState.tokenThreshold || 120000;
       const active = getActiveScenario();
 
+      let chapterEnd = null;
       if (currentTokens >= threshold) {
+        document.getElementById('chapterEndCard')?.remove();
         showLoading(true, `Token limit reached (${Math.round(currentTokens/1000)}k tokens). Archiving Chapter ${active.currentChapter}...`);
         try {
           const activeRawTurns = active.messages.filter(m => !m.isImage && !m.isChapterDivider);
@@ -17939,12 +18167,397 @@ TASK: Return a JSON object with:
           renderMessages();
           populateChapterChronicle();
           renderScenariosList();
+          chapterEnd = { num: priorChapterNum, dividerId };
         } catch (e) {
           console.warn("Dynamic token archival skipped:", e.message);
         } finally {
           showLoading(false);
         }
       }
+      // Offer character updates for the chapter that just ended.
+      if (chapterEnd) await proposeChapterCharacterUpdates(active, chapterEnd.num, chapterEnd.dividerId);
+    }
+
+    // ── Offer to end a chapter when its planned plot is finished ─────────
+    // "Pre-made chapters" are plot arcs set to "Start at Chapter #". While the
+    // current chapter has such arcs, the per-turn prompt tells the AI what the
+    // chapter is planned around and asks it to write [CHAPTER_COMPLETE] on a
+    // final line once ALL of it has played out. The flag is stripped from the
+    // text (see stripSceneTagText). The app then shows a small card with End
+    // chapter and Not yet. Nothing is archived without the user's tap.
+    const CHAPTER_END_MIN_TURNS = 12;     // a chapter shorter than this is never offered for ending
+    const CHAPTER_END_SNOOZE_TURNS = 20;  // after Not yet, wait this many more turns
+    // Plot arcs that belong to the chapter being played.
+    function getChapterPlanArcs(active) {
+      const chapter = active.currentChapter || 1;
+      return (Array.isArray(active.plotArcs) ? active.plotArcs : []).slice(1)
+        .filter(a => a && a.mode === 'chapter' && Number(a.chapter) === chapter && String(a.content || '').trim());
+    }
+    // Turns played since the last chapter divider (images and dividers do not count).
+    function countChapterTurns(active) {
+      const msgs = active.messages || [];
+      let start = 0;
+      for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i].isChapterDivider) { start = i + 1; break; } }
+      return msgs.slice(start).filter(m => !m.isImage && !m.isChapterDivider).length;
+    }
+    // True when the setting is on, this chapter has planned arcs, enough turns have passed
+    // and the user has not just said Not yet.
+    function chapterEndPromptAllowed(active) {
+      if (!active || appState.chapterEndPrompts === false) return false;
+      if (!getChapterPlanArcs(active).length) return false;
+      const turns = countChapterTurns(active);
+      if (turns < CHAPTER_END_MIN_TURNS) return false;
+      const snooze = active.chapterPromptSnooze;
+      if (snooze && snooze.chapter === (active.currentChapter || 1) && turns - snooze.turns < CHAPTER_END_SNOOZE_TURNS) return false;
+      return true;
+    }
+    // The instruction added to the per-turn prompt, or '' when no offer is possible.
+    function buildChapterEndInstruction(active) {
+      if (!chapterEndPromptAllowed(active)) return '';
+      const arcs = getChapterPlanArcs(active);
+      const plan = arcs.map(a => `- ${a.title ? a.title + ': ' : ''}${clipText(a.content, 400)}`).join('\n');
+      return `[CHAPTER PLAN]\nChapter ${active.currentChapter || 1} is planned around:\n${plan}\nOnly when this reply clearly completes ALL of those planned events and the story has reached a natural pause, end your reply with the single line [CHAPTER_COMPLETE] (after any [SCENE] line). Otherwise never write it. Never mention it or hint that the chapter is ending.`;
+    }
+    let chapterEndCardTimer = null;
+    // Shows the small End chapter / Not yet card. It is not a modal, so the story stays readable.
+    function showChapterEndCard(active) {
+      document.getElementById('chapterEndCard')?.remove();
+      const chapter = active.currentChapter || 1;
+      const scenarioId = active.id;
+      const card = document.createElement('div');
+      card.id = 'chapterEndCard';
+      card.className = 'fixed left-1/2 -translate-x-1/2 z-[9000] w-[min(92vw,28rem)] bg-zetaSidebar border border-zetaAccent/60 rounded-2xl shadow-2xl p-3 space-y-2';
+      card.style.bottom = '96px';
+      card.innerHTML = `
+        <div class="text-xs font-semibold text-white">📖 Chapter ${escapeHtml(String(chapter))} may be finished</div>
+        <p class="text-[11px] text-slate-300 leading-snug">The AI thinks the events planned for this chapter have played out. End the chapter now? Its recap is saved and the next chapter's plot points unlock.</p>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-act="later" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium">Not yet</button>
+          <button type="button" data-act="end" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow">End chapter</button>
+        </div>`;
+      const close = () => { clearTimeout(chapterEndCardTimer); card.remove(); };
+      card.querySelector('[data-act="later"]').onclick = () => {
+        const a = getActiveScenario();
+        if (a && a.id === scenarioId) { a.chapterPromptSnooze = { chapter, turns: countChapterTurns(a) }; saveState(); }
+        close();
+      };
+      card.querySelector('[data-act="end"]').onclick = async () => {
+        close();
+        const a = getActiveScenario();
+        if (!a || a.id !== scenarioId || (a.currentChapter || 1) !== chapter) return;
+        await archiveCurrentChapterManually();
+      };
+      document.body.appendChild(card);
+      // If it is ignored for a while it counts as Not yet, so the AI is not asked to flag it again at once.
+      clearTimeout(chapterEndCardTimer);
+      chapterEndCardTimer = setTimeout(() => {
+        if (!document.body.contains(card)) return;
+        const a = getActiveScenario();
+        if (a && a.id === scenarioId) { a.chapterPromptSnooze = { chapter, turns: countChapterTurns(a) }; saveState(); }
+        card.remove();
+      }, 120000);
+    }
+
+    // ── End-of-chapter character updates ─────────────────────────────────
+    // When a chapter is archived, one extra model call can propose a few lasting
+    // changes to a character: a new scar in the visual profile, a lasting shift
+    // in the persona, or a fact in the Stats and abilities sheet (species, level,
+    // moves). The call only runs when the chapter text holds a word that could
+    // signal such a change. The model's answer is cleaned and capped in code
+    // (4 changes per chapter, 2 per character, short text, no duplicates), then
+    // shown as a checklist. Settings: 'review' (default), 'auto' or 'off'.
+    const CHAPTER_UPDATE_MAX_TOTAL = 5;
+    const CHAPTER_UPDATE_MAX_PER_CHAR = 3;
+    const CHAPTER_UPDATE_MAX_TEXT = 160;
+    const CHAPTER_UPDATE_FIELD_CAPS = { visualProfile: 1200, persona: 1500, statusSheet: 800 };
+    const CHAPTER_UPDATE_FIELD_LABELS = { visualProfile: 'Look', persona: 'Personality', statusSheet: 'Stats & abilities' };
+    // Words that could mean a lasting change happened. Without one of them the call is skipped.
+    const CHAPTER_UPDATE_SIGNAL_RE = /\b(scar(?:s|red|ring)?|tattoo(?:s|ed)?|branded|burn(?:s|ed|t)? (?:mark|scar)|maim\w*|amputat\w*|lost (?:his|her|their|an?|the|my|your) (?:left |right )?(?:arm|leg|eye|hand|finger|wing|tail|horn|voice|hearing|sight)|evolv\w*|evolution|transform\w*|metamorphos\w*|mutat\w*|level(?:ed|led)? up|new (?:move|ability|technique|form)|learn(?:s|ed|t)? (?:the |a |an )?(?:new )?(?:move|technique|spell|skill|attack|ability)|dyed|shaved|cut (?:off )?(?:his|her|their) hair|mega ?evol\w*|reborn)\b/i;
+    let chapterUpdateBusy = false;
+
+    // Reads the first text of a character field the way the prompts do.
+    function chapterUpdateFieldValue(obj, field) {
+      if (field === 'visualProfile') return String(obj.visualProfile || obj.desc || '').trim();
+      if (field === 'persona') return String(getCharacterPersona(obj) || '').trim();
+      return String(obj.statusSheet || '').trim();
+    }
+    // Writes a field value. The persona is mirrored into personality, as the editor does.
+    function chapterUpdateSetField(obj, field, value) {
+      obj[field] = value;
+      if (field === 'persona') obj.personality = value;
+    }
+    function chapterUpdateNormField(raw) {
+      const f = String(raw || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (['visual', 'visualprofile', 'look', 'appearance', 'looks'].includes(f)) return 'visualProfile';
+      if (['persona', 'personality'].includes(f)) return 'persona';
+      if (['stats', 'statussheet', 'sheet', 'abilities', 'statsabilities', 'statsandabilities'].includes(f)) return 'statusSheet';
+      return '';
+    }
+    // The part of a "Key: value" sheet line before the colon, lower case, or ''.
+    function chapterUpdateLineKey(line) {
+      const m = /^\s*([A-Za-z][A-Za-z0-9 _-]{0,24}?)\s*:/.exec(String(line || ''));
+      return m ? m[1].trim().toLowerCase() : '';
+    }
+    // Turns one raw proposal into { name, field, action, text, replaces, before, after, why } or null.
+    function chapterUpdateBuildChange(raw, target, baseValue) {
+      const field = chapterUpdateNormField(raw.field);
+      if (!field || !target) return null;
+      let text = String(raw.text || '').replace(/\s+/g, ' ').trim();
+      if (!text || text.length < 3) return null;
+      if (text.length > CHAPTER_UPDATE_MAX_TEXT) return null;
+      const why = String(raw.why || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      const before = baseValue != null ? baseValue : chapterUpdateFieldValue(target.obj, field);
+      if (before.toLowerCase().includes(text.toLowerCase())) return null;
+      let action = String(raw.action || 'add').toLowerCase() === 'replace' ? 'replace' : 'add';
+      let replaces = String(raw.replaces || '').replace(/\s+/g, ' ').trim().slice(0, CHAPTER_UPDATE_MAX_TEXT);
+      let after = '';
+      if (field === 'statusSheet') {
+        const lines = before ? before.split('\n') : [];
+        const key = chapterUpdateLineKey(text);
+        let idx = -1;
+        if (replaces) idx = lines.findIndex(l => l.toLowerCase().includes(replaces.toLowerCase()));
+        if (idx < 0 && key) idx = lines.findIndex(l => chapterUpdateLineKey(l) === key);
+        if (idx >= 0) { replaces = lines[idx].trim(); lines[idx] = text; action = 'replace'; }
+        else { lines.push(text); action = 'add'; replaces = ''; }
+        after = lines.join('\n');
+      } else if (action === 'replace' && replaces && before.toLowerCase().includes(replaces.toLowerCase())) {
+        const at = before.toLowerCase().indexOf(replaces.toLowerCase());
+        after = before.slice(0, at) + text + before.slice(at + replaces.length);
+      } else {
+        action = 'add'; replaces = '';
+        const sentence = /[.!?]$/.test(text) ? text : text + '.';
+        after = before ? before + ' ' + sentence : sentence;
+      }
+      if (after.length > CHAPTER_UPDATE_FIELD_CAPS[field]) return null;
+      return { name: target.name, field, action, text, replaces, before, after, why };
+    }
+    // Cleans the model's answer into at most CHAPTER_UPDATE_MAX_TOTAL changes.
+    // targets is [{ name, obj }] for the main cast and the user persona.
+    function sanitizeChapterUpdates(parsed, targets) {
+      const list = Array.isArray(parsed?.changes) ? parsed.changes : (Array.isArray(parsed) ? parsed : []);
+      const perChar = {}, virtual = {}, out = [];
+      for (const raw of list.slice(0, 12)) {
+        if (!raw || typeof raw !== 'object') continue;
+        const wanted = String(raw.character || '').trim().toLowerCase();
+        const target = targets.find(t => t.name.trim().toLowerCase() === wanted);
+        if (!target) continue;
+        const key = target.name.toLowerCase();
+        if ((perChar[key] || 0) >= CHAPTER_UPDATE_MAX_PER_CHAR) continue;
+        // A second change to the same field is built on top of the first one.
+        const fieldName = chapterUpdateNormField(raw.field);
+        const vkey = key + '|' + fieldName;
+        const change = chapterUpdateBuildChange(raw, target, virtual[vkey]);
+        if (!change) continue;
+        virtual[vkey] = change.after;
+        perChar[key] = (perChar[key] || 0) + 1;
+        out.push(change);
+        if (out.length >= CHAPTER_UPDATE_MAX_TOTAL) break;
+      }
+      return out;
+    }
+    // One background JSON call. Tries the active local model first, then Gemini.
+    // Returns the parsed object or null.
+    async function callBackgroundJson(prompt, maxTokens) {
+      const info = await resolveActiveEndpoint();
+      let parsed = null;
+      if (info.type === 'local') {
+        try {
+          const res = await fetch(`${info.url.replace(/\/+$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: localRequestHeaders({ 'Content-Type': 'application/json' }, info.apiKey),
+            body: JSON.stringify({ model: info.model || 'local-model', messages: [{ role: 'user', content: prompt + '\n\nRespond with ONLY the JSON object described above. No prose, no code fences.' }], temperature: 0.15, max_tokens: maxTokens, stream: false })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            parsed = parseJsonLoose(data.choices?.[0]?.message?.content, null);
+          }
+        } catch (e) { console.warn('Local background call failed, falling back to Gemini:', e?.message || e); }
+      }
+      if (!parsed && appState.apiKey) {
+        const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.15, maxOutputTokens: maxTokens, responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'minimal' } }, service_tier: BACKGROUND_SERVICE_TIER, safetySettings: buildSafetySettings() };
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ADVANCED}:generateContent?key=${encodeURIComponent(appState.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) {
+          const data = await res.json();
+          recordTextUsage(MODEL_ADVANCED, data, prompt, maxTokens);
+          parsed = parseJsonLoose(data.candidates?.[0]?.content?.parts?.[0]?.text, null);
+        } else console.warn('Chapter update request failed:', res.status);
+      }
+      return parsed;
+    }
+    // Builds the instruction for the chapter review call.
+    function buildChapterUpdatePrompt(active, chapterNum, chapterText, targets) {
+      const sheets = targets.map(t => {
+        const clip = (v) => clipText(v || '(empty)', 500);
+        return `- ${t.name}\n  Look: ${clip(chapterUpdateFieldValue(t.obj, 'visualProfile'))}\n  Personality: ${clip(chapterUpdateFieldValue(t.obj, 'persona'))}\n  Stats & abilities: ${clip(chapterUpdateFieldValue(t.obj, 'statusSheet'))}`;
+      }).join('\n');
+      return `You review one finished roleplay chapter and propose PERMANENT updates to character sheets. Be very conservative. The normal answer is {"changes":[]}.
+
+Allowed kinds of change:
+- "visualProfile": a lasting physical change shown in the chapter, such as a scar, a lost limb, a new tattoo, hair cut off for good, or a body change from an evolution or transformation. NOT clothes, mud, bruises or wounds that will heal, and NOT moods.
+- "persona": a lasting change in who the character is, such as a new life role, a sworn vow, or a trait changed by a major event. NOT a feeling of the moment and NOT a relationship change.
+- "statusSheet": concrete game-like facts the chapter clearly states, such as species, level, moves, abilities, items or rank. Use it for an evolution (replace the species line) or a newly learned move.
+
+Rules:
+- At most ${CHAPTER_UPDATE_MAX_TOTAL} changes in total and ${CHAPTER_UPDATE_MAX_PER_CHAR} per character.
+- Only changes the chapter text clearly shows. Do not guess or invent.
+- Each "text" is one short phrase, under ${CHAPTER_UPDATE_MAX_TEXT - 20} characters. No line breaks.
+- Do not repeat anything the current sheet already says.
+- To change something that exists, use "action":"replace" and put the exact old wording in "replaces". Otherwise use "action":"add".
+- "why" is a few words saying what happened in the chapter.
+- Use the exact character names below. No other characters.
+
+Return ONLY this JSON: {"changes":[{"character":"Name","field":"visualProfile|persona|statusSheet","action":"add|replace","text":"...","replaces":"","why":"..."}]}
+
+[SCENARIO] ${active.title || ''}
+[CURRENT SHEETS]
+${sheets}
+
+[CHAPTER ${chapterNum} TEXT]
+${chapterText}`;
+    }
+    // Shows the proposed changes as a checklist. Resolves to the accepted changes ([] on cancel).
+    function showChapterChangesModal(changes, chapterNum) {
+      return new Promise(resolve => {
+        document.getElementById('chapterChangesModal')?.remove();
+        const wrap = document.createElement('div');
+        wrap.id = 'chapterChangesModal';
+        wrap.className = 'fixed inset-0 bg-black/70 z-[75] flex items-center justify-center p-4 backdrop-blur-sm';
+        const rows = changes.map((c, i) => `
+          <label class="flex items-start gap-2.5 p-2.5 rounded-lg bg-zetaCard border border-zetaBorder cursor-pointer">
+            <input type="checkbox" checked data-idx="${i}" class="w-4 h-4 mt-0.5 accent-zetaAccent" />
+            <span class="min-w-0 space-y-0.5">
+              <span class="block text-xs font-semibold text-slate-100">${escapeHtml(c.name)} <span class="font-normal text-zetaGlow">· ${escapeHtml(CHAPTER_UPDATE_FIELD_LABELS[c.field])}</span></span>
+              ${c.action === 'replace' ? `<span class="block text-[11px] text-slate-500 line-through break-words">${escapeHtml(c.replaces)}</span>` : ''}
+              <span class="block text-[11px] text-emerald-300 break-words">${c.action === 'replace' ? '' : '+ '}${escapeHtml(c.text)}</span>
+              ${c.why ? `<span class="block text-[10px] text-slate-500 break-words">${escapeHtml(c.why)}</span>` : ''}
+            </span>
+          </label>`).join('');
+        wrap.innerHTML = `
+          <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="p-4 space-y-1 border-b border-zetaBorder">
+              <h3 class="text-sm font-bold text-white">Character updates after Chapter ${escapeHtml(String(chapterNum))}</h3>
+              <p class="text-[11px] text-slate-400 leading-relaxed">The AI suggests these lasting changes from the chapter. Untick anything you do not want. You can undo an applied change from the character's page.</p>
+            </div>
+            <div class="p-3 space-y-2 overflow-y-auto">${rows}</div>
+            <div class="p-3 bg-zetaCard border-t border-zetaBorder flex justify-end gap-2">
+              <button type="button" data-act="skip" class="px-3 py-1.5 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-xs font-medium">Skip all</button>
+              <button type="button" data-act="apply" class="px-3.5 py-1.5 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-xs font-semibold shadow">Apply selected</button>
+            </div>
+          </div>`;
+        const finish = (accepted) => { wrap.remove(); resolve(accepted); };
+        wrap.querySelector('[data-act="skip"]').onclick = () => finish([]);
+        wrap.querySelector('[data-act="apply"]').onclick = () => {
+          finish([...wrap.querySelectorAll('input[type=checkbox]')].filter(x => x.checked).map(x => changes[Number(x.dataset.idx)]));
+        };
+        document.body.appendChild(wrap);
+      });
+    }
+    // Writes the accepted changes onto the characters and records them for undo.
+    // Each change is rebuilt against the live text first, in case it changed while the dialog was open.
+    function applyChapterChanges(active, changes, chapterNum, targets) {
+      if (!Array.isArray(active.characterChangeLog)) active.characterChangeLog = [];
+      let applied = 0;
+      for (const ch of changes) {
+        const target = targets.find(t => t.name === ch.name);
+        if (!target) continue;
+        const fresh = chapterUpdateBuildChange({ field: ch.field, action: ch.action, text: ch.text, replaces: ch.replaces, why: ch.why }, target);
+        if (!fresh) continue;
+        chapterUpdateSetField(target.obj, fresh.field, fresh.after);
+        active.characterChangeLog.push({ id: 'chg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), ts: Date.now(), chapter: chapterNum, name: fresh.name, field: fresh.field, before: fresh.before, after: fresh.after, text: fresh.text });
+        applied++;
+      }
+      if (active.characterChangeLog.length > 60) active.characterChangeLog.splice(0, active.characterChangeLog.length - 60);
+      return applied;
+    }
+    // The messages of the chapter that ended at the divider with this id: everything
+    // after the previous chapter divider and before this one, without images.
+    function chapterTurnsEndingAt(active, dividerId) {
+      const msgs = active.messages || [];
+      const end = msgs.findIndex(m => m.id === dividerId);
+      if (end < 0) return [];
+      let start = -1;
+      for (let i = end - 1; i >= 0; i--) { if (msgs[i].isChapterDivider) { start = i; break; } }
+      return msgs.slice(start + 1, end).filter(m => !m.isImage && !m.isChapterDivider);
+    }
+    // Entry point, called after a chapter has been archived. dividerId is the id of the
+    // "Chapter N Archived" divider that closed it.
+    async function proposeChapterCharacterUpdates(active, chapterNum, dividerId) {
+      const turns = chapterTurnsEndingAt(active, dividerId);
+      const mode = ['review', 'auto', 'off'].includes(appState.chapterCharUpdates) ? appState.chapterCharUpdates : 'review';
+      if (mode === 'off' || chapterUpdateBusy || !active || !Array.isArray(turns) || !turns.length) return;
+      const targets = [
+        ...(active.characters || []).filter(c => String(c.name || '').trim()).map(c => ({ name: String(c.name).trim(), obj: c })),
+        ...(String(active.userPersona?.name || '').trim() ? [{ name: String(active.userPersona.name).trim(), obj: active.userPersona }] : [])
+      ];
+      if (!targets.length) return;
+      chapterUpdateBusy = true;
+      try {
+        const full = turns.map(m => `${m.speakerName || 'Speaker'}: ${m.text}`).join('\n');
+        if (!CHAPTER_UPDATE_SIGNAL_RE.test(full)) return;
+        const info = await resolveActiveEndpoint();
+        if (info.type !== 'local' && !appState.apiKey) return;
+        const maxChars = info.type === 'local' ? Math.max(6000, (info.contextCap || 8192) * 2) : 200000;
+        const chapterText = full.length > maxChars ? full.slice(full.length - maxChars) : full;
+        showLoading(true, 'Checking Chapter ' + chapterNum + ' for character changes...');
+        let parsed = null;
+        try { parsed = await callBackgroundJson(buildChapterUpdatePrompt(active, chapterNum, chapterText, targets), 900); }
+        finally { showLoading(false); }
+        const changes = sanitizeChapterUpdates(parsed, targets);
+        if (!changes.length) return;
+        const accepted = mode === 'auto' ? changes : await showChapterChangesModal(changes, chapterNum);
+        if (!accepted.length) return;
+        const n = applyChapterChanges(active, accepted, chapterNum, targets);
+        if (!n) return;
+        await saveState();
+        renderSidebar();
+        refreshOpenCharacterFields();
+        showTransientToast(`Updated ${n} character detail${n === 1 ? '' : 's'} after Chapter ${chapterNum}`);
+      } catch (e) {
+        console.warn('Chapter character update skipped:', e?.message || e);
+      } finally {
+        chapterUpdateBusy = false;
+      }
+    }
+    // Copies the current character values into the open spotlight editor, if it is showing.
+    function refreshOpenCharacterFields() {
+      const found = currentSpotlightCharName ? findCharacterForSpotlight(currentSpotlightCharName) : null;
+      if (!found?.obj) return;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('spotlightEditPersona', getCharacterPersona(found.obj));
+      set('spotlightEditVisualProfile', getCharacterVisualProfile(found.obj));
+      set('spotlightEditStatusSheet', found.obj.statusSheet || '');
+      refreshChapterUpdateRevertButton();
+    }
+    // The newest group of logged changes for a character, or [].
+    function lastChapterUpdateGroup(active, name) {
+      const log = (active.characterChangeLog || []).filter(e => String(e.name).toLowerCase() === String(name || '').toLowerCase());
+      if (!log.length) return [];
+      const lastChapter = log[log.length - 1].chapter;
+      return log.filter(e => e.chapter === lastChapter);
+    }
+    // Shows the Undo link in the spotlight only when the character has a logged change.
+    function refreshChapterUpdateRevertButton() {
+      const btn = document.getElementById('spotlightRevertChapterUpdate');
+      if (btn) btn.classList.toggle('hidden', !lastChapterUpdateGroup(getActiveScenario(), currentSpotlightCharName).length);
+    }
+    // Puts back the values from before the newest chapter-end update to this character.
+    // A field is only restored when nobody edited it since, so hand edits are never lost.
+    async function revertCharacterChapterUpdate(name) {
+      const active = getActiveScenario();
+      const group = lastChapterUpdateGroup(active, name);
+      if (!group.length) return;
+      const found = findCharacterForSpotlight(name);
+      if (!found?.obj) return;
+      let reverted = 0, skipped = 0;
+      for (const e of group.slice().reverse()) {
+        if (chapterUpdateFieldValue(found.obj, e.field) === e.after) { chapterUpdateSetField(found.obj, e.field, e.before); reverted++; } else skipped++;
+        const i = active.characterChangeLog.findIndex(x => x.id === e.id);
+        if (i >= 0) active.characterChangeLog.splice(i, 1);
+      }
+      await saveState();
+      renderSidebar();
+      refreshOpenCharacterFields();
+      showTransientToast(skipped ? `Undid ${reverted}. ${skipped} edited since, left as is.` : `Undid ${reverted} update${reverted === 1 ? '' : 's'}`);
     }
 
     // Two functions were removed here during an audit pass, both confirmed
@@ -18232,6 +18845,7 @@ REQUIREMENTS:
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       const segments = rawText.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+      const storyScanFrom = active.messages.length;
 
       segments.forEach(seg => {
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -18256,6 +18870,9 @@ REQUIREMENTS:
           });
         }
       });
+
+      // The user's own text can place a character too (for example walking somewhere with them).
+      scanStoryPresence(active, storyScanFrom);
 
       inputEl.value = '';
       inputEl.style.height = '42px';
