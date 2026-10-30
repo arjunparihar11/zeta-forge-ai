@@ -1,119 +1,158 @@
 # ZetaForge AI
 
-ZetaForge AI is a full-stack, single-page interactive story engine that combines AI roleplay with a visual novel interface. It runs entirely in the browser using IndexedDB for persistence, and can generate story turns, images and voice through Google Gemini and/or your own self-hosted models, with automatic fallback between them. Inspired by the zeta roleplay app.
+ZetaForge AI is a single page interactive story engine. It joins AI roleplay with a visual novel stage. Everything runs in the browser and saves to IndexedDB. Story turns, images and voices come from Google Gemini, from models you host yourself or from both, with automatic fallback between them. The design takes cues from the Zeta roleplay app.
+
+The whole app is one file, `index.html`. Tailwind and `marked` load from a CDN. There is no build step.
 
 ## Features
 
+### Stories and scenarios
+
 | Feature | Description |
 | :--- | :--- |
-| **Multiple Scenario Management** | Create, switch, rename and delete entire story timelines with independent cast, lore and message history. |
-| **Dual View Mode** | Toggle between Chat Messenger (turn feed) and Visual Novel Stage (large sprites, backdrop, auto-advance, left/right tap navigation). |
-| **Multi-LLM Routing** | Route story generation to Gemini or to your own self-hosted models, a home Workstation, Oracle Cloud or an iPad, with automatic LAN-first/tunnel-fallback addressing and an Auto profile that probes and picks whichever is reachable. |
-| **Streamed Story Turns** | Gemini story turns arrive over a live stream instead of waiting on one large response, and each character's line starts its voice line generating as soon as that line finishes streaming in, the same way local-model turns already did. |
-| **Local-First Reply Suggestions & Scene Prompts** | Suggested Replies and the Visualize scene-prompt writer try your active local LLM before ever touching Gemini, instead of requiring a Gemini key. |
-| **Local-First Background Maintenance** | Relationship-event detection and lorebook auto-extraction try your active local LLM first (falling back to Gemini only if it's unavailable), and lorebook extraction now also runs early whenever recent turns look likely to contain new lore, instead of waiting on a fixed turn interval alone. |
-| **Dramatis Personae Panel** | Sidebar lists Main Cast and dynamically detected Side Characters. Click any to open a full spotlight. |
-| **Relationship Graph View** | A node-and-edge diagram of the user and every Main Cast character, with a labeled connection for every pair that has a recorded relationship. Tap any node to jump to that character's spotlight. |
-| **Character Spotlight** | View and edit persona, visual profile, current outfit, mood, inter-character relationships and an AI-generated chapter arc. |
-| **Photo and Sprite Management** | Upload single photos, paste URLs or upload a 4×4 sprite sheet that auto-extracts 16 emotion sprites, with optional background removal and manual grid-adjustment for sheets that don't line up perfectly. |
-| **AI Image Generation with Local Fallback** | Generate 1:1 square character portraits and 4×4 sprite sheets via Gemini Flash Image, or switch to a locally-hosted MeinaMix/SD1.5 fallback (single-pose portrait prompting, no Gemini key required) at generation time, with a final anonymous public-renderer fallback if neither is available. MeinaMix portraits lock a per-character seed after the first generation so repeat portraits stay visually consistent (rerollable per character). |
-| **Scene Visualizer** | Generate a cinematic illustration of the current scene using character reference photos and story context, with the same Gemini/local engine choice as character photos. |
-| **Voice Acting (TTS)** | Three interchangeable engines: Kokoro (~85MB, in-browser, most expressive), Kitten TTS (~25-80MB, in-browser, lightest) and Chatterbox (Laptop, best quality, runs on your own machine with cloned voices), plus an Auto mode that picks whichever is actually reachable, in a priority order you can reorder yourself. Voice Lab supports AI voice matching and Gemini-assisted voice cloning per character. In-browser model weights are downloaded once and kept in the browser's own Cache Storage, so repeat sessions don't re-download them. |
-| **Lorebook and Codex** | Keyword-triggered entries that auto-inject relevant lore into the AI context only when needed. Background maintenance auto-extracts new durable facts from recent story turns on a rolling cadence (a missed check retries every subsequent turn instead of waiting a full interval), with an explicit per-entry schema so extracted keywords stay actually searchable later. |
-| **Chapter Chronicle** | Auto-archives chapters when the token limit is reached, with AI-generated chapter summaries and per-character arc summaries. Archiving (manual or automatic) can be undone from the Chronicle panel or by tapping the chapter divider chip inline in the story. |
-| **Relationship Tracking** | AI detects significant events (confession, fight, reunion, breakup, etc.) and updates relationship labels without degrading stable family or social relationships during ordinary inactivity. |
-| **Reply Suggestions** | AI generates distinct dialogue and action options, trying your active local LLM first with a scene-aware cache, falling back to Gemini only when a key is present. |
-| **Branch Editing** | Edit any message (correctly reverting to the original text on Undo), delete subsequent turns and regenerate from that branch or retry the last turn. |
-| **Full Message Version History** | Every past wording of an edited message is kept, not just the one most recent edit -- open a message's History to browse and restore any earlier version. |
-| **Speech-to-Text Input** | Dictate your turn with the microphone button (Web Speech API) instead of typing, on any browser that supports it. |
-| **Narration & Mentions** | Use `@:` to narrate as the scene itself, or `@Name` to mention a character, rendered without the leading `@` so mentions read like natural prose while the underlying stored text stays exact for search. |
-| **Dialogue Formatting Enforcement** | The AI is instructed (and its output is post-processed) to wrap actions/thoughts in asterisks consistently, and is hard-blocked from voicing the user's own persona on a turn the user just typed. Continue and the opening scene are the only points it may narrate on the user's behalf. |
-| **Import and Export** | Import plaintext transcripts (auto-parses speakers) or export a Markdown transcript, an illustrated PDF, or an illustrated EPUB e-book (one chapter per Chapter Chronicle entry, images embedded in all three). |
-| **Full JSON Backup** | One-click backup and restore of all scenarios, messages, lore, avatars, metadata and raw story history. |
-| **Long-Term Local Memory** | Full raw story data remains locally stored while compact context, recaps and relevant lore are selectively sent to the active LLM to reduce token usage. Generated images are stored as Blobs in IndexedDB (not inline base64) with automatic garbage collection of orphaned assets, keeping autosaves fast and storage bounded on long-running scenarios. |
-| **Context Caching** | Stable story and persona context can use Gemini context caching while dynamic dialogue remains outside the cache. |
-| **Cost and Token Monitor** | Click the Chapter Chronicle token counter to view estimated text, portrait, sprite sheet and scene generation costs. |
-| **PWA Ready** | Service worker, manifest, PNG/SVG app icon and touch-optimized UI for mobile and desktop. |
+| **Scenario management** | Create, switch, rename and delete story timelines. Each has its own cast, lore, calendar and message history. |
+| **Recreate from a Zeta link** | Paste a zeta-ai.io plot link in the New Scenario drawer. ZetaForge reads the page, then the LLM you picked writes your own version with a persona, cast, outfits, lorebook, locations, start time, weather, calendar and relationships. If the page cannot be read automatically you can paste its text instead. |
+| **AI Generate Scenario** | Describe the story you want, or let it invent one at random. It fills in the same fields as the link import, so a new scenario starts with every system already in use. |
+| **Dual view** | Switch between a chat feed and a visual novel stage with large sprites, a backdrop, auto-advance and tap navigation. |
+| **Branch editing** | Edit any message, delete the turns after it and regenerate from there. Every earlier wording is kept in the message history and can be restored. |
+| **Import and export** | Import a plain text transcript, a Markdown file or a JSON backup. Export a Markdown transcript, an illustrated PDF or an illustrated EPUB with one chapter per Chronicle entry. |
+| **Full JSON backup** | One click saves or restores scenarios, messages, lore, images and metadata. |
+
+### Cast and characters
+
+| Feature | Description |
+| :--- | :--- |
+| **Dramatis Personae** | The sidebar lists the main cast and side characters found during play. Click anyone to open a spotlight. |
+| **Character spotlight** | View and edit persona, visual profile, outfit, mood, relationships and an AI written chapter arc. |
+| **Relationship graph** | A diagram of the user and each main character. Tap a node to open that character. |
+| **Photo and sprite library** | Upload photos, paste URLs or upload a 4x4 sprite sheet that splits into 16 emotion sprites, with a manual grid adjustment. |
+| **Background removal** | Remove the background from one photo or from every photo in a character's library at once. It uses an AI segmentation model or a worker based fallback. |
+| **Shot size** | Pick Full Body, 3/4, Half Body, Bust or Headshot before generating a character photo. |
+| **Duplicate protection** | A generated photo labeled Default is stored once, not twice. |
+
+### World systems
+
+| Feature | Description |
+| :--- | :--- |
+| **Story clock** | A day and time tracker with weather and season. Skip ahead to a day or time of day, or set an exact time. Backdrops and music can follow the time of day. |
+| **Calendar** | Add dated events that appear in the story context when they come due. |
+| **Lorebook and Codex** | Entries are grouped as world, location, object or character. Keywords decide when an entry is sent to the model. Entries can be secret, built from templates, bulk imported or auto tagged. A token meter and a prompt preview show what will be sent. |
+| **Locations** | A location picker with travel times. The current place shows in the top bar. |
+| **Character schedules** | Characters can have a routine so the story knows who is likely to be where. |
+| **Model driven tracker updates** | The model can report scene changes in a short tag that moves the clock, place and weather. |
+| **Plot arcs** | Track long threads per scenario so the model keeps them in view. |
+| **Chapter Chronicle** | Chapters archive when the token limit is reached. Each gets a summary and per character arc notes. Archiving can be undone from the panel or from the chapter divider in the story. |
+| **Relationship tracking** | Significant events such as a confession, a fight or a reunion update relationship labels. Ordinary quiet stretches do not wear down stable ties. |
+
+### AI routing and writing tools
+
+| Feature | Description |
+| :--- | :--- |
+| **Multi-LLM routing** | Send turns to Gemini or to a self-hosted model on a workstation, Oracle Cloud or an iPad. Smart Auto-Routing tries each in order and uses the first that answers. |
+| **Streamed turns** | Gemini and local turns stream in. Each character's line starts voice generation as soon as that line finishes. |
+| **Suggest menu** | Reply suggestions, an Enhance option that rewrites your draft in place and a Create option for new ideas. Suggestions try the local model first and use Gemini only when a key is set. |
+| **Visualize** | Draw the current scene from character reference photos and story context, with the same engine choices as portraits. |
+| **Local-first maintenance** | Relationship checks and lorebook extraction try the local model first and fall back to Gemini. |
+| **Context control** | Raw story data stays on the device. Only recent turns, recaps and keyword matched lore go to the model. Stable context can use Gemini context caching. |
+| **Cost monitor** | Click the token counter in the Chronicle to see estimated text, portrait, sprite and scene costs. |
+
+### Media
+
+| Feature | Description |
+| :--- | :--- |
+| **Image generation** | Gemini Flash Image first, then a local MeinaMix server, then a public renderer. MeinaMix portraits keep a locked seed per character for a consistent look. |
+| **Pixabay backdrops** | Search free photos and save them straight into the Backdrop Library. The panel suggests searches from the scenario text and the current location. A Pixabay API key is needed. |
+| **Music browser** | Search Jamendo for full songs and Freesound for ambience, then save them to the Music Library. Jamendo needs a free client ID and Freesound needs an API key. |
+| **Voice acting** | Three engines. Kokoro runs in the browser and sounds the most natural. Kitten TTS is the lightest. Chatterbox runs on your own machine with cloned voices. Auto picks whichever is reachable. Voice Lab can match or clone a voice per character. |
+| **Speech input** | Dictate your turn with the microphone button on browsers that support it. |
+| **Narration and mentions** | Start a line with `@:` to narrate as the scene. Use `@Name` to address a character. |
+| **Dialogue formatting** | Actions and thoughts are wrapped in asterisks. The model is blocked from speaking as your persona on a turn you just typed. |
+
+### Interface
+
+| Feature | Description |
+| :--- | :--- |
+| **Top bar** | The title and scenario rows stay solid. The scene row (place, clock and a few shortcuts) floats over the story as pills. |
+| **LLM status** | The bar under the chat shows the active model and a status dot. The same line is repeated in the Chronicle as the last engine used. |
+| **Themes** | Dark and light modes. |
+| **Storage** | Images are stored as blobs in IndexedDB and unused ones are cleaned up automatically, which keeps saves fast on long stories. |
 
 ---
 
 ## Self-Hosted AI Stack (optional)
 
-ZetaForge works with just a Gemini API key, but every generation surface (story turns, reply suggestions, image generation and voice) can instead be routed to models you run yourself, with Gemini available only as an explicit fallback (or not used at all).
+ZetaForge works with only a Gemini API key. Every generation step can instead run on models you host, with Gemini kept as a fallback or left out.
 
-- **LLM profiles** (Setup → Routine Chat Inference): **Workstation (Laptop)**, **Oracle Cloud** and **iPad Air**, each with its own URL, model name, optional API key, context cap and ping target, plus an **Auto** profile that pings all of them and uses whichever responds. The Workstation profile additionally supports a LAN address tried first and a **Fallback URL** (e.g. an ngrok/tunnel address) tried if the LAN address isn't reachable. This matters because ZetaForge is served over HTTPS, and browsers block a plain `http://` LAN request from an HTTPS page outright (Mixed Content policy). Point the Fallback URL at an HTTPS tunnel to route around this from anywhere, not just your home network.
-- **Companion scripts** (run on the machine hosting your local model, not tracked as part of the deployed app):
-  - `start_chatterbox_server.py`: Chatterbox TTS server with voice cloning support.
-  - `start_image_fallback_server.py`: a Flask server wrapping a local SD1.5 + LCM-LoRA (MeinaMix) pipeline for fast local image generation. Accepts optional width/height/negative-prompt overrides so the same server serves both wide scene visuals and single-pose character portraits correctly.
-  - `reverse_proxy.py`: combines the LLM (`/v1/*`), image-gen fallback (`/image/*`) and Chatterbox TTS (everything else) behind a single local port, so one tunnel URL covers all three services.
-  - `ngrok_tunnel_core.bat`: one-shot Windows launcher that restarts LM Studio's server with CORS enabled, loads the model, starts Chatterbox and the image-gen fallback server in the background, starts the reverse proxy, then opens the ngrok tunnel.
-  - `cloudflare_tunnel_core.bat`: the same launcher sequence, tunneled with Cloudflare Tunnel (`cloudflared`) instead of ngrok. Cloudflare doesn't inject a browser-warning interstitial the way a free ngrok tunnel does (see Known Limitation below), so this avoids that problem entirely at no cost. Supports both a zero-setup "quick tunnel" (a new random URL every run) and a one-time-setup named tunnel with a stable custom domain, the direct equivalent of ngrok's reserved subdomain.
-  - `oracle_llm_setup.md`: setup notes for running a model on Oracle Cloud's free tier as the Oracle Cloud profile's backend.
-- **Image generation fallback chain**: Gemini (default) then your configured local MeinaMix server then an anonymous public renderer (pollinations.ai), tried in that order whenever the previous tier is rate-limited, refuses a scene or isn't configured.
-- **Known limitation (ngrok specifically)**: a free ngrok tunnel serves its own browser-warning interstitial page to any cross-origin request that needs a CORS preflight (i.e. any JSON POST, which is most requests here), and that interstitial has no CORS headers, so the browser blocks the request before it reaches your server. This affects local LLM and image-gen calls made *through* a free ngrok tunnel from the HTTPS-deployed app. Workarounds: use `cloudflare_tunnel_core.bat` instead, a paid ngrok plan (removes the interstitial), or another tunnel tool that doesn't inject one (e.g. Tailscale Funnel).
+- **LLM profiles** (Setup, then Routine Chat Inference): Workstation (Laptop), Oracle Cloud and iPad Air. Each has a URL, model name, optional key, context cap and ping target. A fourth choice, Smart Auto-Routing, pings them all and uses the first that responds. The Workstation profile accepts a LAN address and a Fallback URL such as a tunnel. Browsers block plain `http://` requests from an HTTPS page, so a LAN address only works when ZetaForge itself is opened over HTTP or from a local file. Use an HTTPS tunnel as the Fallback URL for everything else.
+- **Companion scripts** (run on the machine that hosts your model):
+  - `start_chatterbox_server.py` runs Chatterbox TTS with voice cloning.
+  - `start_image_fallback_server.py` wraps a local SD1.5 and LCM-LoRA (MeinaMix) pipeline for image generation.
+  - `reverse_proxy.py` puts the LLM (`/v1/*`), image fallback (`/image/*`) and Chatterbox TTS behind one port so one tunnel covers all three.
+  - `ngrok_tunnel_core.bat` restarts LM Studio with CORS on, loads the model, starts the helper servers and opens an ngrok tunnel.
+  - `cloudflare_tunnel_core.bat` does the same with Cloudflare Tunnel, which has no browser warning page.
+  - `oracle_llm_setup.md` covers running a model on Oracle Cloud's free tier.
+- **Google Colab option**: `Llama-3_1-Stheno_ZetaForge_Colab_Notebook.ipynb` runs a Stheno model on a Colab GPU and exposes it through ngrok. `launch_colab.py` opens the notebook and can try the Run all shortcut. `zeta_colab_server.py` is a single file version for a Colab cell. Your ngrok token is read from Colab secrets or an environment variable and is never stored in the repo.
+- **Image fallback chain**: Gemini, then your local MeinaMix server, then pollinations.ai. Each step is tried when the one before is rate limited, refuses the scene or is not set up.
+- **Known limit with free ngrok**: a free ngrok tunnel answers cross-origin preflight requests with its own warning page, which has no CORS headers, so the browser blocks the call. Use the Cloudflare launcher, a paid ngrok plan or another tunnel such as Tailscale Funnel.
 
 ---
 
 ## Program Outline
+
 ```
-ZetaForge AI
-├── UI Layer
-│   ├── Header (Zeta logo, scenario title, view toggle, chapter badge)
-│   ├── Left Sidebar (Cast list with avatars and moods)
-│   ├── Right Drawers (Chapter Chronicle, Lorebook and Scenarios Menu)
-│   ├── Main Canvas (Chat Feed / Visual Novel Stage)
-│   └── Bottom Bar (Input, Narrate toggle, Suggest, Visualize, Continue)
+ZetaForge AI (index.html)
+├── UI layer
+│   ├── Top bar (logo, scenario title, view toggle, chapter badge, floating scene row)
+│   ├── Left sidebar (cast list with avatars and moods)
+│   ├── Right drawers (Chronicle, Lorebook, Scenarios, New Scenario, LLM connection)
+│   ├── Main canvas (chat feed or visual novel stage)
+│   └── Bottom bar (input, Narrate, Suggest, Visualize, Continue, Search)
 │
 ├── Modals
-│   ├── Setup (LLM profiles, API keys, TTS engine, cast, outfits, lorebook, user persona)
-│   ├── Import (paste transcript)
-│   ├── Character Spotlight (dossier with edit mode)
-│   ├── Chapter Chronicle (archive/undo, cost & context, per-character arcs)
-│   ├── Image Library (all generated scene visuals)
-│   ├── Avatar Manager (upload and manage photos and sprite sheets)
-│   ├── Voice Lab (voice matching and cloning per character)
-│   ├── Relationship Graph (node/edge diagram of cast relationships)
-│   ├── Message History (browse and restore any prior edit of a message)
-│   ├── API Usage and Cost (estimated per-turn and image costs)
-│   └── Lightbox (full-screen image preview)
+│   ├── Setup (LLM profiles, keys, TTS, cast, outfits, user persona)
+│   ├── Import, Character Spotlight, Chapter Chronicle
+│   ├── Image Library, Avatar Manager, Voice Lab
+│   ├── Pixabay browser, Music browser
+│   ├── Relationship Graph, Message History, API Usage and Cost
+│   └── Lightbox
 │
-├── Core Engine
-│   ├── State Management (IndexedDB and localStorage fallback)
-│   ├── Scenario CRUD (create, switch, rename, delete)
-│   ├── Message Store (deep-cloned undo snapshots on edit, branching, editing, deletion)
-│   ├── Typewriter Renderer (per character, per turn, with skip support and user-persona-speech enforcement)
-│   ├── VN Stage Controller (turn navigation, auto-play, backdrop)
-│   └── Long-Term Memory (raw archive, recaps, lore, selective context)
+├── Core engine
+│   ├── State (IndexedDB with a localStorage fallback, debounced saves)
+│   ├── Scenario model (cast, lorebook, plot arcs, calendar, world clock)
+│   ├── Message store (undo snapshots for edits, branches and deletes)
+│   ├── Typewriter renderer and VN stage controller
+│   └── Long-term memory (raw archive, recaps, lore, selective context)
 │
-├── AI Integration (Gemini + local LLM endpoints)
-│   ├── Endpoint Resolver (Gemini vs. Workstation/Oracle Cloud/iPad Air/Auto, LAN-first with tunnel fallback)
-│   ├── System Prompt Builder (persona, relationships, relevant lore, formatting rules)
-│   ├── Context Cache Manager (stable prefix caching with fallback)
-│   ├── Call API (structured multi-turn replies with retry, backoff and streaming for both Gemini and local models)
-│   ├── Character Arc Analyzer
-│   ├── Significant Event Relationship Updater
-│   ├── Lorebook Auto-Extractor (rolling cadence, schema-constrained keywords)
-│   ├── Reply Suggester (local-first, scene-cached, Gemini fallback)
-│   ├── Visual Prompt Writer (local-first, Gemini fallback)
-│   ├── Image Generator (Gemini → local MeinaMix → public fallback, portraits/sprite sheets/scene visuals)
-│   ├── Voice Engine (Kokoro/Kitten in-browser, Chatterbox on your laptop, Auto selection)
-│   └── Chapter Archiver, Undo and Recap Compaction
+├── AI integration (Gemini and local endpoints)
+│   ├── Endpoint resolver (Gemini, Workstation, Oracle, iPad, Smart Auto-Routing)
+│   ├── System prompt builder and context cache manager
+│   ├── Call layer (retry, backoff and streaming, no retry on client errors)
+│   ├── Scenario builder (Zeta link import and AI generation)
+│   ├── Background maintenance (relationship events, lorebook extraction, arcs)
+│   ├── Reply suggester, Enhance and visual prompt writer
+│   ├── Image generator (Gemini, local MeinaMix, public fallback)
+│   └── Voice engine (Kokoro, Kitten, Chatterbox, Auto)
 │
-└── Image Pipeline
-    ├── Compression (client-side WebP/JPEG resizing on a Web Worker, main-thread fallback)
-    ├── Sprite Sheet Splitter (4×4 grid into 16 sprites, with manual grid adjustment)
-    ├── Optional Background Removal (AI segmentation model or a Web Worker heuristic, main-thread fallback)
-    ├── Blob-Backed Asset Store (IndexedDB, object-URL rendering, orphan garbage collection)
-    └── Avatar and Photo Manager (upload, URL, set default, delete)
+└── Image pipeline
+    ├── Compression (worker with a main thread fallback)
+    ├── Sprite sheet splitter (4x4 grid with manual adjustment)
+    ├── Background removal (segmentation model or worker heuristic)
+    ├── Blob asset store with garbage collection
+    └── Photo manager (upload, URL, default, delete)
 ```
 
 ---
 
 ## Default Empty State
-When no local ZetaForge data exists, the application initializes a fresh scenario named **Simulation** with **Bob** as the default main and user character. Bob is described as a middle-aged businessman who is aware that he is a test subject in a simulation. Existing local scenarios and imported data are preserved rather than replaced.
+
+With no local data, ZetaForge starts a scenario named **Simulation** with **Bob** as the main and user character. Bob is a middle aged businessman who knows he is a test subject in a simulation. Existing local scenarios and imported data are kept, never replaced.
 
 ## Data and Privacy
-Story state, character data, generated avatars, lorebook entries and raw messages are stored locally in the browser. Full JSON backup and export can be used to move or restore a story. Any API keys (Gemini or a local endpoint's own key) are kept in the application's local state and should be treated as secrets. When routing to a self-hosted endpoint over a public tunnel, treat that tunnel URL as sensitive too, since anyone with it can reach your local model server.
+
+Story state, characters, generated images, lorebook entries and raw messages are stored in the browser. Use the JSON backup to move or restore a story. API keys for Gemini, Pixabay and Freesound, the Jamendo client ID and local endpoint keys sit in the app's local state, so treat them as secrets. 
+
+Two features contact outside services. The Zeta link import requests the public plot address (without the share code) from the site and from free page reader relays when direct reading is blocked. The app asks you to confirm once before the first relay request. The Pixabay, Jamendo and Freesound browsers send your search words to those services.
 
 ## Deployment
-ZetaForge AI is designed as a single-page `index.html` application, deployable as-is (e.g. to Render). The repository should also contain the branding assets referenced by the page (`zetaforge.svg` for the top-bar logo and `zetaforge.png` for the PWA/home-screen icon), plus the optional companion Python scripts and batch launcher described above if you intend to use the self-hosted AI stack. Those run on your own machine and are not served by the deployed page itself.
+
+ZetaForge is a single `index.html` and can be deployed as is, for example to Render. Keep the branding files `zetaforge.svg` (top bar logo) and `zetaforge.png` (home screen icon) next to it. The `llm-icon-*.svg` files in the folder are not referenced by the page, which draws those icons inline, so they can be removed. The Python scripts, batch files and notebook run on your own machine or on Colab and are not served by the page.
