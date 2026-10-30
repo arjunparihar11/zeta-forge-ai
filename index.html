@@ -4,7 +4,7 @@
   <!-- ZetaForge optimized build: routine Lite model, selective cache, compact schema, fading context, worker image processing -->
   <meta charset="UTF-8" />
   <!-- maximum-scale=1.0 and user-scalable=no block pinch zoom. viewport-fit=cover lets the layout use the safe-area insets below. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>ZetaForge AI - Interactive Story Engine</title>
 
   <!-- Native iOS Meta -->
@@ -24,7 +24,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Marked.js -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 
   <!-- Tailwind CDN config. Must run after the CDN script above. These zeta colors
        are only the compiled defaults. The CSS below remaps them to live CSS
@@ -77,7 +77,6 @@
     :root {
       --zeta-accent: #7c65e8;
       --zeta-accent-hover: #6650d6;
-      --zeta-glow: #9a89f7;
       --zeta-light: #d2c6ff;
       --zeta-bg: #1d1a27;
       --zeta-sidebar: #252232;
@@ -387,10 +386,13 @@
     }
     ::-webkit-scrollbar-thumb:hover { background: var(--zeta-accent); }
     ::-webkit-scrollbar-corner { background: transparent; }
-    /* Standard scrollbar properties. Firefox and current Chrome use these and
-       then ignore the ::-webkit-scrollbar rules above, which only apply to
-       browsers without standard support. */
-    * { scrollbar-color: color-mix(in srgb, var(--zeta-accent) 55%, var(--zeta-border)) transparent; scrollbar-width: thin; }
+    /* Standard scrollbar properties are for browsers that lack the
+       ::-webkit-scrollbar pseudo-element (Firefox). Where it exists, the rules
+       above stay in effect, because setting scrollbar-color in current Chrome
+       would turn them off, including the light mode ones. */
+    @supports not selector(::-webkit-scrollbar) {
+      * { scrollbar-color: color-mix(in srgb, var(--zeta-accent) 55%, var(--zeta-border)) transparent; scrollbar-width: thin; }
+    }
     .no-scrollbar { scrollbar-width: none; }
     
     /* Chat message text (rendered Markdown). Tight paragraph spacing, no extra
@@ -443,7 +445,9 @@
       box-shadow: 0 1px 3px rgb(0 0 0 / .35);
     }
     .prose strong { color: #f8fafc; }
-    textarea, input, select { -webkit-appearance: none; }
+    /* Checkboxes, radios and range sliders keep their own rendering. Removing
+       the native look from them would leave checkboxes invisible. */
+    textarea, select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { -webkit-appearance: none; }
 
     /* Blinking block shown at the end of text while a reply is being typed out. */
     .typing-cursor::after {
@@ -634,7 +638,7 @@
         </div>
         <div class="flex items-center gap-1">
           <button onclick="openModal('relationshipGraphModal')" title="Relationship Graph" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-zetaBorder transition"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="8.2" y1="6.9" x2="15.8" y2="6.9"/><line x1="7" y1="8.2" x2="10.7" y2="16"/><line x1="17" y1="8.2" x2="13.3" y2="16"/></svg></button>
-          <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none">&times;</button>
+          <button onclick="toggleMobileSidebar(false)" class="md:hidden text-slate-400 hover:text-white p-1 rounded text-base leading-none" aria-label="Close">&times;</button>
         </div>
       </div>
 
@@ -672,7 +676,7 @@
           <button onclick="openLorebookModal()" class="bg-[#2a223c] hover:bg-[#352a4e] text-zetaLight border border-zetaAccent/50 text-[11px] px-2 py-1 rounded-lg font-medium transition active:scale-95 flex items-center gap-1 shadow">
             <span>📚</span> <span>Codex</span>
           </button>
-          <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none pl-1">&times;</button>
+          <button onclick="toggleChapterDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none pl-1" aria-label="Close">&times;</button>
         </div>
       </div>
 
@@ -743,7 +747,7 @@
             <span class="text-base">💬</span>
             <h2 class="text-sm font-bold text-white tracking-wide">Story Scenarios</h2>
           </div>
-          <button onclick="toggleMenuDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+          <button onclick="toggleMenuDrawer(false)" class="text-slate-400 hover:text-white text-xl leading-none" aria-label="Close">&times;</button>
         </div>
 
         <div class="grid grid-cols-4 gap-1.5 pt-1">
@@ -1018,7 +1022,7 @@
        Holds Gemini key/model plus one block per local profile (workstation, deviceIphone = Oracle Cloud, deviceIpad).
        Field ids follow llmDrawer<Field>_<profileKey> and are read in saveLlmDrawer() and testLlmDrawerEndpoint(). -->
   <div id="llmConnectionDrawer" class="fixed inset-y-0 right-0 z-[55] w-80 sm:w-[28rem] bg-zetaSidebar border-l border-zetaBorder flex flex-col transform translate-x-full transition-transform duration-200 ease-in-out header-safe bottom-safe shadow-2xl">
-    <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><div><h2 class="text-sm font-bold text-white">🔌 LLM Connection</h2><p class="text-[10px] text-slate-500 mt-1">Edit LLM settings without opening Setup.</p></div><button onclick="toggleLlmConnectionDrawer(false)" class="text-slate-400 hover:text-white text-2xl">&times;</button></div>
+    <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><div><h2 class="text-sm font-bold text-white">🔌 LLM Connection</h2><p class="text-[10px] text-slate-500 mt-1">Edit LLM settings without opening Setup.</p></div><button onclick="toggleLlmConnectionDrawer(false)" class="text-slate-400 hover:text-white text-2xl" aria-label="Close">&times;</button></div>
     <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
       <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><label class="block text-[10px] font-bold text-zetaLight uppercase">Active routine LLM</label><select id="llmDrawerProfileSelect" onchange="onLlmDrawerProfileChange(this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-white text-xs"><option value="gemini">☁️ Google Gemini</option><option value="workstation">💻 Laptop / Workstation</option><option value="deviceIphone">☁️ Oracle Cloud — Stheno 8B Q4_K_M</option><option value="deviceIpad">📱 iPad — On-Device Stheno</option><option value="auto">⚡ Smart Auto-Routing</option></select><p id="llmDrawerProfileHint" class="text-[10px] text-slate-500"></p></div>
       <div class="p-3 bg-zetaCard border border-zetaBorder rounded-xl space-y-2"><b class="text-[10px] text-zetaLight uppercase">☁️ Google Gemini</b><input id="llmDrawerApiKey" type="password" autocomplete="off" placeholder="Gemini API key" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><select id="llmDrawerModel" class="w-full bg-zetaInput border border-zetaBorder rounded px-2.5 py-2 text-xs text-white"><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option><option value="gemini-3.6-flash">gemini-3.6-flash</option><option value="gemini-3.7-flash">gemini-3.7-flash</option><option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option></select></div>
@@ -1037,7 +1041,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🖼️ Scenario Image Library</h2>
-        <button onclick="closeImageLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeImageLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 scroll-touch" id="imageLibraryContainer">
@@ -1054,7 +1058,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🕸️ Relationship Graph</h2>
-        <button onclick="closeModal('relationshipGraphModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('relationshipGraphModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-3 sm:p-4 overflow-auto space-y-3 flex-1 scroll-touch" id="relationshipGraphContainer">
       </div>
@@ -1069,7 +1073,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🕘 Message History</h2>
-        <button onclick="closeModal('messageHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('messageHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-3 sm:p-4 overflow-y-auto space-y-2 flex-1 scroll-touch" id="messageHistoryContainer">
       </div>
@@ -1084,7 +1088,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📂 Backdrop Library</h2>
-        <button onclick="closeBackdropLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeBackdropLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="px-4 sm:px-6 pt-3 pb-3 shrink-0 space-y-2.5 border-b border-zetaBorder bg-zetaCard/40">
@@ -1118,7 +1122,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">🎵 Music Library</h2>
-        <button onclick="closeMusicLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeMusicLibraryModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="px-4 sm:px-6 pt-3 pb-3 shrink-0 space-y-2.5 border-b border-zetaBorder bg-zetaCard/40">
@@ -1172,7 +1176,7 @@
           <button type="button" onclick="addLorebookRow()" class="text-xs bg-zetaAccent hover:bg-zetaAccentHover text-white px-2.5 py-1 rounded-lg transition active:scale-95 shadow">
             + Add Entry
           </button>
-          <button onclick="closeLorebookModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+          <button onclick="closeLorebookModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
         </div>
       </div>
 
@@ -1195,7 +1199,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2"><span class="text-base">📅</span><h2 class="text-sm sm:text-base font-bold text-white">Story Calendar</h2></div>
-        <button onclick="closeCalendarModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeCalendarModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
         <p id="calendarNow" class="text-[11px] text-[#b9a6ff]/80 leading-tight"></p>
@@ -1228,7 +1232,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2"><span class="text-base">🎼</span><h2 class="text-sm sm:text-base font-bold text-white">Find free music</h2></div>
-        <button onclick="closeMusicBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeMusicBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-3.5 flex-1 scroll-touch">
         <div class="flex gap-2">
@@ -1257,7 +1261,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2"><span class="text-base">🔎</span><h2 class="text-sm sm:text-base font-bold text-white">Pixabay backdrops</h2></div>
-        <button onclick="closePixabayBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closePixabayBrowser()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-3.5 flex-1 scroll-touch">
         <div id="pbxKeyRow" class="space-y-2"></div>
@@ -1283,7 +1287,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2"><span class="text-base">📍</span><h2 class="text-sm sm:text-base font-bold text-white">Suggested locations</h2></div>
-        <button onclick="closeLocationSuggestions()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeLocationSuggestions()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-3 flex-1 scroll-touch">
         <p class="text-[11px] text-[#b9a6ff]/80 leading-snug">Places found in your scenario setup, lorebook, cast and routines. Tick the ones to add -- they become Location entries you can pick from the tracker and give travel times.</p>
@@ -1305,7 +1309,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <div class="flex items-center gap-2"><span class="text-base">🔍</span><h2 class="text-sm sm:text-base font-bold text-white">What the model sees</h2></div>
-        <button onclick="closePromptPreview()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closePromptPreview()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-3 flex-1 scroll-touch">
         <div class="grid grid-cols-2 gap-1.5 max-w-xs">
@@ -1329,7 +1333,7 @@
         <button onclick="toggleSpotlightEditMode()" id="spotlightEditToggleBtn" class="px-2.5 py-1 rounded-full bg-zetaBg/80 border border-zetaBorder text-zetaLight hover:text-white text-xs font-medium shadow transition active:scale-95">
           ✏️ Edit
         </button>
-        <button onclick="closeCharacterSpotlight()" class="w-8 h-8 rounded-full bg-zetaBg/80 border border-zetaBorder text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95">
+        <button onclick="closeCharacterSpotlight()" class="w-8 h-8 rounded-full bg-zetaBg/80 border border-zetaBorder text-slate-300 hover:text-white flex items-center justify-center text-lg leading-none shadow transition active:scale-95" aria-label="Close">
           &times;
         </button>
       </div>
@@ -1407,7 +1411,7 @@
             <span class="text-[11px] font-bold text-zetaLight uppercase tracking-wider flex items-center gap-1.5">
               <span>📖</span> Current Chapter Journey
             </span>
-            <span class="text-[9px] bg-[#2a223c] text-zetaLight border border-zetaAccent/50 px-1.5 py-0.2 rounded font-mono" id="spotlightChapterBadge">Ch. 1</span>
+            <span class="text-[9px] bg-[#2a223c] text-zetaLight border border-zetaAccent/50 px-1.5 rounded font-mono" id="spotlightChapterBadge">Ch. 1</span>
           </div>
           <div id="spotlightArcText" class="p-3.5 bg-zetaCard border border-zetaBorder rounded-xl text-xs text-slate-300 leading-relaxed prose prose-invert max-w-none">
           </div>
@@ -1469,7 +1473,7 @@
   <!-- Fullscreen Photo Modal: character-specific scrollable visual library -->
   <div id="characterPhotoModal" onclick="closeCharacterPhotoModal()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] items-center justify-center p-3 sm:p-4 hidden header-safe bottom-safe">
     <div onclick="event.stopPropagation()" class="relative max-w-lg w-full max-h-full flex flex-col items-center gap-3">
-      <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+      <button onclick="closeCharacterPhotoModal()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95" aria-label="Close">
         &times;
       </button>
       <div id="characterPhotoContainer" class="w-full max-h-[58vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
@@ -1493,7 +1497,7 @@
           <h2 class="text-sm font-bold text-white">✂️ Crop for Text Chat</h2>
           <p id="chatAvatarCropTitle" class="text-[10px] text-slate-500 mt-0.5">Creates a separate chat-only portrait.</p>
         </div>
-        <button type="button" onclick="closeChatAvatarCropper()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button type="button" onclick="closeChatAvatarCropper()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 overflow-y-auto space-y-4">
         <div class="rounded-xl border border-zetaBorder bg-black p-2 flex items-center justify-center">
@@ -1519,7 +1523,7 @@
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 id="avatarManagerTitle" class="text-sm font-bold text-white flex items-center gap-2">🖼️ Manage Character Photos</h2>
-        <button onclick="closeAvatarManagerModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeAvatarManagerModal()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 overflow-y-auto space-y-5 flex-1 scroll-touch">
@@ -1588,7 +1592,7 @@
             <span class="animate-pulse">●</span><span class="animate-pulse delay-100">●</span><span class="animate-pulse delay-200">●</span>
           </span>
         </h2>
-        <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('setupModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm scroll-touch">
@@ -1963,7 +1967,7 @@
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📥 Import Story Data</h2>
-        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div class="p-4 sm:p-6 space-y-4 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -2000,7 +2004,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
   <!-- Export Modal -->
   <div id="exportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] items-center justify-center hidden p-3 sm:p-4 header-safe bottom-safe">
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
-      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><h2 class="text-sm font-bold text-white">📤 Export ZetaForge</h2><button onclick="closeModal('exportModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button></div>
+      <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard"><h2 class="text-sm font-bold text-white">📤 Export ZetaForge</h2><button onclick="closeModal('exportModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button></div>
       <div class="p-4 sm:p-5 space-y-2">
         <button onclick="performExport('all-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">📦 All Scenarios — JSON</div><div class="text-[10px] text-slate-500 mt-1">Complete app backup including every scenario.</div></button>
         <button onclick="performExport('scenario-json')" class="w-full text-left bg-zetaCard hover:bg-zetaBorder border border-zetaBorder rounded-xl p-3"><div class="font-semibold text-white text-xs">🧩 Current Scenario — JSON</div><div class="text-[10px] text-slate-500 mt-1">Portable single-scenario backup.</div></button>
@@ -2016,7 +2020,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-lg max-h-full flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard shrink-0">
         <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">📊 API Usage &amp; Estimated Cost</h2>
-        <button onclick="closeModal('usageCostModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('usageCostModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 sm:p-5 space-y-4 text-xs sm:text-sm overflow-y-auto scroll-touch flex-1">
@@ -2076,7 +2080,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
           <h2 id="vlTitle" class="text-sm font-bold text-white truncate">🎙️ Voice Lab</h2>
           <p id="vlModelStatus" class="text-[10px] text-slate-500 mt-0.5">Model loads on first play (one-time download, cached after).</p>
         </div>
-        <button onclick="closeVoiceLab()" class="text-slate-400 hover:text-white text-2xl leading-none shrink-0 ml-2">&times;</button>
+        <button onclick="closeVoiceLab()" class="text-slate-400 hover:text-white text-2xl leading-none shrink-0 ml-2" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
@@ -2247,7 +2251,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
     <div onclick="event.stopPropagation()" class="bg-zetaSidebar border border-zetaBorder rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-zetaBorder bg-zetaCard flex items-center justify-between shrink-0">
         <h2 class="text-sm font-bold text-white">✨ New Scenario</h2>
-        <button onclick="closeNewScenarioDrawer()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeNewScenarioDrawer()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
 
       <div class="p-4 overflow-y-auto space-y-4 flex-1 scroll-touch">
@@ -2317,7 +2321,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
     <div class="bg-zetaSidebar border border-zetaBorder rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <div class="p-4 border-b border-zetaBorder flex items-center justify-between bg-zetaCard">
         <h2 class="text-sm font-bold text-white">🌿 Branch History</h2>
-        <button onclick="closeModal('branchHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeModal('branchHistoryModal')" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close">&times;</button>
       </div>
       <div id="branchHistoryBody" class="p-4 overflow-y-auto space-y-2.5 flex-1 scroll-touch"></div>
     </div>
@@ -2346,7 +2350,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
        was hidden behind that modal. -->
   <div id="imageLightbox" onclick="closeLightbox()" class="fixed inset-0 bg-black/90 z-[66] items-center justify-center p-4 hidden backdrop-blur-md">
     <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
-      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95">
+      <button onclick="closeLightbox()" class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-zetaCard border border-zetaBorder text-slate-200 flex items-center justify-center text-xl font-bold shadow-lg transition active:scale-95" aria-label="Close">
         &times;
       </button>
       <div class="w-full max-h-[72vh] flex items-center justify-center rounded-2xl overflow-hidden border border-zetaBorder bg-black shadow-2xl">
@@ -2448,9 +2452,11 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       });
     }
 
-    // Builds the PWA manifest from an in-memory blob and points the manifest link at it.
-    // Also tries to register a small caching service worker (https or localhost only).
-    // The worker skips googleapis.com requests so Gemini calls are never cached.
+    // Builds the web app manifest from an in-memory blob and points the manifest link at it.
+    // This gives the app a name and icon when it is added to a home screen. The old caching
+    // service worker was removed. It was built from a blob address, which browsers refuse to
+    // register as a service worker, so it never ran. Offline use would not have worked anyway
+    // because the page loads Tailwind from a CDN.
     (function initPwa() {
       const manifestData = {
         name: "ZetaForge AI Roleplay",
@@ -2463,21 +2469,6 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       };
       const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
       document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(manifestBlob));
-
-      if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-        const swScript = `
-          const CACHE_NAME = 'zetaforge-v64';
-          const ASSETS = ['./', 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net/npm/marked/marked.min.js'];
-          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
-          self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-          self.addEventListener('fetch', e => {
-            if (e.request.url.includes('googleapis.com')) return;
-            e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
-          });
-        `;
-        const swBlob = new Blob([swScript], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
-      }
     })();
 
     // IndexedDB Layer
@@ -2831,6 +2822,14 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
         const db = await initDb();
         const tx = db.transaction(DB_STORE, 'readwrite');
         tx.objectStore(DB_STORE).put(persistable, 'current_state');
+        // Wait for the transaction to commit before reporting success. Without
+        // this the promise resolved as soon as the write was queued, so a crash
+        // or tab close right after could lose the save without any error.
+        await new Promise((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error || new Error('IndexedDB write failed'));
+          tx.onabort = () => reject(tx.error || new Error('IndexedDB write aborted'));
+        });
         localStorage.setItem('zetaforge_synced', Date.now().toString());
       } catch (e) {
         console.warn("IndexedDB save error, using fallback", e);
@@ -3279,12 +3278,36 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       setTimeout(() => screen.remove(), 700);
     }
 
+    // Many form labels in the static markup are not tied to their control (no for
+    // attribute and no nesting), so screen readers read the control with no name.
+    // This pass runs once at startup. For each such label it finds the next input,
+    // select or textarea in the markup and points that control at the label with
+    // aria-labelledby. Controls that already have a name are left alone.
+    function linkOrphanLabels(root = document) {
+      const CONTROL = 'input:not([type=hidden]),select,textarea';
+      let n = 0;
+      root.querySelectorAll('label:not([for])').forEach(label => {
+        if (label.querySelector(CONTROL)) return;
+        let node = label.nextElementSibling;
+        let control = null;
+        for (let hops = 0; node && hops < 3 && !control; hops++, node = node.nextElementSibling) {
+          if (node.tagName === 'LABEL') break;
+          control = node.matches(CONTROL) ? node : node.querySelector(CONTROL);
+        }
+        if (!control || control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+        if (control.id && root.querySelector(`label[for="${control.id}"]`)) return;
+        if (!label.id) label.id = `zf_lbl_${++n}_${Math.random().toString(36).slice(2, 6)}`;
+        control.setAttribute('aria-labelledby', label.id);
+      });
+    }
+
     // App startup. Order matters: load saved state, apply theme, close every
     // modal and drawer, render, then kick off slow work (LLM check, TTS warm-up,
     // asset GC) in the background so the boot screen can finish quickly.
     window.addEventListener('DOMContentLoaded', async () => {
       try {
         setBootProgress(8, 'Loading saved state…');
+        linkOrphanLabels();
         await loadState();
         setBootProgress(24, 'Applying appearance…');
         applyThemeMode(appState.themeMode || 'dark');
@@ -3768,8 +3791,11 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
     // Shows the themed dialog. Optional text input (inputValue), dropdown
     // (selectOptions) and extra dropdowns (extraSelects). Returns a promise that
     // zfDialogRespond resolves. Opening a second dialog while one is open
-    // abandons the first promise (it never resolves).
+    // cancels the first one, so its promise resolves as cancelled.
     function zfOpenDialog({ title = '', message = '', okText = 'OK', cancelText = 'Cancel', showCancel = true, inputValue = null, selectOptions = null, selectValue = null, extraSelects = null }) {
+      // A dialog that is still open gets cancelled first. Before, its promise was
+      // abandoned and the code waiting on it never continued.
+      if (zfDialogResolver) zfDialogRespond(false);
       const modal = document.getElementById('zfDialog');
       const input = document.getElementById('zfDialogInput');
       const select = document.getElementById('zfDialogSelect');
@@ -3785,7 +3811,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       else { input.classList.remove('hidden'); input.value = inputValue; }
       if (!selectOptions) { select.classList.add('hidden'); select.innerHTML = ''; }
       else {
-        select.innerHTML = selectOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        select.innerHTML = selectOptions.map(o => `<option value="${escapeHtml(String(o.value ?? ''))}">${escapeHtml(String(o.label ?? ''))}</option>`).join('');
         select.value = (selectValue !== null && selectValue !== undefined) ? selectValue : selectOptions[0].value;
         select.classList.remove('hidden');
       }
@@ -3793,7 +3819,7 @@ Me: &quot;Glad you made it.&quot;" class="w-full bg-zetaInput border border-zeta
       if (extraWrap) {
         const list = Array.isArray(extraSelects) ? extraSelects.filter(x => x && x.key && x.options && x.options.length) : [];
         if (list.length) {
-          extraWrap.innerHTML = list.map(x => `<div class="space-y-1"><label class="block text-[11px] font-semibold text-slate-300">${x.label || ''}</label><select data-extra-key="${x.key}" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent">${x.options.map(o => `<option value="${o.value}" ${String(o.value) === String(x.value) ? 'selected' : ''}>${o.label}</option>`).join('')}</select></div>`).join('');
+          extraWrap.innerHTML = list.map(x => `<div class="space-y-1"><label class="block text-[11px] font-semibold text-slate-300">${escapeHtml(x.label || '')}</label><select data-extra-key="${escapeHtml(x.key)}" class="w-full bg-zetaInput border border-zetaBorder rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zetaAccent">${x.options.map(o => `<option value="${escapeHtml(String(o.value ?? ''))}" ${String(o.value) === String(x.value) ? 'selected' : ''}>${escapeHtml(String(o.label ?? ''))}</option>`).join('')}</select></div>`).join('');
           extraWrap.classList.remove('hidden');
         } else { extraWrap.innerHTML = ''; extraWrap.classList.add('hidden'); }
       }
@@ -4525,16 +4551,24 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
     })();
 
     // Maps free-text mood to one of the primary emotions, or '' if none match.
-    // Tries an exact lookup first, then a substring scan. The scan is loose, so
-    // short synonyms like "mad" or "fine" can match inside longer words.
+    // Order: the whole text, then each word as a whole word, then long phrases
+    // inside the text, then words that start with a longer known word (for
+    // endings like "frustrating"). Short keys such as "mad" or "fine" only
+    // match as whole words, so "made" or "define" no longer match them.
     function resolvePrimaryEmotion(moodText) {
-      const normalized = String(moodText || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const raw = String(moodText || '').toLowerCase();
+      const normalized = raw.replace(/[^a-z0-9]/g, '');
       if (!normalized) return '';
       if (EMOTION_LOOKUP[normalized]) return EMOTION_LOOKUP[normalized];
-      // Fall back to matching the mood text against any known word as a substring
-      // (handles multi-word moods like "quietly frustrated with him").
+      const tokens = raw.match(/[a-z0-9]+/g) || [];
+      for (const t of tokens) if (EMOTION_LOOKUP[t]) return EMOTION_LOOKUP[t];
       for (const key in EMOTION_LOOKUP) {
-        if (normalized.includes(key)) return EMOTION_LOOKUP[key];
+        if (key.length >= 6 && normalized.includes(key)) return EMOTION_LOOKUP[key];
+      }
+      for (const t of tokens) {
+        for (const key in EMOTION_LOOKUP) {
+          if (key.length >= 4 && t.startsWith(key)) return EMOTION_LOOKUP[key];
+        }
       }
       return '';
     }
@@ -4551,6 +4585,8 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
       if (!currentMood) return defaultAvatar;
 
       const normalizedMood = currentMood.replace(/[^a-z0-9]/g, '');
+      // A mood made only of symbols normalizes to '' and would match every caption.
+      if (!normalizedMood) return defaultAvatar;
       const captionOf = p => (p.caption || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
       // 1) Direct match against whatever the photo/sprite is actually captioned.
@@ -4562,7 +4598,7 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
 
       // 2) Local synonym resolution onto one of the 12 primary sprite emotions
       //    (e.g. "frustrated" -> angry, "nervous" -> embarrassed, "delighted" -> happy).
-      const primary = resolvePrimaryEmotion(normalizedMood);
+      const primary = resolvePrimaryEmotion(currentMood);
       if (primary) {
         const primaryWords = primary.split('_');
         const synonymMatch = photos.find(p => {
@@ -4890,8 +4926,8 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
         return `
           <div class="relative group rounded-xl overflow-hidden bg-slate-900 border ${isDefault ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-md' : 'border-slate-800'} flex flex-col justify-between p-2 transition space-y-1.5">
             <div class="relative aspect-square rounded-lg overflow-hidden bg-slate-950 flex items-center justify-center">
-              <img src="${photo.src}" alt="Portrait" class="w-full h-full object-contain" />
-              <button type="button" onclick="deleteAvatarPhoto(${pIdx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-200 hover:text-white flex items-center justify-center text-xs transition shadow" title="Delete Photo">
+              <img src="${escapeHtml(photo.src)}" alt="Portrait" class="w-full h-full object-contain" />
+              <button type="button" onclick="deleteAvatarPhoto(${pIdx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-200 hover:text-white flex items-center justify-center text-xs transition shadow" title="Delete Photo" aria-label="Close">
                 ✕
               </button>
               ${isDefault ? `
@@ -5262,7 +5298,7 @@ ${r.error||r.stage||'Verification failed.'}`,r.ok?'LLM Connected':'LLM Not Conne
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input value="${escapeHtml(o.name || '')}" placeholder="Outfit name" oninput="updateUserOutfit(${i}, 'name', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" />
           <input value="${escapeHtml(o.triggers || '')}" placeholder="Trigger words" oninput="updateUserOutfit(${i}, 'triggers', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-indigo-200" />
-          <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateUserOutfit(${i}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeUserOutfit(${i})" class="px-2 text-rose-400 bg-slate-900 rounded">✕</button></div>
+          <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateUserOutfit(${i}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeUserOutfit(${i})" class="px-2 text-rose-400 bg-slate-900 rounded" aria-label="Close">✕</button></div>
         </div>`).join('') || '<div class="text-[10px] text-slate-500">No outfits added.</div>';
     }
 
@@ -5455,9 +5491,7 @@ Preserve the character's described physical identity consistently. Frame the ima
       const perOutfit = typeof choice === 'object' && choice.extras && choice.extras.outfits === 'all' && outfits.length > 0;
       const backgroundMode = (typeof choice === 'object' && choice.extras && choice.extras.background === 'environment') ? 'environment' : 'neutral';
       const shotSize = (typeof choice === 'object' && choice.extras && PORTRAIT_SHOT_SIZES[choice.extras.shot]) ? choice.extras.shot : 'full';
-      const sideName = typeof target === 'string' && target !== 'user' ? target : '';
-      let rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || sideName).toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
-      if (sideName) rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === sideName.toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
+      const rawLogs = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && m.speakerName && m.speakerName.toLowerCase() === (char.name || '').toLowerCase()).slice(-20).map(m => `${m.speakerName}: ${m.text}`).join('\n');
       const jobs = perOutfit ? outfits.map(o => ({ outfit: o })) : [{ outfit: null }];
       let done = 0;
       let firstErr = null;
@@ -5613,7 +5647,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       body.innerHTML = `
         <p class="text-[11px] text-slate-400 leading-relaxed">Check that this is a clean <strong>4×4 grid of 16 separated sprites</strong> in the expected order before slicing. If the grid is wrong, cancel — the full 4K sheet stays in your Gallery so you can slice or edit it manually.</p>
         <div class="relative rounded-xl overflow-hidden border border-zetaBorder bg-slate-950">
-          <img id="spriteSheetPreviewImg" src="${dataUrl}" alt="Generated sprite sheet" class="w-full" />
+          <img id="spriteSheetPreviewImg" src="${escapeHtml(dataUrl)}" alt="Generated sprite sheet" class="w-full" />
           <div id="spriteSheetGridOverlay" class="absolute inset-0 pointer-events-none grid grid-cols-4 grid-rows-4">
             ${Array.from({ length: 16 }).map((_, i) => `<div class="border border-zetaAccent/40 flex items-start justify-start"><span class="text-[8px] bg-zetaAccent/80 text-white px-1 rounded-br">${i + 1}</span></div>`).join('')}
           </div>
@@ -6423,7 +6457,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
             </select>` : ''}
             <span class="text-[10px] text-slate-500 leading-tight flex-1 min-w-[10rem]">${LORE_CATEGORY_HINTS[cat]}</span>
           </div>
-          ${cat === 'location' ? `<input type="text" placeholder="Travel times from other places, e.g. Town=20, Old Mill=45 (minutes)" value="${escapeHtml(entry.travelFrom || '')}" oninput="getActiveScenario().lorebook[${index}].travelFrom = this.value" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-indigo-200" />` : ''}
+          ${cat === 'location' ? `<input type="text" placeholder="Travel times from other places, e.g. Town=20, Old Mill=45 (minutes)" value="${escapeHtml(entry.travelFrom || '')}" oninput="getActiveScenario().lorebook[${index}].travelFrom = this.value; saveState()" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-indigo-200" />` : ''}
           <div class="flex flex-wrap items-center gap-1">
             <span class="text-[10px] text-slate-500 mr-0.5">🔒 Known by:</span>
             <button type="button" onclick="clearLoreKnownBy(${index})" class="${loreChipClass(!known.length)}">Everyone</button>
@@ -6521,11 +6555,11 @@ All 16 sprites must be generated on a single clean image with a fully transparen
             <button type="button" onclick="removeLorebookRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300">Remove</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Title (e.g. City of Solitude, Shadow Blade)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
-            <input type="text" placeholder="Keywords (comma-separated)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
+            <input type="text" placeholder="Title (e.g. City of Solitude, Shadow Blade)" value="${escapeHtml(entry.title || '')}" oninput="getActiveScenario().lorebook[${index}].title = this.value; saveState()" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white" />
+            <input type="text" placeholder="Keywords (comma-separated)" value="${escapeHtml(entry.keywords || '')}" oninput="getActiveScenario().lorebook[${index}].keywords = this.value; saveState()" class="bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-indigo-200" />
           </div>
           ${loreCategoryControlsHtml(entry, index)}
-          <textarea placeholder="Description, lore context, history, or rules..." oninput="getActiveScenario().lorebook[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
+          <textarea placeholder="Description, lore context, history, or rules..." oninput="getActiveScenario().lorebook[${index}].content = this.value; saveState()" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(entry.content || '')}</textarea>
         </div>`).join('');
       const empty = `<div class="text-xs text-slate-500 text-center py-6">No codex entries yet. Add one, pick a template, or bulk-import a list.</div>`;
       container.innerHTML = loreToolbarHtml(scope) + (cards || empty);
@@ -6692,7 +6726,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       let text;
       let note = '';
       if (previewFormat === 'local') text = await buildSystemInstructionForLocalLLM({ contextCap: cap });
-      else { text = await buildSystemInstruction(false, false); note = buildStoryTurnNote(active); }
+      else { text = await buildSystemInstruction(false, false); note = buildStoryTurnNote(active, false); }
       const sections = [];
       const re = /\n\n(\[[A-Z][A-Z &\-]+\])/g;
       let m, last = 0, name = '[INTRO]';
@@ -6728,23 +6762,23 @@ All 16 sprites must be generated on a single clean image with a fully transparen
           return `
             <div class="p-3 bg-zetaCard border border-zetaAccent/40 rounded-xl space-y-2 relative shadow-sm">
               <span class="text-[11px] font-bold text-zetaAccent">Introduction (always active)</span>
-              <textarea placeholder="The opening premise -- what's happening as the story begins..." oninput="getActiveScenario().plotArcs[0].content = this.value" rows="3" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(arc.content || '')}</textarea>
+              <textarea placeholder="The opening premise -- what's happening as the story begins..." oninput="getActiveScenario().plotArcs[0].content = this.value; saveState()" rows="3" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(arc.content || '')}</textarea>
             </div>`;
         }
         const isChapterMode = arc.mode === 'chapter';
         return `
           <div class="p-3 bg-zetaCard border border-slate-700/80 rounded-xl space-y-2 relative shadow-sm">
             <div class="flex items-center justify-between gap-2">
-              <input type="text" placeholder="Arc label (e.g. The Betrayal)" value="${escapeHtml(arc.title || '')}" oninput="getActiveScenario().plotArcs[${index}].title = this.value" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs font-semibold text-indigo-200" />
+              <input type="text" placeholder="Arc label (e.g. The Betrayal)" value="${escapeHtml(arc.title || '')}" oninput="getActiveScenario().plotArcs[${index}].title = this.value; saveState()" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs font-semibold text-indigo-200" />
               <button type="button" onclick="removePlotArcRow(${index})" class="text-[11px] text-rose-400 hover:text-rose-300 shrink-0">Remove</button>
             </div>
-            <textarea placeholder="What happens in this arc..." oninput="getActiveScenario().plotArcs[${index}].content = this.value" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(arc.content || '')}</textarea>
+            <textarea placeholder="What happens in this arc..." oninput="getActiveScenario().plotArcs[${index}].content = this.value; saveState()" rows="2" class="w-full bg-zetaInput border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">${escapeHtml(arc.content || '')}</textarea>
             <div class="flex items-center gap-2 flex-wrap">
               <select onchange="setPlotArcMode(${index}, this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
                 <option value="dynamic" ${!isChapterMode ? 'selected' : ''}>Dynamic (AI decides when)</option>
                 <option value="chapter" ${isChapterMode ? 'selected' : ''}>Start at Chapter #</option>
               </select>
-              ${isChapterMode ? `<input type="number" min="1" step="1" value="${Number(arc.chapter) || 1}" oninput="getActiveScenario().plotArcs[${index}].chapter = Math.max(1, parseInt(this.value)||1)" class="w-16 bg-zetaInput border border-slate-700 rounded px-2 py-1 text-[11px] text-white" />` : ''}
+              ${isChapterMode ? `<input type="number" min="1" step="1" value="${Number(arc.chapter) || 1}" oninput="getActiveScenario().plotArcs[${index}].chapter = Math.max(1, parseInt(this.value)||1); saveState()" class="w-16 bg-zetaInput border border-slate-700 rounded px-2 py-1 text-[11px] text-white" />` : ''}
             </div>
           </div>`;
       }).join('');
@@ -7305,7 +7339,7 @@ All 16 sprites must be generated on a single clean image with a fully transparen
       const avatarSrc = charObj ? getCharacterActiveAvatar(charObj, moodOverride) : '';
       if (avatarSrc && !isNarrator) {
         stageBox.innerHTML = `
-          <img src="${avatarSrc}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-none transition" />
+          <img src="${escapeHtml(avatarSrc)}" alt="${escapeHtml(speakerName)}" class="max-h-full max-w-[85vw] sm:max-w-[70vw] w-auto h-auto object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] pointer-events-none transition" />
         `;
       } else if (!isNarrator && !isUser) {
         // Character has no avatar and no uploaded/generated photos at all —
@@ -7510,7 +7544,19 @@ All 16 sprites must be generated on a single clean image with a fully transparen
     function autoSaveSpotlightField(field,value){
       const found=findCharacterForSpotlight(currentSpotlightCharName); if(!found?.obj)return; const charObj=found.obj;
       if(field==='persona') charObj.personality=value;
-      charObj[field]=value; if(field==='name'&&value.trim()) currentSpotlightCharName=value.trim();
+      const oldNameLower=(charObj.name||'').trim().toLowerCase();
+      charObj[field]=value;
+      // Side characters are found again by the speaker name on their messages and stored under
+      // the lowercase name. So a rename must move that key and the message speakers too.
+      // Without it the next keystroke could not find the character and the edit was lost.
+      if(field==='name'&&value.trim()){
+        const act=getActiveScenario(); const newNameLower=value.trim().toLowerCase();
+        if(!found.isUser&&act.sideCharacterProfiles&&act.sideCharacterProfiles[oldNameLower]===charObj&&newNameLower!==oldNameLower&&!act.sideCharacterProfiles[newNameLower]){
+          delete act.sideCharacterProfiles[oldNameLower]; act.sideCharacterProfiles[newNameLower]=charObj;
+          (act.messages||[]).forEach(m=>{ if(m.speakerName&&m.speakerName.trim().toLowerCase()===oldNameLower) m.speakerName=value.trim(); });
+        }
+        currentSpotlightCharName=value.trim();
+      }
       if(spotlightSaveTimer)clearTimeout(spotlightSaveTimer); spotlightSaveTimer=setTimeout(async()=>{await saveState();renderSidebar();renderCharacterCardsSetup();if(getActiveScenario().viewMode==='vn')renderVnTurn(false);},500);
     }
 
@@ -8342,7 +8388,15 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
       // key exists at all.
       const maintEndpointInfo = await resolveActiveEndpoint();
       if(maintEndpointInfo.type!=='local' && !appState.apiKey) return;
-      const event=force?{type:'forced',fingerprint:turns.slice(-6).map(m=>m.id||m.text).join('|')} : detectSignificantRelationshipEvent(active.messages);
+      const rawEvent=force?{type:'forced',fingerprint:turns.slice(-6).map(m=>m.id||m.text).join('|')} : detectSignificantRelationshipEvent(active.messages);
+      // The keyword scan looks at the last 12 turns, so one matching turn stays
+      // visible for 12 more turns and used to trigger a paid call on each of
+      // them. After a relationship update, wait a few turns before the next one.
+      // A turn count below the saved one means turns were deleted, so reset.
+      const RELATIONSHIP_CHECK_GAP = 4;
+      const lastRelTurn = active.relationshipState && active.relationshipState.lastUpdateTurn;
+      const relGapOk = force || !Number.isFinite(lastRelTurn) || turns.length < lastRelTurn || (turns.length - lastRelTurn) >= RELATIONSHIP_CHECK_GAP;
+      const event = relGapOk ? rawEvent : null;
       // The fixed interval is now only a backstop for a quiet stretch with no
       // obvious new entity. A strong signal (an actual new named entity
       // appearing in recent dialogue) can trigger an extraction pass well
@@ -8371,7 +8425,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         // list actually usable, instead of leaving the model to guess field
         // names and format from the bare {"lorebook":[]} shape alone.
         const prompt=`Perform two background maintenance tasks in ONE response.\nA) Relationship maintenance: ${event?'A significant relationship event was detected; update only relationships clearly changed by it.':'No relationship update is needed; return an empty characters object.'} Preserve family/stable relationships.\nB) Lorebook maintenance: ${dueLore?`Extract only durable new facts introduced in RECENT STORY that are NOT already covered in EXISTING LORE -- new locations, factions, items/artifacts, secrets/revelations, backstory, rules of the world, or significant plot developments (a decision made, a promise, a discovery, a status change) even if no new proper noun is involved. Do NOT restate existing lore. Do NOT log routine dialogue or transient mood/scenery. For each entry return exactly {"title":"short name","keywords":"comma,separated,list,of,searchable,terms","content":"1-3 sentence factual summary","category":"world|location|object|character","character":"exact cast name if category is character, else empty"}. Pick category "location" for places, "object" for items/artifacts, "character" for a durable fact about one specific character (set "character" to their exact name), and "world" only for standing world rules or factions that should always apply. "keywords" MUST be a comma-separated list of 3-8 distinct short terms someone would plausibly mention later (the entity's name, aliases/nicknames, related place/item/character names, and the core topic) -- NOT a restated sentence or the title alone. Return at most 4 entries; omit anything not clearly durable.`:'Return an empty lorebook array.'}\nReturn STRICT JSON: {"characters":{},"lorebook":[{"title":"","keywords":"","content":"","category":"","character":""}]}\nCAST: ${cast.join(', ')}\nEXISTING RELATIONSHIPS:\n${relBaseline}\nEXISTING LORE:\n${loreExisting}\nRECENT STORY:\n${dialogue}`;
-        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json'},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
+        const payload={contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.18,maxOutputTokens:1400,responseMimeType:'application/json',thinkingConfig:{thinkingLevel:'minimal'}},service_tier:BACKGROUND_SERVICE_TIER,safetySettings:buildSafetySettings()};
         let parsed=null;
         if(maintEndpointInfo.type==='local'){
           try{
@@ -8408,7 +8462,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
           const finalKeywords = keywordTerms.size ? Array.from(keywordTerms).join(', ') : String(e.title);
           active.lorebook.push({id:'lore_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),title:String(e.title).slice(0,120),keywords:finalKeywords.slice(0,240),content:String(e.content).slice(0,900),category:normalizeLoreCategory(e.category),characterTag:normalizeLoreCategory(e.category)==='character'?String(e.character||'').slice(0,80):'',autoGenerated:true});
         }
-        active.relationshipState=active.relationshipState||{};if(event)active.relationshipState.lastUpdateFingerprint=event.fingerprint;if(dueLore&&active.localMemoryIndex)active.localMemoryIndex.lastLorebookAnalysisTurn=turns.length;await saveState();renderSidebar();renderLorebookSetup();
+        active.relationshipState=active.relationshipState||{};if(event){active.relationshipState.lastUpdateFingerprint=event.fingerprint;active.relationshipState.lastUpdateTurn=turns.length;}if(dueLore&&active.localMemoryIndex)active.localMemoryIndex.lastLorebookAnalysisTurn=turns.length;await saveState();renderSidebar();renderLorebookSetup();
       }catch(e){console.warn('Batched background maintenance skipped:',e.message)}finally{backgroundMaintenanceBusy=false}
     }
 
@@ -8496,7 +8550,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
       title.innerText = charName ? `${charName}'s Visual Library` : 'Character Visual';
       captionEl.innerText = active.kind === 'scene' ? `Scene Visual${active.timestamp ? ' · ' + active.timestamp : ''}` : (active.caption || 'Photo');
-      container.innerHTML = `<img src="${active.src}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[58vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
+      container.innerHTML = `<img src="${escapeHtml(active.src)}" alt="${escapeHtml(charName || 'Portrait')}" class="max-w-full max-h-[58vh] w-auto h-auto object-contain rounded-xl shadow-2xl" />`;
 
       if (active.kind === 'photo') {
         defaultBtnWrap.innerHTML = active.isDefault
@@ -8508,7 +8562,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
       thumbStrip.innerHTML = items.map((item, idx) => `
         <button type="button" onclick="photoLibraryShowIndex(${idx})" class="relative aspect-square shrink-0 w-[31%] sm:w-[31%] rounded-lg overflow-hidden border-2 ${idx === activeIndex ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-800'} bg-slate-950 transition snap-start">
-          <img src="${item.src}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
+          <img src="${escapeHtml(item.src)}" alt="${item.kind === 'scene' ? 'Scene visual' : escapeHtml(item.caption || 'Photo')}" class="w-full h-full object-cover" />
           ${item.isDefault ? `<span class="absolute top-1 left-1 bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow">⭐</span>` : ''}
           ${item.kind === 'scene' ? `<span class="absolute bottom-1 right-1 bg-black/70 text-[8px] text-slate-200 px-1 py-0.5 rounded">🎬</span>` : ''}
         </button>
@@ -8634,7 +8688,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
 
       const avatarBox = document.getElementById('spotlightAvatarBox');
       avatarBox.innerHTML = avatarSrc
-        ? `<img src="${avatarSrc}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-contain bg-slate-950 cursor-pointer" onclick="openCharacterPhotoModal('${escapeJsString(avatarSrc)}','${escapeJsString(charObj.name)}')" />`
+        ? `<img src="${escapeHtml(avatarSrc)}" alt="${escapeHtml(charObj.name)}" class="w-full h-full object-contain bg-slate-950 cursor-pointer" onclick="openCharacterPhotoModal('${escapeJsString(avatarSrc)}','${escapeJsString(charObj.name)}')" />`
         : `<span>${escapeHtml((charObj.name || '?')[0].toUpperCase())}</span>`;
       avatarBox.onclick = avatarSrc
         ? () => openCharacterPhotoModal(avatarSrc, charObj.name)
@@ -8801,13 +8855,13 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
               <div class="bg-zetaCard border border-slate-800 rounded-2xl p-2.5 space-y-2">
                 <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
                   onclick="openLightbox('${escapeJsString(s.src)}','${escapeJsString(s.characterName || 'Sprite Sheet')} — 4K sheet')">
-                  <img src="${s.src}" alt="${escapeHtml(s.characterName || 'Sprite sheet')}" class="w-full aspect-square object-cover" />
+                  <img src="${escapeHtml(s.src)}" alt="${escapeHtml(s.characterName || 'Sprite sheet')}" class="w-full aspect-square object-cover" />
                 </button>
                 <div class="text-[10px] font-semibold text-slate-200 truncate">${escapeHtml(s.characterName || 'Character')}</div>
                 <div class="text-[9px] text-slate-500">${escapeHtml(new Date(s.createdAt || Date.now()).toLocaleDateString())} · 4096×4096</div>
                 <div class="flex items-center gap-1.5">
-                  <button type="button" onclick="downloadSpriteSheetFromLibrary('${s.id}')" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">⬇️ 4K PNG</button>
-                  <button type="button" onclick="deleteSpriteSheetFromLibrary('${s.id}')" class="text-[10px] text-slate-500 hover:text-rose-400 px-1.5">🗑️</button>
+                  <button type="button" onclick="downloadSpriteSheetFromLibrary('${escapeJsString(s.id)}')" class="flex-1 bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-medium py-1.5 rounded-lg transition active:scale-95">⬇️ 4K PNG</button>
+                  <button type="button" onclick="deleteSpriteSheetFromLibrary('${escapeJsString(s.id)}')" class="text-[10px] text-slate-500 hover:text-rose-400 px-1.5">🗑️</button>
                 </div>
               </div>`).join('')}
           </div>
@@ -8827,7 +8881,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
                   </div>
                   <button type="button" class="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer"
                     onclick="openLightbox('${escapeJsString(m.imageUrl)}','${escapeJsString(m.text || m.prompt || 'Scene Visual')}')">
-                    <img src="${m.imageUrl}" alt="Scene visual" class="w-full aspect-video object-cover" />
+                    <img src="${escapeHtml(m.imageUrl)}" alt="Scene visual" class="w-full aspect-video object-cover" />
                   </button>
                   ${m.text ? `<p class="text-[11px] text-slate-400 leading-relaxed">${escapeHtml(m.text)}</p>` : ''}
                   <button type="button" onclick="deleteMessage(${originalIndex})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button>
@@ -8866,11 +8920,11 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         }
 
         const coverHtml = coverImg 
-          ? `<img src="${coverImg}" class="w-12 h-14 rounded-xl object-cover border border-slate-700 shrink-0 shadow" onerror="this.outerHTML='<div class=\\'w-12 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shrink-0\\'>📖</div>'" />`
+          ? `<img src="${escapeHtml(coverImg)}" class="w-12 h-14 rounded-xl object-cover border border-slate-700 shrink-0 shadow" onerror="this.outerHTML='<div class=\\'w-12 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-indigo-400 shrink-0\\'>📖</div>'" />`
           : `<div class="w-12 h-14 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg shrink-0 shadow">📖</div>`;
 
         return `
-          <div onclick="switchScenario('${s.id}')" class="p-2.5 rounded-2xl border transition flex items-center gap-3 cursor-pointer group ${isActive ? 'bg-indigo-950/60 border-indigo-500/80 shadow-md ring-1 ring-indigo-500/50' : 'bg-zetaCard border-slate-800 hover:border-slate-700'}">
+          <div onclick="switchScenario('${escapeJsString(s.id)}')" class="p-2.5 rounded-2xl border transition flex items-center gap-3 cursor-pointer group ${isActive ? 'bg-indigo-950/60 border-indigo-500/80 shadow-md ring-1 ring-indigo-500/50' : 'bg-zetaCard border-slate-800 hover:border-slate-700'}">
             ${coverHtml}
             <div class="overflow-hidden flex-1 min-w-0">
               <div class="flex items-center justify-between gap-1 mb-0.5">
@@ -8879,7 +8933,7 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
               </div>
               <p class="text-[11px] text-slate-400 line-clamp-2 leading-tight pr-1 italic">${escapeHtml(previewSnippet)}</p>
             </div>
-            <button onclick="event.stopPropagation(); deleteScenario('${s.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition active:scale-95 shrink-0" title="Delete Scenario">
+            <button onclick="event.stopPropagation(); deleteScenario('${escapeJsString(s.id)}')" class="p-2 text-slate-500 hover:text-rose-400 transition active:scale-95 shrink-0" title="Delete Scenario">
               🗑️
             </button>
           </div>
@@ -8915,7 +8969,9 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
       // the UI switch so the old scenario can never remain visible while IndexedDB writes.
       skipTypewriter();
       appState.activeScenarioId = id;
-      localStorage.setItem('zetaforge_active_scenario', id);
+      // localStorage can throw in private windows or when storage is full. The
+      // id is also saved with the app state below, so ignoring the error is safe.
+      try { localStorage.setItem('zetaforge_active_scenario', id); } catch (e) { /* ignore */ }
       currentVnIndex = 0;
       messageBranches = {};
       editingMessageId = null;
@@ -9408,6 +9464,15 @@ Rules:
         if (pasted.length >= 200) {
           source = { title: '', description: '', keywords: '', text: pasted.slice(0, 20000) };
         } else {
+          // Reading the page can send its public address (no share code) to two free
+          // reader relays when the site blocks direct reading. Ask once, then remember the answer.
+          let relayOk = false;
+          try { relayOk = localStorage.getItem('zf_zeta_relay_ok') === '1'; } catch (e) { /* storage unavailable */ }
+          if (!relayOk) {
+            const agreed = await zfConfirm('ZetaForge will request this page from zeta-ai.io. If the site blocks that, the page address (without your share code) is sent to two free reader services, api.allorigins.win and r.jina.ai. Continue? You will only be asked once.', 'Read the Zeta page', 'Continue');
+            if (!agreed) { status.innerText = 'Cancelled. You can paste the page text below instead.'; if (pasteWrap) pasteWrap.classList.remove('hidden'); return; }
+            try { localStorage.setItem('zf_zeta_relay_ok', '1'); } catch (e) { /* storage unavailable */ }
+          }
           status.innerText = 'Reading the page…';
           let page;
           try { page = await fetchZetaPlotPage(plot); }
@@ -9438,7 +9503,18 @@ Rules:
       if (!target) return;
 
       if (await zfConfirm(`Permanently delete "${target.title || 'this scenario'}" and all its logs from your device?`, 'Delete Scenario', 'Delete')) {
+        const deletedWasActive = appState.activeScenarioId === id;
         appState.scenarios = appState.scenarios.filter(s => s.id !== id);
+        // Deleting the open scenario switches to another one, so reset the same
+        // per scenario state switchScenario resets. Without this the VN index
+        // and the caches still pointed at turns of the deleted story.
+        if (deletedWasActive) {
+          resetPerScenarioCaches();
+          skipTypewriter();
+          currentVnIndex = 0;
+          messageBranches = {};
+          editingMessageId = null;
+        }
 
         if (appState.scenarios.length === 0) {
           const fresh = createScenarioTemplate('New Scenario');
@@ -9531,7 +9607,7 @@ Rules:
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <div class="flex items-center gap-1.5">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
-                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 rounded font-medium">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -9574,7 +9650,7 @@ Rules:
                 <div class="overflow-hidden flex-1 flex flex-col gap-1 cursor-pointer" onclick="openCharacterSpotlight('${escapeJsString(member.name)}')">
                   <div class="flex items-center gap-1.5 min-w-0">
                     <span class="font-bold text-xs sm:text-sm text-indigo-200 truncate leading-tight hover:underline">${escapeHtml(member.name)}</span>
-                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 py-0.2 rounded font-medium shrink-0">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
+                    <span class="text-[9px] bg-slate-800 text-amber-300 border border-slate-700 px-1.5 rounded font-medium shrink-0">🎭 ${escapeHtml(normalizeMoodTag(member.mood))}</span>
                   </div>
                   ${member.role ? `
                     <div class="flex flex-wrap gap-1">
@@ -9853,7 +9929,7 @@ JSON FORMAT:
     // The logo, PWA icon and save are debounced unless options.immediate is true.
     function applyAccentColor(color, options = {}) {
       if(!/^#[0-9a-f]{6}$/i.test(color)) return;
-      appState.accentColor=color.toLowerCase(); document.documentElement.style.setProperty('--zeta-accent',appState.accentColor); document.documentElement.style.setProperty('--zeta-accent-hover',shadeHex(appState.accentColor,-0.12)); document.documentElement.style.setProperty('--zeta-glow',shadeHex(appState.accentColor,0.18)); document.documentElement.style.setProperty('--zeta-light',shadeHex(appState.accentColor,0.55));
+      appState.accentColor=color.toLowerCase(); document.documentElement.style.setProperty('--zeta-accent',appState.accentColor); document.documentElement.style.setProperty('--zeta-accent-hover',shadeHex(appState.accentColor,-0.12)); document.documentElement.style.setProperty('--zeta-light',shadeHex(appState.accentColor,0.55));
       applyContainerTint(appState.accentColor);
       const val=document.getElementById('accentColorValue'); if(val)val.innerText=appState.accentColor.toUpperCase(); const picker=document.getElementById('accentColorPicker');if(picker)picker.value=appState.accentColor;
       // The above is cheap and runs live so dragging the picker feels instant.
@@ -9960,9 +10036,8 @@ JSON FORMAT:
 
     // --- TTS engine registry ---------------------------------------------
     // Kokoro stays the default: ~85MB, runs on phones, already tuned.
-    // Chatterbox is opt-in for desktop with WebGPU — far larger and heavier,
-    // but higher quality and expression-controllable.
-    const CHATTERBOX_MODEL_ID = 'onnx-community/chatterbox-ONNX';
+    // Kitten is an optional smaller engine. Chatterbox runs on your own
+    // laptop server (see chatterbox-laptop below), not in the browser.
     // The 80M "mini" variant, chosen over the 15M "nano" for the best
     // expressiveness the Kitten family offers, per KittenML's own quality
     // ranking of the three sizes (14M/40M/80M).
@@ -9989,13 +10064,6 @@ JSON FORMAT:
       'expr-voice-2-m': 'Bruno — male',
       'expr-voice-3-m': 'Hugo — male',
       'expr-voice-4-m': 'Leo — male'
-    };
-    const CHATTERBOX_VOICE_SETTINGS = {
-      cb_default: { exaggeration: 0.5 },
-      cb_warm:    { exaggeration: 0.35 },
-      cb_bright:  { exaggeration: 0.9 },
-      cb_grave:   { exaggeration: 0.25 },
-      cb_playful: { exaggeration: 0.75 }
     };
     // 'auto' resolves to whichever concrete engine resolveAutoTtsEngine() last
     // determined was best available (see that function, defined further
@@ -10064,7 +10132,6 @@ JSON FORMAT:
       }
 
       let engine = 'kokoro';
-      let cbPipe = null;
       let kittenPipe = null;
 
       self.onmessage = async (e) => {
@@ -10072,18 +10139,6 @@ JSON FORMAT:
         try {
           if (msg.type === 'load') {
             engine = msg.engine || 'kokoro';
-            if (engine === 'chatterbox') {
-              if (!cbPipe) {
-                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4/+esm');
-                cbPipe = await pipeline('text-to-speech', msg.modelId, {
-                  device: msg.webgpu ? 'webgpu' : 'wasm',
-                  dtype: 'q8',
-                  progress_callback: (p) => self.postMessage({ type: 'progress', progress: p })
-                });
-              }
-              self.postMessage({ type: 'loaded', engine: 'chatterbox' });
-              return;
-            }
             if (engine === 'kitten') {
               if (!kittenPipe) {
                 const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4/+esm');
@@ -10135,32 +10190,6 @@ JSON FORMAT:
             return;
           }
           if (msg.type === 'generate') {
-            if (engine === 'chatterbox') {
-              // Chatterbox is autoregressive with a per-call token cap, so long
-              // lines are split on sentence boundaries and stitched back
-              // together rather than being silently truncated.
-              const chunks = String(msg.text).match(/[^.!?]+[.!?]*/g) || [String(msg.text)];
-              const groups = []; let cur = '';
-              for (const c of chunks) {
-                if ((cur + c).length > 220 && cur) { groups.push(cur.trim()); cur = c; }
-                else cur += c;
-              }
-              if (cur.trim()) groups.push(cur.trim());
-              const parts = [];
-              let sr = 24000;
-              for (const g of groups) {
-                const out = await cbPipe(g, msg.cbOptions || {});
-                const arr = out.audio instanceof Float32Array ? out.audio : new Float32Array(out.audio);
-                sr = out.sampling_rate || sr;
-                parts.push(arr);
-              }
-              const total = parts.reduce((n, a) => n + a.length, 0);
-              const merged = new Float32Array(total);
-              let off = 0;
-              for (const a of parts) { merged.set(a, off); off += a.length; }
-              self.postMessage({ type: 'audio', id: msg.id, audio: merged, sampling_rate: sr }, [merged.buffer]);
-              return;
-            }
             if (engine === 'kitten') {
               // Voice selection here (speaker_embeddings keyed by voice id) is
               // a best-effort match to transformers.js's usual multi-speaker
@@ -10212,7 +10241,7 @@ JSON FORMAT:
           const m = e.data;
           if (m.type === 'progress') { try { workerProgressCb && workerProgressCb(m.progress); } catch (err) {} return; }
           if (m.type === 'blendUnsupported') { styleBlendSupported = false; return; }
-          if (m.type === 'loaded') { kokoroActiveDevice = m.device || (m.engine === 'chatterbox' ? (workerRequestedGpu ? 'webgpu' : 'wasm') : 'wasm'); if (!settled) { settled = true; resolve(kokoroWorker); } return; }
+          if (m.type === 'loaded') { kokoroActiveDevice = m.device || 'wasm'; if (!settled) { settled = true; resolve(kokoroWorker); } return; }
           const job = workerJobs.get(m.id);
           if (!job) {
             // A failure while loading the model has no job id (the 'load'
@@ -10245,7 +10274,7 @@ JSON FORMAT:
           const KOKORO_ALLOW_WEBGPU = false;
           const useGpu = KOKORO_ALLOW_WEBGPU && await webGpuAvailable();
           workerRequestedGpu = useGpu;
-          const modelId = engine === 'chatterbox' ? CHATTERBOX_MODEL_ID : engine === 'kitten' ? KITTEN_MODEL_ID : KOKORO_MODEL_ID;
+          const modelId = engine === 'kitten' ? KITTEN_MODEL_ID : KOKORO_MODEL_ID;
           kokoroWorker.postMessage({
             type: 'load',
             engine,
@@ -10657,14 +10686,6 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
 
       // Worker path — inference happens off the UI thread.
       if (engine && engine.worker) {
-        if (getActiveTtsEngine() === 'chatterbox') {
-          const settings = CHATTERBOX_VOICE_SETTINGS[primary] || CHATTERBOX_VOICE_SETTINGS.cb_default;
-          const res = await workerRequest({
-            type: 'generate', text: prepped,
-            cbOptions: { ...settings, speed: pace }
-          });
-          return pcmToAudioBuffer(res.audio, res.sampling_rate);
-        }
         const voiceSpec = (profile.blendVoice && blendWeight > 0)
           ? { primary, blend: profile.blendVoice, weight: blendWeight }
           : primary;
@@ -10898,8 +10919,15 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
 
     // Builds the cache key for one line from speaker, voice, blend, pace, pitch, emphasis and text (cut at 400 chars).
     // It does not include the pronunciation dictionary or the TTS engine.
+    // Builds the cache key for one rendered line. It covers every setting that changes the sound: voice,
+    // blend, pace, pitch, emphasis, the pronunciation dictionary (as a short hash) and the active engine.
+    // Without the last two, editing a pronunciation or switching engine kept playing the old audio.
     function vnAudioCacheKey(speakerName, text, profile) {
-      return `${speakerName}::${profile.voice}::${profile.blendVoice || ''}::${profile.blendWeight || 0}::${profile.pace || 1}::${profile.pitch || 0}::${profile.emphasis || 0}::${(text || '').slice(0, 400)}`;
+      const pron = String(profile.pronunciations || '');
+      let h = 5381;
+      for (let i = 0; i < pron.length; i++) h = ((h << 5) + h + pron.charCodeAt(i)) | 0;
+      const engine = (typeof getActiveTtsEngine === 'function' ? getActiveTtsEngine() : '') || '';
+      return `${speakerName}::${profile.voice}::${profile.blendVoice || ''}::${profile.blendWeight || 0}::${profile.pace || 1}::${profile.pitch || 0}::${profile.emphasis || 0}::${engine}::${h}::${(text || '').slice(0, 400)}`;
     }
     // Stores a { url, blob } entry and evicts the oldest entries past VN_AUDIO_CACHE_LIMIT (first in, first out).
     function cacheVnAudio(key, entry) {
@@ -12141,6 +12169,9 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
     let vlMediaRecorder = null;
     let vlRecordedChunks = [];
     let vlMediaStream = null;
+    // True while the microphone permission prompt is open. A second tap in that
+    // window used to start a second recorder and lose the first.
+    let vlRecordingStarting = false;
 
     // Record button. First tap starts the mic, second tap stops and sends the clip through finalizeVoiceLabReferenceClip().
     async function toggleVoiceLabRecording() {
@@ -12150,30 +12181,39 @@ Visual Profile: ${visualProfile || 'Not specified'}`;
         vlMediaRecorder.stop(); // onstop (below) does the actual processing
         return;
       }
+      if (vlRecordingStarting) return;
+      vlRecordingStarting = true;
       try {
-        vlMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        vlRecordedChunks = [];
-        vlMediaRecorder = new MediaRecorder(vlMediaStream);
-        vlMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) vlRecordedChunks.push(e.data); };
-        vlMediaRecorder.onstop = async () => {
-          vlMediaStream.getTracks().forEach(t => t.stop());
+        // The handlers below use these local copies, not the shared variables, so a new
+        // recording started before this one finishes processing cannot swap the data.
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const chunks = [];
+        const recorder = new MediaRecorder(stream);
+        vlMediaStream = stream;
+        vlRecordedChunks = chunks;
+        vlMediaRecorder = recorder;
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
           btn.innerText = '🎙️ Record';
           btn.classList.remove('bg-red-600', 'hover:bg-red-500');
           try {
             status.innerText = 'Processing recording…';
-            const blob = new Blob(vlRecordedChunks, { type: vlMediaRecorder.mimeType || 'audio/webm' });
+            const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
             const audioBuffer = await audioBufferFromArrayBuffer(await blob.arrayBuffer());
             await finalizeVoiceLabReferenceClip(audioBuffer, 'recorded');
           } catch (err) {
             status.innerText = 'Error: ' + (err?.message || 'could not process recording');
           }
         };
-        vlMediaRecorder.start();
+        recorder.start();
         btn.innerText = '⏹ Stop';
         btn.classList.add('bg-red-600', 'hover:bg-red-500');
         status.innerText = 'Recording… tap Stop when done (aim for 5-15s).';
       } catch (err) {
         status.innerText = 'Error: ' + (err?.message || 'microphone access failed — check the browser/site permission');
+      } finally {
+        vlRecordingStarting = false;
       }
     }
 
@@ -12664,15 +12704,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         return `
           <div class="flex gap-3 p-3 bg-zetaCard border ${isPinned ? 'border-zetaAccent' : 'border-slate-800'} rounded-xl mb-3">
             <button type="button" class="w-20 h-20 rounded-lg overflow-hidden border border-zetaBorder shrink-0 bg-slate-950" onclick="openLightbox('${escapeJsString(entry.url)}','${escapeJsString(entry.label || 'Backdrop')}')">
-              <img src="${entry.url}" class="w-full h-full object-cover" alt="${escapeHtml(entry.label || 'Backdrop')}" />
+              <img src="${escapeHtml(entry.url)}" class="w-full h-full object-cover" alt="${escapeHtml(entry.label || 'Backdrop')}" />
             </button>
             <div class="flex-1 min-w-0 space-y-1.5">
               <input type="text" value="${escapeHtml(entry.label || '')}" placeholder="Label (optional)" oninput="updateBackdropLibraryField('${entry.id}','label',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
               <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. forest, night, tavern)" oninput="updateBackdropLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
               ${entry.credit && entry.credit.pageURL ? `<a href="${escapeHtml(entry.credit.pageURL)}" target="_blank" rel="noopener" class="block text-[9px] text-slate-500 hover:text-slate-300 truncate">📷 ${escapeHtml(entry.credit.user || 'Pixabay')} · Pixabay</a>` : ''}
               <div class="flex items-center gap-1.5 pt-0.5">
-                <button type="button" onclick="pinBackdropFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
-                <button type="button" onclick="deleteBackdropFromLibrary('${entry.id}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
+                <button type="button" onclick="pinBackdropFromLibrary('${escapeJsString(entry.id)}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
+                <button type="button" onclick="deleteBackdropFromLibrary('${escapeJsString(entry.id)}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
               </div>
             </div>
           </div>
@@ -13270,10 +13310,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
               <input type="text" value="${escapeHtml((entry.keywords || []).join(', '))}" placeholder="Keywords, comma separated (e.g. tavern, night, battle)" oninput="updateMusicLibraryField('${entry.id}','keywords',this.value)" class="w-full bg-zetaInput border border-zetaBorder rounded px-2 py-1 text-xs text-white" />
             </div>
             ${entry.credit && entry.credit.pageURL ? `<a href="${escapeHtml(entry.credit.pageURL)}" target="_blank" rel="noopener" class="block text-[9px] text-slate-500 hover:text-slate-300 truncate">🎵 ${escapeHtml(entry.credit.who || '')} · ${escapeHtml(entry.credit.provider || 'Source')}${entry.credit.license ? ' · ' + escapeHtml(entry.credit.license) : ''}${entry.remote ? ' · streams online' : ''}</a>` : ''}
-            <audio controls preload="none" src="${entry.url}" class="w-full h-8"></audio>
+            <audio controls preload="none" src="${escapeHtml(entry.url)}" class="w-full h-8"></audio>
             <div class="flex items-center gap-1.5">
-              <button type="button" onclick="pinMusicFromLibrary('${entry.id}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
-              <button type="button" onclick="deleteMusicFromLibrary('${entry.id}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
+              <button type="button" onclick="pinMusicFromLibrary('${escapeJsString(entry.id)}')" class="text-[10px] ${isPinned ? 'bg-zetaAccent text-white' : 'bg-zetaInput hover:bg-zetaBorder text-slate-200'} border border-zetaBorder px-2 py-1 rounded-lg transition active:scale-95">${isPinned ? '📌 Pinned' : 'Pin as current'}</button>
+              <button type="button" onclick="deleteMusicFromLibrary('${escapeJsString(entry.id)}')" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg transition active:scale-95 ml-auto">Delete</button>
             </div>
           </div>
         `;
@@ -13554,7 +13594,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       if (!el) return;
       if (pmxState.tab !== 'jamendo') { el.innerHTML = ''; el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
-      el.innerHTML = PMX_MOODS.map(m => `<button type="button" onclick="pmxPickMood('${m}')" class="text-[10px] px-2 py-1 rounded-full border transition active:scale-95 ${pmxState.mood === m ? 'bg-zetaAccent text-white border-zetaAccent' : 'bg-zetaCard text-slate-300 border-zetaBorder hover:bg-zetaBorder'}">${m}</button>`).join('');
+      el.innerHTML = PMX_MOODS.map(m => `<button type="button" onclick="pmxPickMood('${escapeJsString(m)}')" class="text-[10px] px-2 py-1 rounded-full border transition active:scale-95 ${pmxState.mood === m ? 'bg-zetaAccent text-white border-zetaAccent' : 'bg-zetaCard text-slate-300 border-zetaBorder hover:bg-zetaBorder'}">${m}</button>`).join('');
     }
     // Shows either a "key saved / Change" line or the key entry form with sign-up help.
     function pmxRenderKeyRow() {
@@ -13584,8 +13624,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       return `<div class="flex items-center gap-2 p-2 bg-zetaCard border border-zetaBorder rounded-xl">
         ${t.image ? `<img src="${escapeHtml(t.image)}" referrerpolicy="no-referrer" loading="lazy" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0 bg-slate-950" />` : `<div class="w-10 h-10 rounded-lg bg-slate-900 border border-zetaBorder flex items-center justify-center text-base shrink-0">🎵</div>`}
         <div class="min-w-0 flex-1"><div class="text-xs text-slate-200 truncate">${escapeHtml(t.title)}</div><div class="text-[10px] text-slate-500 truncate">${escapeHtml(meta)}</div></div>
-        <button type="button" data-pmx-play="${escapeHtml(key)}" onclick="pmxPreview('${escapeHtml(key)}')" class="shrink-0 w-8 h-8 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-xs text-slate-200 active:scale-95 transition" aria-label="Preview">${pmxPreviewKey === key ? '⏸' : '▶'}</button>
-        <button type="button" data-pmx-add="${escapeHtml(key)}" onclick="pmxAdd('${escapeHtml(key)}')" ${added ? 'disabled' : ''} class="shrink-0 text-[10px] px-2 py-1.5 rounded-lg font-medium active:scale-95 transition ${added ? 'bg-slate-700 text-slate-300' : 'bg-zetaAccent hover:bg-zetaAccentHover text-white'}">${added ? '✓ Added' : '＋ Add'}</button>
+        <button type="button" data-pmx-play="${escapeHtml(key)}" onclick="pmxPreview('${escapeJsString(key)}')" class="shrink-0 w-8 h-8 rounded-lg bg-zetaInput hover:bg-zetaBorder border border-zetaBorder text-xs text-slate-200 active:scale-95 transition" aria-label="Preview">${pmxPreviewKey === key ? '⏸' : '▶'}</button>
+        <button type="button" data-pmx-add="${escapeHtml(key)}" onclick="pmxAdd('${escapeJsString(key)}')" ${added ? 'disabled' : ''} class="shrink-0 text-[10px] px-2 py-1.5 rounded-lg font-medium active:scale-95 transition ${added ? 'bg-slate-700 text-slate-300' : 'bg-zetaAccent hover:bg-zetaAccentHover text-white'}">${added ? '✓ Added' : '＋ Add'}</button>
       </div>`;
     }
     // Draws the search results list (loading, empty, no hits or track rows).
@@ -13915,7 +13955,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // ---- Import modal -----------------------------------------------------------
     // Switches the import modal between 'text', 'md' and 'json' panels and updates the action button.
     // The JSON button is disabled because JSON import uses its own file picker.
-    function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode!=='text');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
+    function setImportMode(mode){selectedImportMode=mode;for(const m of ['text','md','json'])document.getElementById('import'+m[0].toUpperCase()+m.slice(1)+'Panel')?.classList.toggle('hidden',m!==mode);/* The Append box applies to text and Markdown imports, so only JSON hides it. */document.getElementById('importAppendWrap')?.classList.toggle('hidden',mode==='json');const btn=document.getElementById('importActionBtn');if(btn){btn.innerText=mode==='text'?'Import Text':mode==='md'?'Import Markdown':'Select JSON File';btn.disabled=mode==='json';}}
     // Import button click. Text mode runs the import, markdown mode only tells the user to pick a file
     // because the file input starts the import itself.
     function processImportMode(){if(selectedImportMode==='text')processZetaImport();else if(selectedImportMode==='md')zfAlert('Choose a Markdown file above.');}
@@ -14298,7 +14338,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input value="${escapeHtml(o.name || '')}" placeholder="Outfit name" oninput="updateCharacterOutfit(${index}, ${oi}, 'name', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" />
                   <input value="${escapeHtml(o.triggers || '')}" placeholder="Trigger words" oninput="updateCharacterOutfit(${index}, ${oi}, 'triggers', this.value)" class="bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-indigo-200" />
-                  <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateCharacterOutfit(${index}, ${oi}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeCharacterOutfit(${index}, ${oi})" class="px-2 text-rose-400 bg-slate-900 rounded">✕</button></div>
+                  <div class="flex gap-1"><input value="${escapeHtml(o.description || '')}" placeholder="Description" oninput="updateCharacterOutfit(${index}, ${oi}, 'description', this.value)" class="flex-1 bg-zetaInput border border-slate-700 rounded px-2 py-1.5 text-[10px] text-white" /><button type="button" onclick="removeCharacterOutfit(${index}, ${oi})" class="px-2 text-rose-400 bg-slate-900 rounded" aria-label="Close">✕</button></div>
                 </div>`).join('')}
             </div>
           </div>
@@ -14609,7 +14649,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const clickAttr = isInteractive ? `onclick="openCharacterSpotlight('${escapeJsString(speakerName)}'); event.stopPropagation();"` : '';
 
       if (avatarSrc) {
-        return `<img src="${avatarSrc}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
+        return `<img src="${escapeHtml(avatarSrc)}" alt="${safeName}" ${clickAttr} class="${size} ${cursorClass} rounded-xl object-cover border border-slate-700 shadow shrink-0" onerror="handleAvatarError(this, '${escapeJsString(speakerName)}', ${isUser ? 'true' : 'false'}, '${size}')" />`;
       }
 
       if (!isNarrator && !isUser && !isMain) {
@@ -14699,7 +14739,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           <div class="space-y-2">
             <div class="flex items-center justify-between px-1">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Main Cast</span>
-              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 py-0.2 rounded">${active.characters.length}</span>
+              <span class="text-[9px] bg-slate-800 text-emerald-400 border border-slate-700 px-1.5 rounded">${active.characters.length}</span>
             </div>
             <div class="space-y-2.5">
               ${active.characters.map(c => `
@@ -14727,7 +14767,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           <div class="space-y-2 pt-1 border-t border-slate-800/80">
             <div class="flex items-center justify-between px-1">
               <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Side Characters (Present)</span>
-              <span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 py-0.2 rounded">${sideCharacters.length}</span>
+              <span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-800/60 px-1.5 rounded">${sideCharacters.length}</span>
             </div>
             <div class="space-y-2">
               ${sideCharacters.map(name => `
@@ -14876,12 +14916,25 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
       const blocksToPlay = active.viewMode === 'vn' ? splitOverlongBlocks(sourceBlocks) : mergeConsecutiveSameSpeakerBlocks(sourceBlocks);
 
+      // The loop is wrapped in try and finally so an error inside it (a failed
+      // render, a bad block) can not leave isTyping stuck on true, which would
+      // block later turns from playing.
+      try {
       for (let block of blocksToPlay) {
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const speaker = block.speaker || 'Narrator';
         const isNarrator = speaker.toLowerCase() === 'narrator' || speaker.toLowerCase() === 'scene';
         const fullText = formatDialogueSpacing((block.text || '').trim());
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+        // The user may have opened another scenario while this reply was still
+        // playing. Keep saving the rest of the reply into the scenario it
+        // belongs to, but stop drawing it, so it does not appear in the story
+        // that is now on screen.
+        if (getActiveScenario() !== active) {
+          active.messages.push({ id: msgId, role: 'model', speakerName: speaker, text: fullText, timestamp: timeStr, mood: block.mood || '' });
+          continue;
+        }
 
         // Kick off this block's audio now, in the background, rather than
         // waiting until the user is actually looking at it. The typewriter
@@ -14951,7 +15004,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         const step = 3; // characters revealed per 16 ms tick
 
         while (visibleChars < totalChars) {
-          if (activeTypewriter.skipFlag) {
+          if (activeTypewriter.skipFlag || getActiveScenario() !== active) {
             visibleChars = totalChars;
           } else {
             visibleChars = Math.min(visibleChars + step, totalChars);
@@ -14968,6 +15021,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           // stage now holds still and only the turn counter grows.
           if (liveMessage) {
             liveMessage.text = fullText.slice(0, visibleChars);
+            if (getActiveScenario() !== active) continue;
             const validNow = (active.messages || []).filter(mm => !mm.isImage && !mm.isChapterDivider);
             const liveIndex = validNow.indexOf(liveMessage);
             if (liveIndex !== -1 && currentVnIndex === liveIndex) {
@@ -14999,8 +15053,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           await new Promise(r => setTimeout(r, 220));
         }
       }
+      } finally {
+        activeTypewriter.isTyping = false;
+      }
 
-      activeTypewriter.isTyping = false;
       active.activeChapterArcs = null;
       await saveState();
       renderMessages();
@@ -15278,7 +15334,6 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const s = String(str || '').toLowerCase();
       let dow = null;
       const dm = /\b(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)\b/.exec(s);
-      if (dm) dow = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(dm[1].slice(0, 3));
       let minutes = null;
       let tm = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/.exec(s);
       if (tm) {
@@ -15287,7 +15342,14 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       } else if ((tm = /\b([01]?\d|2[0-3]):([0-5]\d)\b/.exec(s))) {
         minutes = Number(tm[1]) * 60 + Number(tm[2]);
       } else {
-        for (const [word, min] of Object.entries(PERIOD_MINUTES)) { if (s.includes(word)) { minutes = min; break; } }
+        // Whole words only, so "knight" does not match "night" and "withdrawn" does not match "dawn".
+        for (const [word, min] of Object.entries(PERIOD_MINUTES)) { if (new RegExp('\\b' + word + '\\b').test(s)) { minutes = min; break; } }
+      }
+      if (dm) {
+        // "sat", "sun", "wed" and "mon" are also ordinary words ("she sat down"). Accept those
+        // short forms only when the text also holds a time, or is nothing but the day.
+        const ambiguous = ['sat', 'sun', 'wed', 'mon'].includes(dm[1]);
+        if (!ambiguous || minutes !== null || s.trim() === dm[1]) dow = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(dm[1].slice(0, 3));
       }
       return { dow: dow === -1 ? null : dow, minutes };
     }
@@ -16125,10 +16187,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         <div class="border-t border-zetaBorder pt-2.5 space-y-2">
           <div class="text-[10px] uppercase tracking-wide text-slate-500">Atmosphere</div>
           <div class="grid grid-cols-4 gap-1">
-            ${WEATHER_PRESETS.map(w => `<button type="button" onclick="setClockWeather('${w.id}')" class="${chip(c.weather === w.id)}">${w.icon} ${w.label}</button>`).join('')}
+            ${WEATHER_PRESETS.map(w => `<button type="button" onclick="setClockWeather('${escapeJsString(w.id)}')" class="${chip(c.weather === w.id)}">${w.icon} ${w.label}</button>`).join('')}
           </div>
           <div class="grid grid-cols-4 gap-1">
-            ${CLOCK_SEASONS.map(sn => `<button type="button" onclick="setClockSeason('${sn}')" class="${chip(c.season === sn)}">${sn}</button>`).join('')}
+            ${CLOCK_SEASONS.map(sn => `<button type="button" onclick="setClockSeason('${escapeJsString(sn)}')" class="${chip(c.season === sn)}">${sn}</button>`).join('')}
           </div>
         </div>
         <div class="border-t border-zetaBorder pt-2.5 space-y-2">
@@ -16216,6 +16278,8 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         const tDow = d.dow == null ? clockDow(c) : d.dow;
         c.dow0 = (((tDow - (c.storyDay - 1)) % 7) + 7) % 7;
         if (d.minutes != null) c.minutes = d.minutes;
+        // Setting the time by hand replaces any automatic advance, so Retry must not undo it.
+        c.autoSnap = null;
         label = `Set the clock to ${describeClock(c)}`;
         directive = `[System directive: The story clock now reads ${describeClock(c)}. Continue the scene naturally from this moment.]`;
       } else {
@@ -16290,7 +16354,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             <div class="text-[10px] text-slate-400">${ev.kind === 'weekday' ? `Every ${CLOCK_WEEKDAYS[ev.dow]}` : `Story day ${ev.day}`}${ev.minutes != null ? ' · ' + formatClockTime(ev.minutes) : ''}${c.set ? ' · ' + escapeHtml(eventWhenText(ev, c, abs).replace(/ \d{1,2}:\d{2} [AP]M$/, '')) : ''}</div>
             ${ev.note ? `<div class="text-[11px] text-slate-300 mt-0.5">${escapeHtml(ev.note)}</div>` : ''}
           </div>
-          <button type="button" onclick="removeCalendarEvent('${ev.id}')" class="text-[11px] text-rose-400 hover:text-rose-300 shrink-0">Remove</button>
+          <button type="button" onclick="removeCalendarEvent('${escapeJsString(ev.id)}')" class="text-[11px] text-rose-400 hover:text-rose-300 shrink-0">Remove</button>
         </div>`).join('');
     }
     // Reads the event form, adds the event to the calendar, clears the form and saves.
@@ -16541,9 +16605,17 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
 
     // Gemini story turns: scene state + tagged lorebook appended to the last
     // user turn (the cached system prompt can't change turn to turn).
-    function buildStoryTurnNote(active) {
+    // Lists each main character's current mood. Moods change often, so they are
+    // sent with the per-turn note and kept out of the cached prompt.
+    function buildMoodStateText(active) {
+      const lines = (active.characters || []).map(c => `- ${c.name}: ${c.mood || 'Neutral'}`);
+      return lines.length ? `[CURRENT MOODS]\n${lines.join('\n')}` : '';
+    }
+    // includeMoods is false when the full system prompt is sent, because that
+    // prompt already lists the moods and they would repeat.
+    function buildStoryTurnNote(active, includeMoods = true) {
       const lore = buildLorebookContextText(active, 6000);
-      return [buildSceneStateText(active), lore, lore ? '[LOREBOOK RULE] ' + loreRuleText(lore) : ''].filter(Boolean).join('\n\n');
+      return [buildSceneStateText(active), includeMoods ? buildMoodStateText(active) : '', lore, lore ? '[LOREBOOK RULE] ' + loreRuleText(lore) : ''].filter(Boolean).join('\n\n');
     }
     // Returns a copy of the contents with note appended to the last user turn,
     // or as a new user turn if the last turn is not from the user.
@@ -16557,15 +16629,15 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     }
 
     // System prompt for the Gemini context cache. It leaves out scene state and
-    // per-turn lore. It still lists each character's mood, so any mood change
-    // alters the text and makes ensureContextCache build a new cache entry.
+    // per-turn lore. Character moods are left out too (they travel in the
+    // per-turn note), so a mood change does not force a new cache entry.
     function buildCachedSystemInstruction() {
       const active = getActiveScenario();
       const memoryIndex = active.localMemoryIndex || {};
       const compactRecaps = (memoryIndex.chapterRecaps || active.archivedRecaps || []).map(r => typeof r === 'string' ? r : (r.milestoneSummary || '')).filter(Boolean);
       const characterMemoryStr = Object.entries(memoryIndex.characterMemory || {}).map(([name,note]) => note ? `- ${name}: ${note}` : '').filter(Boolean).join('\n');
       const lore = (memoryIndex.lorebook || active.lorebook || []).slice(-20).map(e => `- ${e.title}: ${e.content}`).join('\n');
-      const charListStr = (active.characters || []).map(c => `- ${c.name} (${c.role || 'Companion'}): Persona=${getCharacterPersona(c)}; Relationship=${c.relationship || 'Companion'}; Mood=${c.mood || 'Neutral'}`).join('\n');
+      const charListStr = (active.characters || []).map(c => `- ${c.name} (${c.role || 'Companion'}): Persona=${getCharacterPersona(c)}; Relationship=${c.relationship || 'Companion'}`).join('\n');
       return `You are the interactive multi-character roleplay story engine for ZetaForge.\n\n[USER PERSONA]\nName: ${active.userPersona.name}\nRole: ${active.userPersona.role || 'Protagonist'}\nPersona: ${getCharacterPersona(active.userPersona) || 'Main character'}\n\n[MAIN CAST]\n${charListStr || 'Portray distinct, lively characters suited to the scene.'}\n\n[WORLD]\n${buildWorldContextText(active)}\n\n[PAST CHAPTER MEMORY]\n${compactRecaps.join('\n\n')}\n\n[CHARACTER MEMORY]\n${characterMemoryStr}\n\n[LOREBOOK MEMORY]\n${lore}\n\n[OUTPUT RULES]\nNever speak for the user. Preserve continuity. Each reacting character gets a separate turn. Wrap every physical action, gesture, expression, or internal thought in single asterisks (*like this*), kept separate from spoken dialogue -- never write action/thought narration as plain unformatted text. Output only JSON using compact keys s=speaker, m=mood, t=text.`;
     }
 
@@ -16836,8 +16908,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
-          lineTail += decoder.decode(value, { stream: true });
+          // At the end of the stream, treat whatever is left as one last full line. A server
+          // that does not end its final line with a newline used to lose that line.
+          if (done) lineTail += decoder.decode() + '\n';
+          else lineTail += decoder.decode(value, { stream: true });
           const lines = lineTail.split('\n');
           lineTail = lines.pop() || '';
           let grew = false;
@@ -16853,6 +16927,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             } catch (e) { /* partial/malformed SSE line -- the next chunk usually completes it */ }
           }
           if (grew && onChunk) onChunk(buffer);
+          if (done) break;
         }
       } finally {
         try { reader.cancel(); } catch (e) {}
@@ -16909,9 +16984,14 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
     // this particular poll landed, so this just tries again next tick.
     async function pollLocalJob(base, jobId, apiKey, onChunk) {
       activeLocalJobPollId = jobId;
+      // Stop after 20 minutes. A job that never reports done or error (server
+      // crash with a stale record, tunnel returning odd replies) would
+      // otherwise poll forever. Matches the stale cutoff in resumePendingLocalJob.
+      const pollDeadline = Date.now() + 20 * 60 * 1000;
       try {
         let lastText = '';
         while (true) {
+          if (Date.now() > pollDeadline) throw Object.assign(new Error('Local job timed out after 20 minutes without finishing.'), { skipRetry: true });
           await new Promise(r => setTimeout(r, 2000));
           let res;
           try {
@@ -17285,8 +17365,10 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
-          lineTail += decoder.decode(value, { stream: true });
+          // At the end of the stream, treat whatever is left as one last full line. A server
+          // that does not end its final line with a newline used to lose that line.
+          if (done) lineTail += decoder.decode() + '\n';
+          else lineTail += decoder.decode(value, { stream: true });
           const lines = lineTail.split('\n');
           lineTail = lines.pop() || '';
           let grew = false;
@@ -17303,6 +17385,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
             } catch (e) { /* partial SSE line -- the next chunk usually completes it */ }
           }
           if (grew && onChunk) onChunk(buffer);
+          if (done) break;
         }
       } finally {
         try { reader.cancel(); } catch (e) {}
@@ -17335,7 +17418,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(appState.apiKey)}`;
       let cachedName = '';
       if (model === MODEL_ROUTINE_DEFAULT && options.useCache !== false) cachedName = await ensureContextCache();
-      const sendContents = options.storyTurn ? withTrailingNote(contentsArray, buildStoryTurnNote(getActiveScenario())) : contentsArray;
+      const sendContents = options.storyTurn ? withTrailingNote(contentsArray, buildStoryTurnNote(getActiveScenario(), !!cachedName)) : contentsArray;
       const payload = {
         contents: sendContents,
         safetySettings: buildSafetySettings(),
@@ -18135,6 +18218,9 @@ REQUIREMENTS:
         return;
       }
 
+      // Narrate mode makes every paragraph a narrator line. Before, only the first
+      // paragraph got the @: prefix and the rest were sent as the user's own lines.
+      const narrateAll = isNarrateModeActive;
       if (isNarrateModeActive) {
         if (!rawText.startsWith('@:')) {
           rawText = '@: ' + rawText;
@@ -18149,7 +18235,7 @@ REQUIREMENTS:
 
       segments.forEach(seg => {
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-        if (seg.startsWith('@:')) {
+        if (narrateAll || seg.startsWith('@:')) {
           const cleanNarration = seg.replace(/^@:\s*/, '').trim();
           if (cleanNarration) {
             active.messages.push({
@@ -18440,7 +18526,7 @@ REQUIREMENTS:
         closeModal('exportModal');
       } catch (e) {
         console.error('Export failed:', e);
-        zfAlert(`Export failed: ${e?.message || e}. This usually means there was too much embedded image data for the browser to hold in memory at once — try again and choose "Skip Images" if prompted, or export the Markdown transcript instead.`, 'Export Failed');
+        zfAlert(`Export failed: ${e?.message || e}. This usually means there was too much embedded image data for the browser to hold in memory at once — try again and choose "Skip Media (Lighter)" if prompted, or export the Markdown transcript instead.`, 'Export Failed');
       }
     }
     // Groups a scenario's messages into chapters at each Chapter Chronicle
@@ -18490,6 +18576,17 @@ REQUIREMENTS:
     // Illustrated PDF export -- jsPDF loaded lazily from CDN (same on-demand
     // import pattern already used for kokoro-js/transformers.js) so scenarios
     // that never export a PDF never pay for the library at all.
+    // The built-in PDF fonts only cover Latin text (WinAnsi). Anything else
+    // would print as garbled spacing, so emoji are dropped and other symbols
+    // outside that range become a plain question mark.
+    function pdfSafeText(value) {
+      return String(value ?? '')
+        .replace(/[\u200B-\u200F\u2060\uFE0E\uFE0F]/g, '')
+        .replace(/\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1F3FB}-\u{1F3FF}]/gu, '')
+        .replace(/[^\n\t\u0020-\u007E\u00A0-\u00FF\u2013\u2014\u2018-\u201E\u2020-\u2022\u2026\u20AC\u2122]/gu, '?')
+        .replace(/ {2,}/g, ' ');
+    }
+
     async function exportStoryPdf(active, baseFilename) {
       const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm');
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -18503,12 +18600,12 @@ REQUIREMENTS:
         const size = opts.size || 10.5;
         doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
         doc.setFontSize(size);
-        const lines = doc.splitTextToSize(String(text || ''), maxW);
+        const lines = doc.splitTextToSize(pdfSafeText(text), maxW);
         lines.forEach(line => { ensureSpace(size * 1.4); doc.text(line, margin, y); y += size * 1.4; });
       };
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
-      doc.text(active.title || 'Interactive Story', margin, y + 10); y += 40;
+      doc.text(pdfSafeText(active.title || 'Interactive Story'), margin, y + 10); y += 40;
       if (active.setting) addWrapped(`Setting: ${active.setting}`);
       if (active.userPersona?.name) addWrapped(`User: ${active.userPersona.name}`);
       y += 6;
@@ -18518,7 +18615,7 @@ REQUIREMENTS:
         ensureSpace(60);
         y += 14;
         doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
-        doc.text(chapter.title, margin, y); y += 10;
+        doc.text(pdfSafeText(chapter.title), margin, y); y += 10;
         doc.setDrawColor(200);
         doc.line(margin, y, pageW - margin, y);
         y += 16;
@@ -18756,6 +18853,8 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
         }
       };
       reader.readAsText(file);
+      // Clear the picker so choosing the same file again still fires the change event.
+      event.target.value = '';
     }
 
     // Shows or hides the typing indicator with `message`, and disables or re-enables the send,
@@ -18791,11 +18890,14 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // For values placed inside '...' in a double-quoted inline onclick attribute. Escapes backslash and
-    // single quote for JS, and turns double quotes into &quot; for the attribute. Does not handle newlines.
+    // For values placed inside '...' in a double-quoted inline onclick attribute. Escapes backslash,
+    // single quote and line breaks for JS, then HTML-escapes & " < > for the attribute. The & step
+    // matters: the browser decodes entities in the attribute first, so a raw &#39; in the value
+    // would otherwise turn into a quote that ends the JS string.
     function escapeJsString(str) {
       if (!str) return '';
-      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
   
     // ADD-5: Search every scenario, not just the active one.
@@ -18824,7 +18926,7 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       out.innerHTML = `${hits.length} match${hits.length === 1 ? '' : 'es'} across ${new Set(hits.map(h => h.s.id)).size} scenario(s)${hits.length > 20 ? ' — showing first 20' : ''}
         <div class="flex flex-col gap-1 max-h-48 overflow-y-auto py-1">
           ${hits.slice(0, 20).map(h => `
-            <button type="button" onclick="jumpToScenarioMessage('${h.s.id}',${h.i})" class="text-left bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 hover:border-zetaAccent transition">
+            <button type="button" onclick="jumpToScenarioMessage('${escapeJsString(h.s.id)}',${h.i})" class="text-left bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 hover:border-zetaAccent transition">
               <div class="text-[9px] text-zetaGlow font-semibold truncate">${escapeHtml(h.s.title || 'Untitled')}${h.s.id === appState.activeScenarioId ? ' · current' : ''}</div>
               <div class="text-[10px] text-slate-300 truncate">${escapeHtml(h.m.speakerName || 'Message')}: ${escapeHtml((h.m.text || '').slice(0, 70))}</div>
             </button>`).join('')}
@@ -18894,8 +18996,13 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
     // same Kokoro pipeline the VN stage already uses for per-line playback.
     async function exportChapterAudio() {
       const active = getActiveScenario();
-      const turns = (active.messages || []).filter(m => !m.isImage && !m.isChapterDivider && (m.text || '').trim());
-      if (!turns.length) { await zfAlert('There are no story turns to export yet.', 'Nothing to Export'); return; }
+      // Only the current chapter is exported, as the menu text says. Messages
+      // from earlier chapters sit before the last chapter divider, so start after it.
+      const allMessages = active.messages || [];
+      let lastDivider = -1;
+      allMessages.forEach((m, i) => { if (m.isChapterDivider) lastDivider = i; });
+      const turns = allMessages.slice(lastDivider + 1).filter(m => !m.isImage && !m.isChapterDivider && (m.text || '').trim());
+      if (!turns.length) { await zfAlert('There are no story turns in the current chapter to export yet.', 'Nothing to Export'); return; }
       const voiced = turns.filter(m => {
         const name = String(m.speakerName || '').toLowerCase();
         const who = name === String(active.userPersona.name || '').toLowerCase() ? active.userPersona : (active.characters || []).find(c => String(c.name || '').toLowerCase() === name);
@@ -19032,7 +19139,9 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
     function filterMessageArchive(query){messageSearchQuery=String(query||'').trim().toLowerCase();if(globalSearchMode){renderGlobalSearchResults(messageSearchQuery);return;}const active=getActiveScenario();const matches=messageSearchQuery?(active.messages||[]).map((m,i)=>({m,i})).filter(x=>`${x.m.speakerName||''} ${x.m.text||''}`.toLowerCase().includes(messageSearchQuery)):[];const out=document.getElementById('messageSearchResults');if(out){if(!messageSearchQuery){out.innerHTML='';}else{out.innerHTML=`${matches.length} match${matches.length===1?'':'es'}${matches.length>12?' — showing first 12':''}<div class="flex gap-1 overflow-x-auto py-1 no-scrollbar">${matches.slice(0,12).map(x=>`<button type="button" onclick="jumpToMessage(${x.i})" class="shrink-0 max-w-[180px] truncate bg-zetaCard border border-zetaBorder rounded-lg px-2 py-1 text-[10px] text-zetaLight hover:text-white">${escapeHtml(x.m.speakerName||'Message')} · ${escapeHtml((x.m.text||'').slice(0,55))}</button>`).join('')}</div>`;}}if(messageSearchQuery){renderVirtualMessages(true,matches.map(x=>x.i));}else renderMessages();}
 
     // Clears any search filter, redraws the chat and scrolls message `index` into view.
-    function jumpToMessage(index){messageSearchQuery='';const input=document.getElementById('messageSearchInput');if(input)input.value='';renderVirtualMessages(true);requestAnimationFrame(()=>{const el=document.getElementById(`msg-${index}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});});}
+    // Clears any search and scrolls to message `index`. The chat only draws messages near the viewport, so the
+    // target may not exist in the page yet. Drawing a window around the target first guarantees it can be found.
+    function jumpToMessage(index){messageSearchQuery='';const input=document.getElementById('messageSearchInput');if(input)input.value='';chatStickToBottom=false;renderVirtualMessages(true,[index]);requestAnimationFrame(()=>{const el=document.getElementById(`msg-${index}`);if(el)el.scrollIntoView({behavior:'auto',block:'center'});});}
     // Measured-height virtualizer. The old fixed 110px estimate was the root
     // cause of scroll drift: real bubbles range from ~60px (one-liner) to
     // 400px+ (long narration), so spacer heights never matched the content
@@ -19125,8 +19234,8 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
       const topH=offsetForIndex(all,start),bottomH=Math.max(0,offsetForIndex(all,count)-offsetForIndex(all,end));const frag=document.createDocumentFragment();const top=document.createElement('div');top.className='virtual-chat-spacer';top.style.height=topH+'px';frag.appendChild(top);
       for(let index=start;index<end;index++){const m=all[index];if(messageSearchQuery&&!`${m.speakerName||''} ${m.text||''}`.toLowerCase().includes(messageSearchQuery))continue;const wrapper=document.createElement('div');wrapper.id=`msg-${index}`;wrapper.dataset.virtualIndex=index;
         if(m.isChapterDivider){wrapper.className='my-6 flex items-center gap-3';wrapper.innerHTML=`<div class="flex-1 h-px bg-slate-800"></div><div onclick="handleChapterDividerClick('${escapeJsString(m.id)}')" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-700/60 rounded-full text-[11px] font-semibold text-indigo-300 shadow cursor-pointer active:scale-95 transition" title="Tap to undo (most recent archive) or remove this chapter and renumber the rest">📖 ${escapeHtml(m.text||'')}</div><div class="flex-1 h-px bg-slate-800"></div>`;}
-        else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${m.imageUrl||''}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
-        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=stripMentionMarkersForDisplay(formatDialogueSpacing((m.text||'').trim()),getKnownSpeakerNames(active));const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${m.id}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${m.id}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${(m.editHistory&&m.editHistory.length)?`<button onclick="openMessageHistory('${m.id}')" class="text-[10px] text-slate-400 hover:text-indigo-400">🕘 History</button>`:''}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
+        else if(m.isImage){wrapper.className='my-3 flex flex-col items-center max-w-xl mx-auto w-full group';wrapper.innerHTML=`<div class="w-full bg-zetaCard border border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl overflow-hidden"><div class="flex items-center justify-between pb-2 px-1 text-[11px] text-indigo-300 font-semibold"><span>🎬 Scene Visual Snapshot</span><span class="text-[10px] text-slate-500 font-normal">${m.timestamp||''}</span></div><div class="relative overflow-hidden rounded-xl bg-slate-950 cursor-pointer aspect-video border border-slate-800/80" onclick="openLightbox('${escapeJsString(m.imageUrl||'')}','${escapeJsString(m.text||m.prompt||'')}')"><img src="${escapeHtml(m.imageUrl||'')}" alt="Visualized Scene" class="w-full h-full object-cover" /></div>${m.text?`<p class="mt-2 text-xs text-slate-300 italic px-1 leading-snug">${escapeHtml(m.text)}</p>`:''}</div><div class="flex items-center gap-2 mt-1"><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Remove Image</button></div>`;}
+        else{const rawSpeaker=m.speakerName||'';const isNarrator=['narrator','scene'].includes(rawSpeaker.toLowerCase());const isUser=!isNarrator&&(m.role==='user'||rawSpeaker.toLowerCase()===(active.userPersona.name||'').toLowerCase());const speaker=isNarrator?'Narrator':(m.speakerName||(isUser?active.userPersona.name:'Companion'));const cleanContent=stripMentionMarkersForDisplay(formatDialogueSpacing((m.text||'').trim()),getKnownSpeakerNames(active));const renderedHtml=marked.parse(cleanContent);const hasBranch=Boolean(messageBranches[m.id]);const isMostRecent=index===all.length-1&&!isUser;const isEditingThis=editingMessageId===m.id;wrapper.className=`flex gap-2.5 sm:gap-3.5 group ${isUser?'justify-end':'justify-start'}`;const bubbleOrEditor=isEditingThis?`<div class="space-y-2 w-full p-2 bg-slate-900 border border-indigo-500 rounded-2xl shadow-lg"><textarea id="edit-textarea-${m.id}" class="w-full bg-zetaInput border border-slate-700 rounded-xl p-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 resize-y min-h-[90px] leading-relaxed">${escapeHtml(m.text||'')}</textarea><div class="flex items-center justify-between text-[10px] text-slate-400 px-1"><span>⚠️ Saving will delete subsequent messages & branch timeline</span><div class="flex gap-1.5"><button onclick="cancelEditMessage()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Cancel</button><button onclick="saveEditMessage('${escapeJsString(m.id)}')" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow">Save & Branch</button></div></div></div>`:`<div class="msg-bubble rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm leading-relaxed prose prose-invert ${isUser?'bg-zetaUser border border-indigo-700/50 text-slate-200 rounded-tr-none':(isNarrator?'bg-slate-900/90 border border-slate-800 text-slate-300 rounded-tl-none italic':'bg-zetaCard border border-slate-800 text-slate-200 rounded-tl-none')} shadow-sm">${renderedHtml}</div>`;const actionRow=isEditingThis?'':`<div class="flex items-center gap-2 mt-1 ${isUser?'justify-end':'justify-start'}">${hasBranch?`<button onclick="undoBranch('${escapeJsString(m.id)}')" class="text-[10px] text-amber-400">↩️ Undo</button>`:`<button onclick="startEditMessage('${escapeJsString(m.id)}')" class="text-[10px] text-slate-400 hover:text-indigo-400">✏️ Edit</button>`}${(m.editHistory&&m.editHistory.length)?`<button onclick="openMessageHistory('${escapeJsString(m.id)}')" class="text-[10px] text-slate-400 hover:text-indigo-400">🕘 History</button>`:''}${isMostRecent?`<button onclick="retryLastTurn()" class="text-[10px] text-slate-400 hover:text-indigo-400">🔄 Retry</button>`:''}<button onclick="playMessageAudio(${index}, this)" class="text-[10px] text-slate-400 hover:text-indigo-400" title="Play this line aloud">🔊 Play</button><button onclick="deleteMessage(${index})" class="text-[10px] text-slate-500 hover:text-rose-400">🗑️ Del</button></div>`;wrapper.innerHTML=`${!isUser?getAvatarHtml(speaker,isUser,'w-8 h-8 sm:w-9 sm:h-9',true):''}<div class="max-w-[88%] sm:max-w-[80%] w-full"><div class="flex items-center gap-2 mb-1 ${isUser?'justify-end':'justify-start'}"><span onclick="openCharacterSpotlight('${escapeJsString(speaker)}')" class="text-[11px] sm:text-xs font-semibold cursor-pointer hover:underline ${isUser?'text-indigo-400':(isNarrator?'text-amber-300':'text-slate-200')}">${escapeHtml(speaker)}</span><span class="text-[9px] sm:text-[10px] text-slate-500">${m.timestamp||''}</span></div>${bubbleOrEditor}${actionRow}</div>${isUser?getAvatarHtml(speaker,true,'w-8 h-8 sm:w-9 sm:h-9',true):''}`;}
         frag.appendChild(wrapper);
       }
       const bottom=document.createElement('div');bottom.className='virtual-chat-spacer';bottom.style.height=bottomH+'px';frag.appendChild(bottom);container.replaceChildren(frag);
@@ -19318,6 +19427,7 @@ ${bodyHtml || '<p><i>(No content)</i></p>'}
         }).then(result=>{if(result===null)removeBackgroundFromPixelDataLegacy(pixelData,width,height);});
       }catch(e){removeBackgroundFromPixelDataLegacy(pixelData,width,height);}
     }
+
 </script>
 </body>
 </html>
