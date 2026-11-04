@@ -412,6 +412,24 @@
       margin-bottom: 0 !important;
     }
     .prose em { color: var(--zeta-light); font-style: italic; display: inline-block; margin-bottom: 0.2rem; }
+    /* Markdown code blocks and inline code wrap like normal text. A fenced block
+       used to keep each line on one row and run out of the bubble. Line breaks inside
+       the block are kept, and long lines break at the bubble edge. */
+    .prose pre, .prose-invert pre, pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    .prose pre, .prose-invert pre { margin: 0.4rem 0; }
+    .prose pre code, .prose-invert pre code, pre code {
+      white-space: inherit;
+      overflow-wrap: inherit;
+      word-break: inherit;
+      display: block;
+    }
+    .prose code, .prose-invert code { overflow-wrap: anywhere; word-break: break-word; }
     /* Range sliders: the native `accent-color` trick only reliably colors the
        thumb (and, inconsistently across browsers, the filled portion) — the
        unfilled track defaults to a system white/gray that reads as "white on
@@ -8747,9 +8765,17 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
         relGrid.innerHTML = members.map(member => {
           const rel = relationshipMap[member.name] ||
             (member.name.toLowerCase() === active.userPersona.name.toLowerCase() ? charObj.relationship : 'Acquaintance / Neutral');
-          return `<div class="flex items-center justify-between gap-2 p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg">
-            <span class="text-xs text-slate-300 truncate">${escapeHtml(member.name)}</span>
-            <span class="text-[10px] text-indigo-300 text-right">${escapeHtml(rel || 'Acquaintance / Neutral')}</span>
+          const fullText = String(rel || 'Acquaintance / Neutral').trim();
+          const shortText = shortRelationshipLabel(fullText);
+          const expandable = fullText.replace(/\s+/g, ' ') !== shortText;
+          // The name keeps its own line space. Only the short label sits beside it, and the
+          // full text opens underneath when the row is tapped.
+          return `<div class="bg-slate-900/70 border border-slate-800 rounded-lg overflow-hidden">
+            <${expandable ? 'button type="button"' : 'div'} ${expandable ? 'onclick="toggleRelationshipRow(this)" aria-expanded="false"' : ''} class="w-full flex items-start justify-between gap-2 p-2.5 text-left ${expandable ? 'hover:bg-slate-800/60 cursor-pointer' : ''}">
+              <span class="text-xs text-slate-200 font-medium min-w-0 break-words">${escapeHtml(member.name)}</span>
+              <span class="shrink-0 max-w-[55%] flex items-center gap-1 text-[10px] text-indigo-300 text-right"><span class="truncate">${escapeHtml(shortText)}</span>${expandable ? '<span class="rel-chevron text-slate-500 transition-transform" aria-hidden="true">▾</span>' : ''}</span>
+            </${expandable ? 'button' : 'div'}>
+            ${expandable ? `<div class="hidden px-2.5 pb-2.5 text-[11px] text-slate-300 leading-relaxed whitespace-pre-line break-words">${escapeHtml(fullText)}</div>` : ''}
           </div>`;
         }).join('');
       }
@@ -8766,6 +8792,38 @@ OUTPUT FORMAT: Return ONLY a valid JSON object matching this schema:
       const modal = document.getElementById('characterSpotlightModal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+    }
+
+    // Shortens a relationship description to a 1 to 3 word label for lists, for example
+    // "Childhood best friend who secretly resents him" becomes "Childhood best friend".
+    // It keeps the first clause, drops leading articles and possessives, takes up to three
+    // words and trims a dangling joining word. No model call is involved.
+    const REL_LABEL_CLAUSE_RE = /\s*(?:[.;:,!?()\u2013\u2014\/\n]|\s-\s|\s(?:who|that|which|because|but|although|though|since|while|and now|after|when|whose)\s)/i;
+    const REL_LABEL_LEAD_RE = /^(?:an?|the|my|your|his|her|their|our|its|he|she|they|is|are|was|were|fiercely|deeply|secretly|quietly|reluctantly|openly|barely|slightly|mostly|really|very|somewhat|surprisingly|incredibly|extremely|highly|truly|still|now|just)\s+/i;
+    const REL_LABEL_TRAIL_RE = /\s+(?:and|or|of|to|with|the|a|an|in|for|on|at|by|as|his|her|their)$/i;
+    function shortRelationshipLabel(text, maxWords = 3) {
+      let t = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!t) return '';
+      const cut = REL_LABEL_CLAUSE_RE.exec(t);
+      if (cut && cut.index > 0) t = t.slice(0, cut.index).trim();
+      let guard = 0;
+      while (REL_LABEL_LEAD_RE.test(t) && t.split(' ').length > 1 && guard++ < 3) t = t.replace(REL_LABEL_LEAD_RE, '');
+      let words = t.split(' ').filter(Boolean).slice(0, maxWords);
+      let out = words.join(' ');
+      guard = 0;
+      while (REL_LABEL_TRAIL_RE.test(out) && out.split(' ').length > 1 && guard++ < 3) out = out.replace(REL_LABEL_TRAIL_RE, '');
+      out = out.replace(/[\s,;:\-\u2013\u2014]+$/, '');
+      if (!out) out = String(text).trim().split(/\s+/).slice(0, maxWords).join(' ');
+      return out.charAt(0).toUpperCase() + out.slice(1);
+    }
+    // Opens or closes the full relationship text under a row in the character profile.
+    function toggleRelationshipRow(btn) {
+      const body = btn.nextElementSibling;
+      if (!body) return;
+      const open = body.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const chev = btn.querySelector('.rel-chevron');
+      if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
     }
 
     // Closes the spotlight modal. When called from a click, only a click on the backdrop itself closes it.
@@ -14016,7 +14074,7 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           });
         }
         if (id === 'usageCostModal') renderUsageCostModal();
-        if (id === 'relationshipGraphModal') renderRelationshipGraphModal();
+        if (id === 'relationshipGraphModal') { resetRelGraphView(); renderRelationshipGraphModal(); }
       } catch (e) {
         console.error('openModal sync error (modal will still open):', e);
         const indicator = document.getElementById('setupLoadingIndicator');
@@ -14102,11 +14160,34 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
       modal.classList.remove('flex');
     }
 
-    // Renders the cast (+ user persona) as nodes on a circle with an edge
-    // for every pair that actually has a recorded relationship label --
-    // user<->character from char.relationship, character<->character from
-    // char.relationships[otherName] (checked on either side, since only one
-    // of the pair may have been the one the AI/user set it on).
+    // Relationship graph view state. relGraphFocus is the name of the character whose
+    // lines are highlighted (null means none). relGraphEdit shows the dashed "+ Add"
+    // lines for every pair. Both reset each time the modal opens.
+    let relGraphFocus = null;
+    let relGraphEdit = false;
+    function resetRelGraphView() { relGraphFocus = null; relGraphEdit = false; }
+    // Focuses a character (tap again to clear), or clears focus when name is null.
+    function setRelGraphFocus(name) {
+      relGraphFocus = (name && name !== relGraphFocus) ? name : null;
+      renderRelationshipGraphModal();
+    }
+    // Turns the dashed "+ Add" lines for every pair on or off.
+    function toggleRelGraphEdit() { relGraphEdit = !relGraphEdit; renderRelationshipGraphModal(); }
+    // Closes the graph and opens the focused character's profile.
+    function openRelGraphFocusProfile() {
+      if (!relGraphFocus) return;
+      const name = relGraphFocus;
+      closeModal('relationshipGraphModal');
+      openCharacterSpotlight(name);
+    }
+
+    // Renders the cast (+ user persona) as nodes on a circle. Lines are drawn only for
+    // pairs that have a recorded relationship: user<->character from char.relationship,
+    // character<->character from char.relationships[otherName] (checked on either side,
+    // since only one of the pair may have been the one the AI/user set it on). Line
+    // labels use the 1 to 3 word short form. Tapping a name focuses that character:
+    // everyone else is dimmed and that character's lines, including empty "+ Add"
+    // ones, show up. "Edit links" shows the "+ Add" lines for every pair.
     function renderRelationshipGraphModal() {
       const container = document.getElementById('relationshipGraphContainer');
       if (!container) return;
@@ -14122,17 +14203,14 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
         ...chars.map(c => ({ name: c.name, isUser: false, avatar: c.avatar || '' }))
       ];
       const n = nodes.length;
-      const size = 520, cx = size / 2, cy = size / 2, radius = Math.min(cx, cy) - 74;
+      if (relGraphFocus && !nodes.some(nd => nd.name === relGraphFocus)) relGraphFocus = null;
+      // The canvas grows past 8 people so the names keep their spacing.
+      const size = 520 + Math.max(0, n - 8) * 40, cx = size / 2, cy = size / 2, radius = Math.min(cx, cy) - 74;
       nodes.forEach((node, i) => {
         const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
         node.x = cx + radius * Math.cos(angle);
         node.y = cy + radius * Math.sin(angle);
       });
-      // Every pair gets an edge now, not just pairs that already have a label
-      // -- an unlabeled edge renders as a faint dashed line with a "+ Add"
-      // tag instead of being omitted entirely, so the graph doubles as an
-      // input surface (tap any line, labeled or not, to set/edit it right
-      // there) instead of just a read-only view of whatever's already set.
       const edges = [];
       chars.forEach(c => {
         const label = String(c.relationship || '').trim();
@@ -14145,41 +14223,67 @@ Respond with ONLY a JSON array, one object per character, no prose and no code f
           edges.push({ a: nodes.findIndex(nd => !nd.isUser && nd.name === ci.name), b: nodes.findIndex(nd => !nd.isUser && nd.name === cj.name), label, aName: ci.name, aIsUser: false, bName: cj.name, bIsUser: false });
         }
       }
+      const focus = relGraphFocus;
+      const touchesFocus = e => !!focus && (e.aName === focus || e.bName === focus);
+      // Which lines are drawn: every labeled one, plus the empty ones in Edit mode or on the focused character.
+      const shown = edges.filter(e => e.label || relGraphEdit || touchesFocus(e));
+      // Characters with a drawn, labeled line to the focused one stay bright.
+      const linked = new Set();
+      if (focus) shown.forEach(e => { if (e.label && touchesFocus(e)) { linked.add(e.aName); linked.add(e.bName); } });
+
       let svg = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-auto" style="min-height:340px">`;
-      edges.forEach(e => {
+      // A transparent backdrop so a tap on empty space clears the focus.
+      svg += `<rect x="0" y="0" width="${size}" height="${size}" fill="transparent" onclick="setRelGraphFocus(null)"/>`;
+      // Dimmed lines first, so the focused lines are painted on top of them.
+      const ordered = shown.slice().sort((x, y) => Number(touchesFocus(x)) - Number(touchesFocus(y)));
+      ordered.forEach(e => {
         const A = nodes[e.a], B = nodes[e.b];
         if (!A || !B) return;
         const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
         const hasLabel = !!e.label;
-        const shortLabel = hasLabel ? (e.label.length > 16 ? e.label.slice(0, 15) + '…' : e.label) : '+ Add';
-        const lineColor = hasLabel ? '#493a72' : '#332a4d';
+        const dim = !!focus && !touchesFocus(e);
+        const shortLabel = hasLabel ? shortRelationshipLabel(e.label, 3) : '+ Add';
+        const lineColor = touchesFocus(e) ? (hasLabel ? '#8f78e6' : '#5d4d8f') : (hasLabel ? '#493a72' : '#332a4d');
         const boxFill = hasLabel ? '#1a1626' : '#15111f';
-        const boxStroke = hasLabel ? '#3d3159' : '#2a2340';
+        const boxStroke = touchesFocus(e) ? '#7c65e8' : (hasLabel ? '#3d3159' : '#2a2340');
         const textColor = hasLabel ? '#c9bdf0' : '#75688f';
+        const boxW = Math.max(34, Math.min(120, shortLabel.length * 5 + 14));
         const onClick = `editGraphRelationship('${escapeJsString(e.aName)}', ${e.aIsUser}, '${escapeJsString(e.bName)}', ${e.bIsUser})`;
-        svg += `<g style="cursor:pointer" onclick="${onClick}">`;
-        svg += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}" stroke="${lineColor}" stroke-width="1.5" ${hasLabel ? '' : 'stroke-dasharray="3,3"'}/>`;
-        svg += `<rect x="${(mx - 40).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="80" height="16" rx="4" fill="${boxFill}" stroke="${boxStroke}" stroke-width="1"/>`;
+        svg += `<g style="${dim ? 'opacity:.12;pointer-events:none' : 'cursor:pointer'}" onclick="${onClick}">`;
+        svg += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}" stroke="${lineColor}" stroke-width="${touchesFocus(e) ? 2 : 1.5}" ${hasLabel ? '' : 'stroke-dasharray="3,3"'}/>`;
+        svg += `<rect x="${(mx - boxW / 2).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="${boxW}" height="16" rx="4" fill="${boxFill}" stroke="${boxStroke}" stroke-width="1"/>`;
         svg += `<text x="${mx.toFixed(1)}" y="${(my + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="${textColor}">${escapeHtml(shortLabel)}</text>`;
         svg += `</g>`;
       });
       nodes.forEach((node, i) => {
         const r = node.isUser ? 27 : 22;
-        const safeName = escapeJsString(node.name || '');
-        svg += `<g style="cursor:pointer" onclick="closeModal('relationshipGraphModal');openCharacterSpotlight('${safeName}')">`;
+        const faded = !!focus && node.name !== focus && !linked.has(node.name);
+        svg += `<g style="cursor:pointer;${faded ? 'opacity:.35' : ''}" onclick="setRelGraphFocus('${escapeJsString(node.name || '')}')">`;
         if (node.avatar) {
           svg += `<clipPath id="rgClip${i}"><circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}"/></clipPath><image href="${escapeHtml(node.avatar)}" x="${(node.x - r).toFixed(1)}" y="${(node.y - r).toFixed(1)}" width="${r * 2}" height="${r * 2}" clip-path="url(#rgClip${i})" preserveAspectRatio="xMidYMid slice"/>`;
         } else {
           svg += `<circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}" fill="${node.isUser ? '#7c65e8' : '#332a4d'}"/>`;
           svg += `<text x="${node.x.toFixed(1)}" y="${(node.y + 4).toFixed(1)}" text-anchor="middle" font-size="14" fill="white" font-weight="bold">${escapeHtml((node.name || '?').slice(0, 1).toUpperCase())}</text>`;
         }
-        svg += `<circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}" fill="none" stroke="${node.isUser ? '#a996f5' : '#5a4a85'}" stroke-width="2"/>`;
+        svg += `<circle cx="${node.x.toFixed(1)}" cy="${node.y.toFixed(1)}" r="${r}" fill="none" stroke="${node.name === focus ? '#ffffff' : (node.isUser ? '#a996f5' : '#5a4a85')}" stroke-width="${node.name === focus ? 3 : 2}"/>`;
         svg += `<text x="${node.x.toFixed(1)}" y="${(node.y + r + 13).toFixed(1)}" text-anchor="middle" font-size="10" fill="#e5e0ff" font-weight="600">${escapeHtml((node.name || '').slice(0, 14))}</text>`;
         svg += `</g>`;
       });
       svg += `</svg>`;
-      const note = `<div class="text-[10px] text-slate-500 text-center mb-1">Tap a name to open that character's spotlight. Tap any connecting line -- solid or dashed "+ Add" -- to set or edit that relationship right here.</div>`;
-      container.innerHTML = note + svg;
+      const emptyCount = edges.filter(e => !e.label).length;
+      const bar = focus
+        ? `<div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+             <span class="text-[11px] text-slate-300 min-w-0 break-words">Showing <b class="text-white">${escapeHtml(focus)}</b>. Tap a line to edit it, or the empty space to clear.</span>
+             <span class="flex gap-1.5 shrink-0">
+               <button type="button" onclick="openRelGraphFocusProfile()" class="px-2 py-1 rounded-lg bg-zetaAccent hover:bg-zetaAccentHover text-white text-[10px] font-semibold">Open profile</button>
+               <button type="button" onclick="setRelGraphFocus(null)" class="px-2 py-1 rounded-lg bg-zetaCard hover:bg-zetaBorder border border-zetaBorder text-slate-200 text-[10px] font-medium">Clear</button>
+             </span>
+           </div>`
+        : `<div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+             <span class="text-[10px] text-slate-500 min-w-0">Tap a name to focus on that character. Tap a line to edit its relationship.</span>
+             <button type="button" onclick="toggleRelGraphEdit()" aria-pressed="${relGraphEdit}" class="px-2 py-1 rounded-lg border text-[10px] font-medium shrink-0 ${relGraphEdit ? 'bg-zetaAccent border-zetaAccent text-white' : 'bg-zetaCard border-zetaBorder text-slate-200 hover:bg-zetaBorder'}">${relGraphEdit ? 'Hide empty links' : `Show empty links (${emptyCount})`}</button>
+           </div>`;
+      container.innerHTML = bar + svg;
     }
 
     // Lets a relationship be set/edited directly from a connecting line in
